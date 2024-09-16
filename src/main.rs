@@ -11,11 +11,16 @@
 // the MIT license, <LICENSE-MIT> or <http://opensource.org/licenses/MIT>,
 // at your option.
 //
+use std::ffi::OsString;
+
 use clap::Parser;
 use log::{info, Record, Level, Metadata};
 
 // Command-line interface
 mod cli;
+
+// Subcommand implementations
+mod build;
 
 // Logger implementation
 struct Logger;
@@ -52,7 +57,7 @@ fn main() {
     match &cli.command {
         // Run the full pipeline
         Some(cli::Commands::Build {
-	    input,
+	    seq_files,
 	    input_list,
 	    output_prefix,
 	    num_threads,
@@ -62,7 +67,20 @@ fn main() {
         }) => {
 	    init_log(if *verbose { 2 } else { 1 });
 	    info!("Building SBWT index");
-        },
+
+            let sbwt_params = build::SBWTParams {
+		num_threads: *num_threads,
+		mem_gb: *mem_gb,
+		temp_dir: Some(std::path::PathBuf::from(OsString::from(temp_dir.clone().unwrap()))),
+		index_prefix: output_prefix.clone(),
+                ..Default::default()
+            };
+
+	    // TODO handle multiple files and `input_list`
+	    let (sbwt, lcs) = build::build_sbwt(&seq_files[0], &Some(sbwt_params.clone()));
+	    build::serialize_sbwt(sbwt, &lcs, &Some(sbwt_params));
+
+	},
         Some(cli::Commands::Map {
         }) => todo!(),
 	None => {}

@@ -13,6 +13,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 ## core
+jseqio = "0.1.2"
 sbwt = "0.3.1"
 
 ## cli
