@@ -21,6 +21,7 @@ mod cli;
 
 // Subcommand implementations
 mod build;
+mod map;
 
 // Logger implementation
 struct Logger;
@@ -66,7 +67,7 @@ fn main() {
 	    verbose,
         }) => {
 	    init_log(if *verbose { 2 } else { 1 });
-	    info!("Building SBWT index");
+	    info!("Building SBWT index...");
 
             let sbwt_params = build::SBWTParams {
 		num_threads: *num_threads,
@@ -77,12 +78,31 @@ fn main() {
             };
 
 	    // TODO handle multiple files and `input_list`
+	    info!("Serializing SBWT index...");
 	    let (sbwt, lcs) = build::build_sbwt(&seq_files[0], &Some(sbwt_params.clone()));
 	    build::serialize_sbwt(sbwt, &lcs, &Some(sbwt_params));
 
 	},
         Some(cli::Commands::Map {
-        }) => todo!(),
+	    seq_files,
+	    input_list,
+	    index_prefix,
+	    verbose,
+        }) => {
+	    init_log(if *verbose { 2 } else { 1 });
+	    info!("Loading SBWT index...");
+
+	    let query_params = map::QueryParams {
+		index_prefix: index_prefix.clone(),
+		..Default::default()
+	    };
+
+	    let (sbwt, lcs) = map::load_sbwt(&Some(query_params));
+
+	    info!("Querying SBWT index...");
+	    // TODO handle multiple files and `input_list`
+	    map::query_sbwt(&seq_files[0], &sbwt, &lcs);
+	},
 	None => {}
     }
 }

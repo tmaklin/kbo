@@ -54,5 +54,20 @@ pub enum Commands {
 
     // Map query against SBWT index
     Map {
+	// Input fasta or fastq query file(s)
+        #[arg(group = "input", required = true)]
+        seq_files: Vec<String>,
+
+	// Input sequence list
+        #[arg(short = 'l', long = "input-list", group = "input", required = true, help_heading = "Input")]
+        input_list: Option<String>,
+
+	// Index name
+        #[arg(short = 'i', long = "index", group = "input", required = true, help_heading = "Index")]
+        index_prefix: Option<String>,
+
+	// Verbosity
+        #[arg(long = "verbose", default_value_t = false)]
+        verbose: bool,
     },
 }
