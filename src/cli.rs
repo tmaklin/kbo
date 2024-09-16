@@ -27,10 +27,10 @@ pub enum Commands {
     Build {
         // Input fasta or fastq sequence file(s)
         #[arg(group = "input", required = true)]
-        input: Vec<String>,
+        seq_files: Vec<String>,
 
 	// Input sequence list
-        #[arg(short = 'l', long = "input-list", group = "input", required = true)]
+        #[arg(short = 'l', long = "input-list", group = "input", required = true, help_heading = "Input")]
         input_list: Option<String>,
 
 	// Outputs
