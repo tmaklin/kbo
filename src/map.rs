@@ -125,7 +125,7 @@ fn run_to_aln(
     } else if curr == next - 1 && curr > 0 {
 	res[*pos] = 'M';
     } else if curr == 0 && next == 1 && prev > 0 {
-	res[*pos] = 'I';
+	res[*pos] = 'X';
 	res[*pos - 1] = 'M';
     } else if curr == 0 && next == 1 && prev == -1 {
 	let mut next_gap: usize = pos.clone();
@@ -135,7 +135,7 @@ fn run_to_aln(
 	    next_gap -= 1;
 	}
 	// TODO determine based on k and threshold: k - 2*threshold ?
-	while *pos < *pos + gap_len {
+	while *pos < *pos + gap_len && *pos < runs.len() {
 	    res[*pos] = if gap_len > 29 { '-' } else { 'I' };
 	    *pos += 1;
 	}
@@ -163,7 +163,7 @@ pub fn translate_ms(
     }
 
     // Traverse the runs in reverse
-    for mut i in 3..len {
+    for mut i in 3..(len - 1) {
 	run_to_aln(&runs, ms[i], threshold, k, &mut aln, &mut i);
     }
 
