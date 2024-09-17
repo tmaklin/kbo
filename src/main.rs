@@ -101,7 +101,11 @@ fn main() {
 
 	    info!("Querying SBWT index...");
 	    // TODO handle multiple files and `input_list`
-	    map::query_sbwt(&seq_files[0], &sbwt, &lcs);
+	    let ms = map::query_sbwt(&seq_files[0], &sbwt, &lcs);
+
+	    info!("Translating result...");
+	    let ms_vec = ms.iter().map(|x| x.0).collect::<Vec<usize>>();
+	    map::translate_ms(&ms_vec);
 	},
 	None => {}
     }
