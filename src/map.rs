@@ -144,9 +144,9 @@ fn run_to_aln(
     };
 }
 
-pub fn translate_ms(
+pub fn derandomize_ms(
     ms: &Vec<usize>,
-) -> Vec<char> {
+) -> Vec<i64> {
     // TODO get k from index, calculate thrsehold from num kmers in index
     let k = 31;
     let threshold = 14;
@@ -154,7 +154,6 @@ pub fn translate_ms(
     let len = ms.len();
 
     let mut runs: Vec<i64> = vec![0; len];
-    let mut aln = vec![' '; len];
 
     // Traverse the matching statistics in reverse
     runs[len - 1] = ms[len - 1] as i64;
@@ -162,10 +161,51 @@ pub fn translate_ms(
 	runs[len - i] = ms_to_run(ms[len - i], ms[len - i + 1], runs[len - i + 1], threshold, k);
     }
 
-    // Traverse the runs in reverse
+    return runs;
+}
+
+
+pub fn translate_runs(
+    ms: &Vec<usize>,
+    runs: &Vec<i64>,
+) -> Vec<char> {
+    // TODO get k from index, calculate thrsehold from num kmers in index
+    let k = 31;
+    let threshold = 14;
+
+    let len = runs.len();
+    let mut aln = vec![' '; len];
+
+    // Traverse the runs
     for mut i in 3..(len - 1) {
 	run_to_aln(&runs, ms[i], threshold, k, &mut aln, &mut i);
     }
 
     return aln;
+}
+
+pub fn run_lengths(
+    aln: &Vec<char>,
+) -> Vec<(usize, usize, usize, usize)> {
+    // Store run lengths as Vec<(start, end, matches, mismatches)>
+    let mut encodings: Vec<(usize, usize, usize, usize)> = Vec::new();
+
+    let mut i = 0;
+    let mut match_start: bool = false;
+    while i < aln.len() {
+	match_start = (aln[i] != '-' && aln[i] != ' ') && !match_start;
+	if match_start {
+	    let start = i;
+	    let mut matches: usize = 0;
+	    while i < aln.len() && (aln[i] != '-' && aln[i] != ' ') {
+		matches += (aln[i] == 'M' || aln[i] == 'R') as usize;
+		i += 1;
+	    }
+	    encodings.push((start + 1, i, matches, i - start - matches));
+	    match_start = false;
+	} else {
+	    i += 1;
+	}
+    }
+    return encodings;
 }
