@@ -105,7 +105,8 @@ fn main() {
 
 	    info!("Translating result...");
 	    let ms_vec = ms.iter().map(|x| x.0).collect::<Vec<usize>>();
-	    map::translate_ms(&ms_vec);
+	    let aln = map::translate_ms(&ms_vec);
+	    aln.iter().for_each(|x| println!("{}", x));
 	},
 	None => {}
     }
