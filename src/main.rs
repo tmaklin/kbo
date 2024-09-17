@@ -105,8 +105,12 @@ fn main() {
 
 	    info!("Translating result...");
 	    let ms_vec = ms.iter().map(|x| x.0).collect::<Vec<usize>>();
-	    let aln = map::translate_ms(&ms_vec);
-	    aln.iter().for_each(|x| println!("{}", x));
+	    let runs = map::derandomize_ms(&ms_vec);
+	    let aln = map::translate_runs(&ms_vec, &runs);
+	    let run_lengths = map::run_lengths(&aln);
+
+	    println!("q.start\tq.end\tlength\tmismatches");
+	    run_lengths.iter().for_each(|x| println!("{}\t{}\t{}\t{}", x.0, x.1, x.2 + x.3, x.3));
 	},
 	None => {}
     }
