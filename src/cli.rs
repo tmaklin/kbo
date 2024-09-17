@@ -63,7 +63,7 @@ pub enum Commands {
         input_list: Option<String>,
 
 	// Index name
-        #[arg(short = 'i', long = "index", group = "input", required = true, help_heading = "Index")]
+        #[arg(short = 'i', long = "index", required = true, help_heading = "Index")]
         index_prefix: Option<String>,
 
 	// Verbosity
