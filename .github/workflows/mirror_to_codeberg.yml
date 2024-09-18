@@ -8,12 +8,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      env:
-        GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - uses: yesolutions/mirror-action@master
+        env:
+          GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
         with:
           REMOTE: 'https://codeberg.org/themaklin/sablast.git'
           GIT_USERNAME: themaklin
