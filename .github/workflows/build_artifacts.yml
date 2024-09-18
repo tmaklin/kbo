@@ -31,30 +31,33 @@ jobs:
 
   build_macOS-x86_64:
     runs-on: ubuntu-latest
-    container: ghcr.io/shepherdjerred/macos-cross-compiler:latest
+
     steps:
-      - name: Install wget and git
-        id: install-wget
-        run: apt-get update && apt install -y wget git
+      - uses: actions/checkout@v3
 
-      - name: Create io directory
-        id: mkdir-io
-        run: mkdir /io && cd /io
+      - name: Set deployment target
+        run: export MACOSX_DEPLOYMENT_TARGET=10.8
 
-      - name: Download build script
-        id: dl-build-script
-        run: wget https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/.github/deploy/build_x86_64-apple-darwin.sh
-
-      - name: Compile binary in macOS Cross Compiler container
-        id: compile-in-container
-        run: chmod +x build_x86_64-apple-darwin.sh && ./build_x86_64-apple-darwin.sh ${{ github.ref_name }} arm64
+      - name: Compile
+        id: compile
+        uses: rust-build/rust-build.action@v1.4.5
+        env:
+          MACOSX_DEPLOYMENT_TARGET: 10.8
+        with:
+          ARCHIVE_TYPES: tar.gz
+          ARCHIVE_NAME: ${{ github.ref_name }}
+          RUSTTARGET: x86_64-apple-darwin
+          EXTRA_FILES: "COPYRIGHT LICENSE-APACHE LICENSE-MIT README.md"
+          TOOLCHAIN_VERSION: stable-2024-09-05
+          UPLOAD_MODE: none
 
       - name: Upload x86_64-apple-darwin
-        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: sablast-${{ github.ref_name }}-x86_64-apple-darwin
-          path: /io/sablast-${{ github.ref_name }}-x86_64-apple-darwin.tar.gz
+          name: macOS-x86_64
+          path: |
+            ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+            ${{ steps.compile.outputs.BUILT_CHECKSUM }}
 
   build_macOS-aarch64:
     runs-on: ubuntu-latest
