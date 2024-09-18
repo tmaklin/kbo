@@ -56,6 +56,13 @@ jobs:
           name: sablast-candidate-x86_64-apple-darwin
           path: /io/sablast-candidate-x86_64-apple-darwin.tar.gz
 
+      - name: Upload x86_64-apple-darwin sha256sum
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sablast-candidate-x86_64-apple-darwin-sha256sum
+          path: /io/sablast-candidate-x86_64-apple-darwin.tar.gz.sha256sum
+
   build_macOS-aarch64:
     runs-on: ubuntu-latest
     container: ghcr.io/shepherdjerred/macos-cross-compiler:latest
@@ -82,3 +89,10 @@ jobs:
         with:
           name: sablast-candidate-aarch64-apple-darwin
           path: /io/sablast-candidate-aarch64-apple-darwin.tar.gz
+
+      - name: Upload aarch64-apple-darwin sha256sum
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sablast-candidate-aarch64-apple-darwin-sha256sum
+          path: /io/sablast-candidate-aarch64-apple-darwin.tar.gz.sha256sum
