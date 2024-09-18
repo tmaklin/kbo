@@ -97,7 +97,7 @@ fn main() {
 		..Default::default()
 	    };
 
-	    let (sbwt, lcs) = map::load_sbwt(&Some(query_params));
+	    let (sbwt, lcs) = map::load_sbwt(index_prefix.clone().unwrap());
 
 	    info!("Querying SBWT index...");
 	    // TODO handle multiple files and `input_list`

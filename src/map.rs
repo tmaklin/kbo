@@ -28,11 +28,9 @@ impl Default for QueryParams {
 }
 
 pub fn load_sbwt(
-    params_in: &Option<QueryParams>,
+    index_prefix: String,
 ) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
-    let params = params_in.clone().unwrap_or(QueryParams::default());
-
-    let mut indexfile = params.index_prefix.clone().unwrap();
+    let mut indexfile = index_prefix.clone();
     let mut lcsfile = indexfile.clone();
     indexfile.push_str(".sbwt");
     lcsfile.push_str(".lcs");
