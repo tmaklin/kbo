@@ -1,0 +1,77 @@
+name: Build and upload binaries
+
+on: [push]
+#  pull_request:
+#    branches: [main]
+
+jobs:
+  build_linux-x86_64:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Compile
+        id: compile
+        uses: rust-build/rust-build.action@v1.4.5
+        with:
+          ARCHIVE_TYPES: tar.gz
+          RUSTTARGET: x86_64-unknown-linux-musl
+          EXTRA_FILES: "COPYRIGHT LICENSE-APACHE LICENSE-MIT README.md"
+          UPLOAD_MODE: none
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Binary
+          path: |
+            ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+            ${{ steps.compile.outputs.BUILT_CHECKSUM }}
+
+  build_macOS-x86_64:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Compile
+        id: compile
+        uses: rust-build/rust-build.action@v1.4.5
+        with:
+          ARCHIVE_TYPES: tar.gz
+          RUSTTARGET: x86_64-apple-darwin
+          EXTRA_FILES: "COPYRIGHT LICENSE-APACHE LICENSE-MIT README.md"
+          UPLOAD_MODE: none
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Binary
+          path: |
+            ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+            ${{ steps.compile.outputs.BUILT_CHECKSUM }}
+
+  build_macOS-arm64:
+    runs-on: ubuntu-latest
+    container: ghcr.io/shepherdjerred/macos-cross-compiler:latest
+    steps:
+      - name: Install wget
+        id: install-wget
+        run: apt install -y wget
+
+      - name: Create io directory
+        id: mkdir-io
+        run: mkdir /io && cd /io
+
+      - name: Download build script
+        id: dl-build-script
+        run: wget https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/.github/deploy/build_aarch64-apple-darwin.sh
+
+      - name: Compile binary in macOS Cross Compiler container
+        id: compile-in-container
+        run: chmod +x build_aarch64-apple-darwin.sh && ./build_aarch64-apple-darwin.sh ${{ github.ref_name }} arm64
+
+      - name: Upload macOS-arm64 binary
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sablast-${{ github.ref_name }}-aarch64-apple-darwin
+          path: /io/sablast-${{ github.ref_name }}-aarch64-apple-darwin.tar.gz
