@@ -24,7 +24,7 @@ jobs:
       - name: Upload x86_64-unknown-linux-musl
         uses: actions/upload-artifact@v4
         with:
-          name: x86_64-unknown-linux-musl
+          name: sablast-candidate-x86_64-unknown-linux-musl
           path: |
             ${{ steps.compile.outputs.BUILT_ARCHIVE }}
             ${{ steps.compile.outputs.BUILT_CHECKSUM }}
