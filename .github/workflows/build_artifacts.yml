@@ -34,6 +34,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - name: Set env
+        run: export MACOSX_DEPLOYMENT_TARGET=10.12
+
       - name: Compile
         id: compile
         uses: rust-build/rust-build.action@v1.4.5
@@ -44,7 +47,6 @@ jobs:
           EXTRA_FILES: "COPYRIGHT LICENSE-APACHE LICENSE-MIT README.md"
           TOOLCHAIN_VERSION: stable-2024-09-05
           UPLOAD_MODE: none
-          MACOSX_DEPLOYMENT_TARGET: 10.12
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
