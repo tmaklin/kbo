@@ -15,16 +15,9 @@ use sbwt::SbwtIndexVariant;
 
 // Parameters for SBWT construction
 #[derive(Clone)]
-pub struct QueryParams {
-    pub index_prefix: Option<String>,
-}
-// Defaults
-impl Default for QueryParams {
-    fn default() -> QueryParams {
-        QueryParams {
-	    index_prefix: None,
-        }
-    }
+pub struct TranslateParams {
+    pub k: usize,
+    pub threshold: usize,
 }
 
 pub fn load_sbwt(
@@ -144,11 +137,9 @@ fn run_to_aln(
 
 pub fn derandomize_ms(
     ms: &Vec<usize>,
+    params_in: &Option<TranslateParams>
 ) -> Vec<i64> {
-    // TODO get k from index, calculate thrsehold from num kmers in index
-    let k = 31;
-    let threshold = 14;
-
+    let params = params_in.clone().unwrap();
     let len = ms.len();
 
     let mut runs: Vec<i64> = vec![0; len];
@@ -156,7 +147,7 @@ pub fn derandomize_ms(
     // Traverse the matching statistics in reverse
     runs[len - 1] = ms[len - 1] as i64;
     for i in 2..len {
-	runs[len - i] = ms_to_run(ms[len - i], ms[len - i + 1], runs[len - i + 1], threshold, k);
+	runs[len - i] = ms_to_run(ms[len - i], ms[len - i + 1], runs[len - i + 1], params.threshold, params.k);
     }
 
     return runs;
@@ -166,17 +157,15 @@ pub fn derandomize_ms(
 pub fn translate_runs(
     ms: &Vec<usize>,
     runs: &Vec<i64>,
+    params_in: &Option<TranslateParams>,
 ) -> Vec<char> {
-    // TODO get k from index, calculate thrsehold from num kmers in index
-    let k = 31;
-    let threshold = 14;
-
+    let params = params_in.clone().unwrap();
     let len = runs.len();
     let mut aln = vec![' '; len];
 
     // Traverse the runs
     for mut i in 3..(len - 1) {
-	run_to_aln(&runs, ms[i], threshold, k, &mut aln, &mut i);
+	run_to_aln(&runs, ms[i], params.threshold, params.k, &mut aln, &mut i);
     }
 
     return aln;
