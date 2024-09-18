@@ -35,7 +35,7 @@ export CXX="x86_64-apple-darwin22-g++"
 RUSTFLAGS='-L /osxcross/SDK/MacOSX13.0.sdk/usr/lib' cargo build --release --target x86_64-apple-darwin
 
 ## gather the stuff to distribute
-target=sablast-${VER}-x86_64-apple-darwin
+target=sablast-candidate-x86_64-apple-darwin
 path=/io/tmp/$target
 mkdir $path
 cp target/x86_64-apple-darwin/release/sablast $path/
