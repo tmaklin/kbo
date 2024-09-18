@@ -15,6 +15,7 @@ jobs:
         uses: rust-build/rust-build.action@v1.4.5
         with:
           ARCHIVE_TYPES: tar.gz
+          ARCHIVE_NAME: ${{ github.ref_name }}
           RUSTTARGET: x86_64-unknown-linux-musl
           EXTRA_FILES: "COPYRIGHT LICENSE-APACHE LICENSE-MIT README.md"
           TOOLCHAIN_VERSION: stable-2024-09-05
@@ -23,7 +24,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Binary
+          name: x86_64-unknown-linux-musl
           path: |
             ${{ steps.compile.outputs.BUILT_ARCHIVE }}
             ${{ steps.compile.outputs.BUILT_CHECKSUM }}
@@ -38,15 +39,17 @@ jobs:
         uses: rust-build/rust-build.action@v1.4.5
         with:
           ARCHIVE_TYPES: tar.gz
+          ARCHIVE_NAME: ${{ github.ref_name }}
           RUSTTARGET: x86_64-apple-darwin
           EXTRA_FILES: "COPYRIGHT LICENSE-APACHE LICENSE-MIT README.md"
           TOOLCHAIN_VERSION: stable-2024-09-05
           UPLOAD_MODE: none
+          MACOSX_DEPLOYMENT_TARGET=10.12
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Binary
+          name: macOS-x86_64
           path: |
             ${{ steps.compile.outputs.BUILT_ARCHIVE }}
             ${{ steps.compile.outputs.BUILT_CHECKSUM }}
