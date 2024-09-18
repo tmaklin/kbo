@@ -6,6 +6,7 @@ jobs:
   clippy_check:
     name: Lint Rust code with Clippy
 
+    permissions: write-all
     runs-on: ubuntu-latest
 
     steps:
