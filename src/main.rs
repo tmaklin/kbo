@@ -15,6 +15,7 @@ use std::ffi::OsString;
 
 use clap::Parser;
 use log::{info, Record, Level, Metadata};
+use sbwt::SbwtIndexVariant;
 
 // Command-line interface
 mod cli;
@@ -92,12 +93,16 @@ fn main() {
 	    init_log(if *verbose { 2 } else { 1 });
 	    info!("Loading SBWT index...");
 
-	    let query_params = map::QueryParams {
-		index_prefix: index_prefix.clone(),
-		..Default::default()
-	    };
-
 	    let (sbwt, lcs) = map::load_sbwt(index_prefix.clone().unwrap());
+
+	    let translate_params = map::TranslateParams {
+		k: match sbwt {
+		    SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+			sbwt.n_kmers()
+		    }
+		},
+		threshold: 14,
+	    };
 
 	    info!("Querying SBWT index...");
 	    // TODO handle multiple files and `input_list`
@@ -105,8 +110,8 @@ fn main() {
 
 	    info!("Translating result...");
 	    let ms_vec = ms.iter().map(|x| x.0).collect::<Vec<usize>>();
-	    let runs = map::derandomize_ms(&ms_vec);
-	    let aln = map::translate_runs(&ms_vec, &runs);
+	    let runs = map::derandomize_ms(&ms_vec, &Some(translate_params.clone()));
+	    let aln = map::translate_runs(&ms_vec, &runs, &Some(translate_params));
 	    let run_lengths = map::run_lengths(&aln);
 
 	    println!("q.start\tq.end\tlength\tmismatches");
