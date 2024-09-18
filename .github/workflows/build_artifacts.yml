@@ -55,9 +55,9 @@ jobs:
     runs-on: ubuntu-latest
     container: ghcr.io/shepherdjerred/macos-cross-compiler:latest
     steps:
-      - name: Install wget
+      - name: Install wget and git
         id: install-wget
-        run: apt install -y wget
+        run: apt install -y wget git
 
       - name: Create io directory
         id: mkdir-io
