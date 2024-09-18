@@ -6,14 +6,14 @@ jobs:
   push_to_codeberg:
     name: Push commits to codeberg
     runs-on: ubuntu-latest
+    environment: Codeberg mirror
 
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - uses: yesolutions/mirror-action@master
-        env:
-          GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
         with:
           REMOTE: 'https://codeberg.org/themaklin/sablast.git'
           GIT_USERNAME: themaklin
+          GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
