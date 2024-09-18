@@ -43,11 +43,11 @@ jobs:
 
       - name: Download build script
         id: dl-build-script
-        run: wget https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/.github/deploy/build_x86_64-apple-darwin.sh
+        run: wget https://raw.githubusercontent.com/${{ github.repository }}/${{ github.head_ref }}/.github/deploy/build_x86_64-apple-darwin.sh
 
       - name: Compile in macOS Cross Compiler container
         id: compile-in-container
-        run: chmod +x build_x86_64-apple-darwin.sh && ./build_x86_64-apple-darwin.sh ${{ github.ref_name }} arm64
+        run: chmod +x build_x86_64-apple-darwin.sh && ./build_x86_64-apple-darwin.sh ${{ github.head_ref }} arm64
 
       - name: Upload x86_64-apple-darwin
         if: success()
@@ -77,11 +77,11 @@ jobs:
 
       - name: Download build script
         id: dl-build-script
-        run: wget https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/.github/deploy/build_aarch64-apple-darwin.sh
+        run: wget https://raw.githubusercontent.com/${{ github.repository }}/${{ github.head_ref }}/.github/deploy/build_aarch64-apple-darwin.sh
 
       - name: Compile in macOS Cross Compiler container
         id: compile-in-container
-        run: chmod +x build_aarch64-apple-darwin.sh && ./build_aarch64-apple-darwin.sh ${{ github.ref_name }}
+        run: chmod +x build_aarch64-apple-darwin.sh && ./build_aarch64-apple-darwin.sh ${{ github.head_ref }}
 
       - name: Upload aarch64-apple-darwin
         if: success()
