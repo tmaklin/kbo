@@ -103,7 +103,8 @@ fn main() {
 		},
 		threshold: match sbwt {
 		    SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-			map::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4 as usize, 0.01 as f64)
+			// 0.0000001 should maybe be prop. to 1/(number of unique k-mers in query)
+			map::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4 as usize, 0.0000001 as f64)
 		    }
 		},
 	    };
