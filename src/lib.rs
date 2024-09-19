@@ -14,7 +14,7 @@
 use log::info;
 use sbwt::SbwtIndexVariant;
 
-pub mod build;
+pub mod index;
 pub mod map;
 
 pub fn map(

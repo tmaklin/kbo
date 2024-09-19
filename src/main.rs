@@ -65,7 +65,7 @@ fn main() {
 	    init_log(if *verbose { 2 } else { 1 });
 	    info!("Building SBWT index...");
 
-            let sbwt_params = sablast::build::SBWTParams {
+            let sbwt_params = sablast::index::SBWTParams {
 		num_threads: *num_threads,
 		mem_gb: *mem_gb,
 		temp_dir: Some(std::path::PathBuf::from(OsString::from(temp_dir.clone().unwrap()))),
@@ -75,8 +75,8 @@ fn main() {
 
 	    // TODO handle multiple files and `input_list`
 	    info!("Serializing SBWT index...");
-	    let (sbwt, lcs) = sablast::build::build_sbwt(&seq_files[0], &Some(sbwt_params.clone()));
-	    sablast::build::serialize_sbwt(sbwt, &lcs, &Some(sbwt_params));
+	    let (sbwt, lcs) = sablast::index::build_sbwt(&seq_files[0], &Some(sbwt_params.clone()));
+	    sablast::index::serialize_sbwt(sbwt, &lcs, &Some(sbwt_params));
 
 	},
         Some(cli::Commands::Map {
@@ -88,7 +88,7 @@ fn main() {
 	    init_log(if *verbose { 2 } else { 1 });
 	    info!("Loading SBWT index...");
 
-	    let (sbwt, lcs) = sablast::build::load_sbwt(index_prefix.clone().unwrap());
+	    let (sbwt, lcs) = sablast::index::load_sbwt(index_prefix.clone().unwrap());
 
 	    info!("Querying SBWT index...");
 	    let run_lengths = sablast::map(&seq_files[0], &sbwt, &lcs);
