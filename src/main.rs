@@ -15,14 +15,9 @@ use std::ffi::OsString;
 
 use clap::Parser;
 use log::{info, Record, Level, Metadata};
-use sbwt::SbwtIndexVariant;
 
 // Command-line interface
 mod cli;
-
-// Subcommand implementations
-mod build;
-mod map;
 
 // Logger implementation
 struct Logger;
@@ -70,7 +65,7 @@ fn main() {
 	    init_log(if *verbose { 2 } else { 1 });
 	    info!("Building SBWT index...");
 
-            let sbwt_params = build::SBWTParams {
+            let sbwt_params = sablast::build::SBWTParams {
 		num_threads: *num_threads,
 		mem_gb: *mem_gb,
 		temp_dir: Some(std::path::PathBuf::from(OsString::from(temp_dir.clone().unwrap()))),
@@ -80,8 +75,8 @@ fn main() {
 
 	    // TODO handle multiple files and `input_list`
 	    info!("Serializing SBWT index...");
-	    let (sbwt, lcs) = build::build_sbwt(&seq_files[0], &Some(sbwt_params.clone()));
-	    build::serialize_sbwt(sbwt, &lcs, &Some(sbwt_params));
+	    let (sbwt, lcs) = sablast::build::build_sbwt(&seq_files[0], &Some(sbwt_params.clone()));
+	    sablast::build::serialize_sbwt(sbwt, &lcs, &Some(sbwt_params));
 
 	},
         Some(cli::Commands::Map {
@@ -93,31 +88,10 @@ fn main() {
 	    init_log(if *verbose { 2 } else { 1 });
 	    info!("Loading SBWT index...");
 
-	    let (sbwt, lcs) = map::load_sbwt(index_prefix.clone().unwrap());
-
-	    let translate_params = map::TranslateParams {
-		k: match sbwt {
-		    SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-			sbwt.k()
-		    }
-		},
-		threshold: match sbwt {
-		    SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-			// 0.0000001 should maybe be prop. to 1/(number of unique k-mers in query)
-			map::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4 as usize, 0.0000001 as f64)
-		    }
-		},
-	    };
+	    let (sbwt, lcs) = sablast::map::load_sbwt(index_prefix.clone().unwrap());
 
 	    info!("Querying SBWT index...");
-	    // TODO handle multiple files and `input_list`
-	    let ms = map::query_sbwt(&seq_files[0], &sbwt, &lcs);
-
-	    info!("Translating result...");
-	    let ms_vec = ms.iter().map(|x| x.0).collect::<Vec<usize>>();
-	    let runs = map::derandomize_ms(&ms_vec, &Some(translate_params.clone()));
-	    let aln = map::translate_runs(&ms_vec, &runs, &Some(translate_params));
-	    let run_lengths = map::run_lengths(&aln);
+	    let run_lengths = sablast::map(&seq_files[0], &sbwt, &lcs);
 
 	    println!("q.start\tq.end\tlength\tmismatches");
 	    run_lengths.iter().for_each(|x| println!("{}\t{}\t{}\t{}", x.0, x.1, x.2 + x.3, x.3));
