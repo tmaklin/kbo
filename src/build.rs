@@ -34,7 +34,7 @@ impl Default for SBWTParams {
     fn default() -> SBWTParams {
         SBWTParams {
 	    k: 31,
-	    add_revcomp: true,
+	    add_revcomp: false,
 	    num_threads: 1,
 	    mem_gb: 4,
 	    prefix_precalc: 8,
