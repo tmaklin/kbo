@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - "v*.*.*"
-    branches:
-      - main
 
 env:
   CARGO_TERM_COLOR: always
@@ -52,7 +50,7 @@ jobs:
         with:
           token: ${{ secrets.MAKE_RELEASE_TOKEN }}
           name: sablast-${{ github.ref_name }} (${{ steps.date.outputs.date }})
-          draft: true
+          draft: false
           prerelease: false
           fail_on_unmatched_files: true
           generate_release_notes: true
