@@ -44,7 +44,7 @@ jobs:
       - name: Publish
         uses: softprops/action-gh-release@v2
         with:
-          GITHUB_PAT: ${{ secrets.MAKE_RELEASE_TOKEN }}
+          token: ${{ secrets.MAKE_RELEASE_TOKEN }}
           name: sablast-${{ github.ref_name }} (${{ steps.date.outputs.date }})
           draft: true
           prerelease: false
