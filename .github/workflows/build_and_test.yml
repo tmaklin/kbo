@@ -1,6 +1,9 @@
 name: Build and test
 
-on: [push]
+on:
+  push:
+    branches-ignore:
+      - main
 
 env:
   CARGO_TERM_COLOR: always
