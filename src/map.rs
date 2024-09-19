@@ -11,6 +11,7 @@
 // the MIT license, <LICENSE-MIT> or <http://opensource.org/licenses/MIT>,
 // at your option.
 //
+use needletail::Sequence;
 use sbwt::SbwtIndexVariant;
 
 // Parameters for SBWT construction
@@ -49,17 +50,20 @@ pub fn query_sbwt(
     query_file: &String,
     index: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
-) -> Vec<(usize, std::ops::Range<usize>)> {
+) -> Vec<(usize, usize)> {
     match index {
         SbwtIndexVariant::SubsetMatrix(sbwt) => {
-	    let mut reader = jseqio::reader::DynamicFastXReader::from_file(&query_file).unwrap();
+	    let mut reader = needletail::parse_fastx_file(&query_file).expect("valid path/file");
 	    let streaming_index = sbwt::StreamingIndex::new(sbwt, lcs);
 
 	    // TODO handle input with multiple sequences
 	    // implement as querying 1 record at a time
-	    let rec = reader.read_next().unwrap();
-	    let ms = streaming_index.matching_statistics(rec.unwrap().seq);
-	    return ms;
+	    let Some(rec) = reader.next() else { panic!("Invalid query {}", query_file); };
+	    let seqrec = rec.expect("invalid_record");
+	    let seq = seqrec.normalize(true);
+	    let ms_fw = streaming_index.matching_statistics(seq.sequence());
+	    let ms_rc = streaming_index.matching_statistics(seq.reverse_complement().sequence());
+	    return ms_fw.iter().zip(ms_rc.iter()).map(|x| (x.0.0, x.1.0)).collect();
 	},
     };
 }

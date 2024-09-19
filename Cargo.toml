@@ -14,6 +14,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 ## core
 jseqio = "0.1.2"
+needletail = "0.5.1"
 sbwt = "0.3.1"
 
 ## cli
