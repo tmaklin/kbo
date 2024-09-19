@@ -64,6 +64,28 @@ pub fn query_sbwt(
     };
 }
 
+fn log_rm_max_cdf(
+    t: usize,
+    alphabet_size: usize,
+    n_kmers: usize,
+) -> f64 {
+    n_kmers as f64 * (- ((1.0/(alphabet_size as f64)) as f64).powi(t as i32 + 1)).ln_1p()
+}
+
+pub fn random_match_threshold(
+    k: usize,
+    n_kmers: usize,
+    alphabet_size: usize,
+    max_error_prob: f64,
+) -> usize {
+    for i in 1..k {
+	if 1.0 - log_rm_max_cdf(i, alphabet_size, n_kmers).exp() < max_error_prob {
+	    return i;
+	}
+    }
+    return k;
+}
+
 fn ms_to_run(
     curr: usize,
     next: usize,

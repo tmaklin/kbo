@@ -98,10 +98,14 @@ fn main() {
 	    let translate_params = map::TranslateParams {
 		k: match sbwt {
 		    SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-			sbwt.n_kmers()
+			sbwt.k()
 		    }
 		},
-		threshold: 14,
+		threshold: match sbwt {
+		    SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+			map::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4 as usize, 0.01 as f64)
+		    }
+		},
 	    };
 
 	    info!("Querying SBWT index...");
