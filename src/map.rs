@@ -79,7 +79,7 @@ pub fn random_match_threshold(
     max_error_prob: f64,
 ) -> usize {
     for i in 1..k {
-	if 1.0 - log_rm_max_cdf(i, alphabet_size, n_kmers).exp() < max_error_prob {
+	if log_rm_max_cdf(i, alphabet_size, n_kmers) > (-max_error_prob).ln_1p() {
 	    return i;
 	}
     }
