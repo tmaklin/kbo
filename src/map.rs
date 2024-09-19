@@ -69,7 +69,7 @@ fn log_rm_max_cdf(
     alphabet_size: usize,
     n_kmers: usize,
 ) -> f64 {
-    n_kmers as f64 * (- ((1.0/(alphabet_size as f64)) as f64).powi(t as i32 + 1)).ln_1p()
+    n_kmers as f64 * (- ((1.0_f64.ln() - (alphabet_size as f64).ln()).exp()).powi(t as i32 + 1)).ln_1p()
 }
 
 pub fn random_match_threshold(
