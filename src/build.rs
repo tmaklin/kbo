@@ -22,6 +22,7 @@ use sbwt::SbwtIndexVariant;
 #[derive(Clone)]
 pub struct SBWTParams {
     pub k: usize,
+    pub add_revcomp: bool,
     pub num_threads: usize,
     pub mem_gb: usize,
     pub prefix_precalc: usize,
@@ -33,6 +34,7 @@ impl Default for SBWTParams {
     fn default() -> SBWTParams {
         SBWTParams {
 	    k: 31,
+	    add_revcomp: true,
 	    num_threads: 1,
 	    mem_gb: 4,
 	    prefix_precalc: 8,
@@ -68,7 +70,7 @@ pub fn build_sbwt(
     let (sbwt, lcs) = SbwtIndexBuilder::new()
 	.k(params.k)
 	.n_threads(params.num_threads)
-	.add_rev_comp(false)
+	.add_rev_comp(params.add_revcomp)
 	.algorithm(algorithm)
 	.build_lcs(true)
 	.precalc_length(params.prefix_precalc)
