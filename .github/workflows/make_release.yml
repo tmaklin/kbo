@@ -31,7 +31,7 @@ jobs:
           mv sablast-candidate-aarch64-apple-darwin/sablast-candidate-aarch64-apple-darwin.tar.gz ./
 
       - name: Rename mac artifacts
-        shell:bash
+        shell: bash
         run: |
           tar -zxvf sablast-candidate-x86_64-apple-darwin.tar.gz && mv sablast-candidate-x86_64-apple-darwin sablast-${{ github.ref_name }}-x86_64-apple-darwin && tar -zcvf sablast-candidate-x86_64-apple-darwin.tar.gz sablast-${{ github.ref_name }}-x86_64-apple-darwin
           tar -zxvf sablast-candidate-aarch64-apple-darwin.tar.gz && mv sablast-candidate-aarch64-apple-darwin sablast-${{ github.ref_name }}-aarch64-apple-darwin && tar -zcvf sablast-candidate-aarch64-apple-darwin.tar.gz sablast-${{ github.ref_name }}-aarch64-apple-darwin
