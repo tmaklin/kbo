@@ -14,6 +14,7 @@
 use std::ops::Deref;
 use std::path::PathBuf;
 
+use needletail::Sequence;
 use sbwt::BitPackedKmerSorting;
 use sbwt::SbwtIndexBuilder;
 use sbwt::SbwtIndexVariant;
@@ -44,28 +45,26 @@ impl Default for SBWTParams {
     }
 }
 
-// SBWT needs the reader like this
-struct MySeqReader {
-    inner: jseqio::reader::DynamicFastXReader,
-}
-impl sbwt::SeqStream for MySeqReader {
-    fn stream_next(&mut self) -> Option<&[u8]> {
-        self.inner.read_next().unwrap().map(|rec| rec.seq)
-    }
-}
 pub fn build_sbwt(
     infile: &String,
     params_in: &Option<SBWTParams>,
 ) -> (sbwt::SbwtIndex<sbwt::SubsetMatrix>, Option<sbwt::LcsArray>) {
     let params = params_in.clone().unwrap_or(SBWTParams::default());
 
-    let reader = MySeqReader{inner: jseqio::reader::DynamicFastXReader::from_file(infile).unwrap()};
-
     let temp_dir = params.temp_dir.unwrap_or(std::env::temp_dir());
     let algorithm = BitPackedKmerSorting::new()
 	.mem_gb(params.mem_gb)
 	.dedup_batches(false)
 	.temp_dir(temp_dir.deref());
+
+    let mut reader = needletail::parse_fastx_file(&infile.clone()).expect("valid path/file");
+
+    let mut seqs = vec!();
+    while let Some(rec) = reader.next()  {
+	let seqrec = rec.expect("invalid_record");
+	let seq = seqrec.normalize(true);
+	seqs.push(seq.deref().to_owned());
+    }
 
     let (sbwt, lcs) = SbwtIndexBuilder::new()
 	.k(params.k)
@@ -74,7 +73,7 @@ pub fn build_sbwt(
 	.algorithm(algorithm)
 	.build_lcs(true)
 	.precalc_length(params.prefix_precalc)
-	.run(reader);
+	.run_from_vecs(&seqs);
 
     return (sbwt, lcs);
 }
