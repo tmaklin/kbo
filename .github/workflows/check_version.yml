@@ -1,0 +1,19 @@
+on:
+  pull_request:
+    branches:
+      - main
+
+name: Check version
+
+jobs:
+  version-check:
+    name: Check pull request before merging
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check version format and availability
+        run: chmod +x .github/deploy/version_check.sh && .github/deploy/version_check.sh
