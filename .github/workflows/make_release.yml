@@ -9,12 +9,12 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   create-release:
     name: Create and publish release
     runs-on: ubuntu-latest
+    environment: Make sablast release
 
     steps:
       - name: Download artifacts
@@ -44,6 +44,7 @@ jobs:
       - name: Publish
         uses: softprops/action-gh-release@v2
         with:
+          GITHUB_PAT: ${{ secrets.MAKE_RELEASE_TOKEN }}
           name: sablast-${{ github.ref_name }} (${{ steps.date.outputs.date }})
           draft: true
           prerelease: false
