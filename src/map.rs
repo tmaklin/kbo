@@ -21,31 +21,6 @@ pub struct TranslateParams {
     pub threshold: usize,
 }
 
-pub fn load_sbwt(
-    index_prefix: String,
-) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
-    let mut indexfile = index_prefix.clone();
-    let mut lcsfile = indexfile.clone();
-    indexfile.push_str(".sbwt");
-    lcsfile.push_str(".lcs");
-
-    // Read sbwt
-    let mut index_reader = std::io::BufReader::new(std::fs::File::open(indexfile).unwrap());
-    let sbwt = sbwt::load_sbwt_index_variant(&mut index_reader).unwrap();
-
-    // Load the lcs array
-    let lcs = match std::fs::File::open(&lcsfile) {
-        Ok(f) => {
-            let mut lcs_reader = std::io::BufReader::new(f);
-            sbwt::LcsArray::load(&mut lcs_reader).unwrap()
-        }
-        Err(_) => {
-            panic!("No LCS array found at {}", lcsfile);
-        }
-    };
-    return (sbwt, lcs);
-}
-
 pub fn query_sbwt(
     query_file: &String,
     index: &sbwt::SbwtIndexVariant,

@@ -88,7 +88,7 @@ fn main() {
 	    init_log(if *verbose { 2 } else { 1 });
 	    info!("Loading SBWT index...");
 
-	    let (sbwt, lcs) = sablast::map::load_sbwt(index_prefix.clone().unwrap());
+	    let (sbwt, lcs) = sablast::build::load_sbwt(index_prefix.clone().unwrap());
 
 	    info!("Querying SBWT index...");
 	    let run_lengths = sablast::map(&seq_files[0], &sbwt, &lcs);
