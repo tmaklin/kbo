@@ -37,7 +37,7 @@ pub fn map(
     };
 
     // TODO handle multiple files and `input_list`
-    let ms = map::query_sbwt(&query_file, &sbwt, &lcs);
+    let ms = index::query_sbwt(&query_file, &sbwt, &lcs);
 
     info!("Translating result...");
     let ms_vec = ms.iter().map(|x| x.0).collect::<Vec<usize>>();
