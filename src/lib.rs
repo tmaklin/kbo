@@ -21,7 +21,7 @@ pub fn map(
     query_file: &String,
     sbwt: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
-) -> Vec<(usize, usize, usize, usize)> {
+) -> Vec<(usize, usize, usize, usize, char)> {
     let translate_params = map::TranslateParams {
 	k: match sbwt {
 	    SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
@@ -46,8 +46,9 @@ pub fn map(
 		map::derandomize_ms(&ms_rev, &Some(translate_params.clone())));
     let aln = (map::translate_runs(&ms_fw, &runs.0, &Some(translate_params.clone())),
 	       map::translate_runs(&ms_rev, &runs.1, &Some(translate_params)));
-    let mut run_lengths = map::run_lengths(&aln.0);
-    run_lengths.append(&mut map::run_lengths(&aln.1));
+    let mut run_lengths: Vec<(usize, usize, usize, usize, char)> = map::run_lengths(&aln.0).iter().map(|x| (x.0, x.1, x.2, x.3, '+')).collect();
+    let mut run_lengths_rev: Vec<(usize, usize, usize, usize, char)> = map::run_lengths(&aln.1).iter().map(|x| (x.0, x.1, x.2, x.3, '-')).collect();
+    run_lengths.append(&mut run_lengths_rev);
 
     return run_lengths;
 }

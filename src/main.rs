@@ -74,10 +74,11 @@ fn main() {
 	    let (sbwt, lcs) = sablast::index::load_sbwt(index_prefix.clone().unwrap());
 
 	    info!("Querying SBWT index...");
-	    let run_lengths = sablast::map(&seq_files[0], &sbwt, &lcs);
+	    let mut run_lengths = sablast::map(&seq_files[0], &sbwt, &lcs);
+	    run_lengths.sort_by_key(|x| x.0);
 
-	    println!("q.start\tq.end\tlength\tmismatches");
-	    run_lengths.iter().for_each(|x| println!("{}\t{}\t{}\t{}", x.0, x.1, x.2 + x.3, x.3));
+	    println!("q.start\tq.end\tstrand\tlength\tmismatches");
+	    run_lengths.iter().for_each(|x| println!("{}\t{}\t{}\t{}\t{}", x.0, x.1, x.4, x.2 + x.3, x.3));
 	},
 	None => {}
     }
