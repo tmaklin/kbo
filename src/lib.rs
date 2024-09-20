@@ -40,10 +40,14 @@ pub fn map(
     let ms = index::query_sbwt(&query_file, &sbwt, &lcs);
 
     info!("Translating result...");
-    let ms_vec = ms.iter().map(|x| x.0).collect::<Vec<usize>>();
-    let runs = map::derandomize_ms(&ms_vec, &Some(translate_params.clone()));
-    let aln = map::translate_runs(&ms_vec, &runs, &Some(translate_params));
-    let run_lengths = map::run_lengths(&aln);
+    let ms_fw = ms.iter().map(|x| x.0).collect::<Vec<usize>>();
+    let ms_rev = ms.iter().map(|x| x.1).collect::<Vec<usize>>();
+    let runs = (map::derandomize_ms(&ms_fw, &Some(translate_params.clone())),
+		map::derandomize_ms(&ms_rev, &Some(translate_params.clone())));
+    let aln = (map::translate_runs(&ms_fw, &runs.0, &Some(translate_params.clone())),
+	       map::translate_runs(&ms_rev, &runs.1, &Some(translate_params)));
+    let mut run_lengths = map::run_lengths(&aln.0);
+    run_lengths.append(&mut map::run_lengths(&aln.1));
 
     return run_lengths;
 }
