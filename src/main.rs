@@ -77,8 +77,8 @@ fn main() {
 	    let mut run_lengths = sablast::map(&seq_files[0], &sbwt, &lcs);
 	    run_lengths.sort_by_key(|x| x.0);
 
-	    println!("q.start\tq.end\tstrand\tlength\tmismatches");
-	    run_lengths.iter().for_each(|x| println!("{}\t{}\t{}\t{}\t{}", x.0, x.1, x.4, x.2 + x.3, x.3));
+	    println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches");
+	    run_lengths.iter().for_each(|x| println!("{}\t{}\t{}\t{}\t{}\t{}\t{}", &seq_files[0], &index_prefix.clone().unwrap(), x.0, x.1, x.4, x.2 + x.3, x.3));
 	},
 	None => {}
     }
