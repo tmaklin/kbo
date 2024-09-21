@@ -54,9 +54,6 @@ fn main() {
 		index_prefix: output_prefix.clone(),
                 ..Default::default()
             };
-	    // TODO Handle --input-list in sablast build
-
-	    // TODO Handle multiple inputs in sablast build
 
 	    info!("Building SBWT index...");
 	    let (sbwt, lcs) = sablast::index::build_sbwt(&seq_files[0], &Some(sbwt_params.clone()));
@@ -75,10 +72,6 @@ fn main() {
 	    info!("Loading SBWT index...");
 
 	    let (sbwt, lcs) = sablast::index::load_sbwt(index_prefix.clone().unwrap());
-
-	    // TODO Handle `--input-list in sablast map
-
-	    // TODO Query multiple inputs in sablast map
 	    info!("Querying SBWT index...");
 
       let mut run_lengths = sablast::map(&seq_files[0], &sbwt, &lcs);
