@@ -80,7 +80,8 @@ fn main() {
 
 	    // TODO Query multiple inputs in sablast map
 	    info!("Querying SBWT index...");
-	    let mut run_lengths = sablast::map(&seq_files[0], &sbwt, &lcs);
+
+      let mut run_lengths = sablast::map(&seq_files[0], &sbwt, &lcs);
 	    run_lengths.sort_by_key(|x| x.0);
 
 	    println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches");
