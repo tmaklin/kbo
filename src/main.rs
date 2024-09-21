@@ -46,7 +46,6 @@ fn main() {
 	    verbose,
         }) => {
 	    init_log(if *verbose { 2 } else { 1 });
-	    info!("Building SBWT index...");
 
             let sbwt_params = sablast::index::SBWTParams {
 		num_threads: *num_threads,
@@ -55,10 +54,14 @@ fn main() {
 		index_prefix: output_prefix.clone(),
                 ..Default::default()
             };
+	    // TODO Handle --input-list in sablast build
 
-	    // TODO handle multiple files and `input_list`
-	    info!("Serializing SBWT index...");
+	    // TODO Handle multiple inputs in sablast build
+
+	    info!("Building SBWT index...");
 	    let (sbwt, lcs) = sablast::index::build_sbwt(&seq_files[0], &Some(sbwt_params.clone()));
+
+	    info!("Serializing SBWT index...");
 	    sablast::index::serialize_sbwt(sbwt, &lcs, &Some(sbwt_params));
 
 	},
@@ -73,6 +76,9 @@ fn main() {
 
 	    let (sbwt, lcs) = sablast::index::load_sbwt(index_prefix.clone().unwrap());
 
+	    // TODO Handle `--input-list in sablast map
+
+	    // TODO Query multiple inputs in sablast map
 	    info!("Querying SBWT index...");
 	    let mut run_lengths = sablast::map(&seq_files[0], &sbwt, &lcs);
 	    run_lengths.sort_by_key(|x| x.0);
