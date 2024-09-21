@@ -55,8 +55,6 @@ pub fn query_sbwt(
 	    let mut reader = jseqio::reader::DynamicFastXReader::from_file(&query_file).unwrap();
 	    let streaming_index = sbwt::StreamingIndex::new(sbwt, lcs);
 
-	    // TODO handle input with multiple sequences
-	    // implement as querying 1 record at a time
 	    let rec = reader.read_next().unwrap();
 	    let ms = streaming_index.matching_statistics(rec.unwrap().seq);
 	    return ms;
@@ -125,7 +123,6 @@ fn run_to_aln(
 	    gap_len += 1;
 	    next_gap -= 1;
 	}
-	// TODO determine based on k and threshold: k - 2*threshold ?
 	while *pos < *pos + gap_len && *pos < runs.len() {
 	    res[*pos] = if gap_len > 29 { '-' } else { 'I' };
 	    *pos += 1;
