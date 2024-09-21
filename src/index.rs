@@ -14,6 +14,7 @@
 use std::ops::Deref;
 use std::path::PathBuf;
 
+use needletail::Sequence;
 use sbwt::BitPackedKmerSorting;
 use sbwt::SbwtIndexBuilder;
 use sbwt::SbwtIndexVariant;
@@ -22,6 +23,7 @@ use sbwt::SbwtIndexVariant;
 #[derive(Clone)]
 pub struct SBWTParams {
     pub k: usize,
+    pub add_revcomp: bool,
     pub num_threads: usize,
     pub mem_gb: usize,
     pub prefix_precalc: usize,
@@ -33,6 +35,7 @@ impl Default for SBWTParams {
     fn default() -> SBWTParams {
         SBWTParams {
 	    k: 31,
+	    add_revcomp: false,
 	    num_threads: 1,
 	    mem_gb: 4,
 	    prefix_precalc: 8,
@@ -42,22 +45,11 @@ impl Default for SBWTParams {
     }
 }
 
-// SBWT needs the reader like this
-struct MySeqReader {
-    inner: jseqio::reader::DynamicFastXReader,
-}
-impl sbwt::SeqStream for MySeqReader {
-    fn stream_next(&mut self) -> Option<&[u8]> {
-        self.inner.read_next().unwrap().map(|rec| rec.seq)
-    }
-}
 pub fn build_sbwt(
     infile: &String,
     params_in: &Option<SBWTParams>,
 ) -> (sbwt::SbwtIndex<sbwt::SubsetMatrix>, Option<sbwt::LcsArray>) {
     let params = params_in.clone().unwrap_or(SBWTParams::default());
-
-    let reader = MySeqReader{inner: jseqio::reader::DynamicFastXReader::from_file(infile).unwrap()};
 
     let temp_dir = params.temp_dir.unwrap_or(std::env::temp_dir());
     let algorithm = BitPackedKmerSorting::new()
@@ -65,14 +57,23 @@ pub fn build_sbwt(
 	.dedup_batches(false)
 	.temp_dir(temp_dir.deref());
 
+    let mut reader = needletail::parse_fastx_file(&infile.clone()).expect("valid path/file");
+
+    let mut seqs = vec!();
+    while let Some(rec) = reader.next()  {
+	let seqrec = rec.expect("invalid_record");
+	let seq = seqrec.normalize(true);
+	seqs.push(seq.deref().to_owned());
+    }
+
     let (sbwt, lcs) = SbwtIndexBuilder::new()
 	.k(params.k)
 	.n_threads(params.num_threads)
-	.add_rev_comp(false)
+	.add_rev_comp(params.add_revcomp)
 	.algorithm(algorithm)
 	.build_lcs(true)
 	.precalc_length(params.prefix_precalc)
-	.run(reader);
+	.run_from_vecs(&seqs);
 
     return (sbwt, lcs);
 }
@@ -97,4 +98,51 @@ pub fn serialize_sbwt(
         let mut lcs_out = std::io::BufWriter::new(std::fs::File::create(&lcs_outfile).unwrap());
         lcs.serialize(&mut lcs_out).unwrap();
     }
+}
+
+pub fn load_sbwt(
+    index_prefix: String,
+) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
+    let mut indexfile = index_prefix.clone();
+    let mut lcsfile = indexfile.clone();
+    indexfile.push_str(".sbwt");
+    lcsfile.push_str(".lcs");
+
+    // Read sbwt
+    let mut index_reader = std::io::BufReader::new(std::fs::File::open(indexfile).unwrap());
+    let sbwt = sbwt::load_sbwt_index_variant(&mut index_reader).unwrap();
+
+    // Load the lcs array
+    let lcs = match std::fs::File::open(&lcsfile) {
+        Ok(f) => {
+            let mut lcs_reader = std::io::BufReader::new(f);
+            sbwt::LcsArray::load(&mut lcs_reader).unwrap()
+        }
+        Err(_) => {
+            panic!("No LCS array found at {}", lcsfile);
+        }
+    };
+    return (sbwt, lcs);
+}
+
+pub fn query_sbwt(
+    query_file: &String,
+    index: &sbwt::SbwtIndexVariant,
+    lcs: &sbwt::LcsArray,
+) -> Vec<(usize, usize)> {
+    match index {
+        SbwtIndexVariant::SubsetMatrix(sbwt) => {
+	    let mut reader = needletail::parse_fastx_file(&query_file).expect("valid path/file");
+	    let streaming_index = sbwt::StreamingIndex::new(sbwt, lcs);
+
+	    // TODO handle input with multiple sequences
+	    // implement as querying 1 record at a time
+	    let Some(rec) = reader.next() else { panic!("Invalid query {}", query_file); };
+	    let seqrec = rec.expect("invalid_record");
+	    let seq = seqrec.normalize(true);
+	    let ms_fw = streaming_index.matching_statistics(seq.sequence());
+	    let ms_rc = streaming_index.matching_statistics(seq.reverse_complement().sequence());
+	    return ms_fw.iter().zip(ms_rc.iter()).map(|x| (x.0.0, x.1.0)).collect();
+	},
+    };
 }
