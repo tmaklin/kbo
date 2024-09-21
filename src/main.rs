@@ -78,7 +78,6 @@ fn main() {
                 ..Default::default()
             };
 
-	    // TODO handle multiple files and `input_list`
 	    info!("Serializing SBWT index...");
 	    let (sbwt, lcs) = build::build_sbwt(&seq_files[0], &Some(sbwt_params.clone()));
 	    build::serialize_sbwt(sbwt, &lcs, &Some(sbwt_params));
@@ -105,7 +104,6 @@ fn main() {
 	    };
 
 	    info!("Querying SBWT index...");
-	    // TODO handle multiple files and `input_list`
 	    let ms = map::query_sbwt(&seq_files[0], &sbwt, &lcs);
 
 	    info!("Translating result...");
