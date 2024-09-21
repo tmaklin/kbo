@@ -10,9 +10,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Install dependencies
-        run: apt install -y liblzma-dev
-
       - name: Compile
         id: compile
         uses: rust-build/rust-build.action@v1.4.5
