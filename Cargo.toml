@@ -2,6 +2,7 @@
 name = "sablast"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.77.0"
 authors = ["Tommi Mäklin <tommi@maklin.fi>"]
 description = "Spectral Burrows-Wheeler transform accelerated local alignment search"
 readme = "README.md"
