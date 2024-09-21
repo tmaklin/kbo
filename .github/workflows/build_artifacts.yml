@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
       - name: Install dependencies
-        run: apt install -y liblzma-dev
+        run: apt-get update && apt install -y liblzma-dev
 
+      - uses: actions/checkout@v3
       - name: Compile
         id: compile
         uses: rust-build/rust-build.action@v1.4.5
