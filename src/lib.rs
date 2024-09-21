@@ -22,19 +22,12 @@ pub fn map(
     sbwt: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
 ) -> Vec<(usize, usize, usize, usize, char)> {
-    let translate_params = map::TranslateParams {
-	k: match sbwt {
-	    SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-		sbwt.k()
-	    }
-	},
-	threshold: match sbwt {
-	    SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-		// 0.0000001 should maybe be prop. to 1/(number of unique k-mers in query)
-		map::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4 as usize, 0.0000001 as f64)
-	    }
+    let (k, threshold) = match sbwt {
+	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+	    (sbwt.k(), map::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4 as usize, 0.0000001 as f64))
 	},
     };
+    let translate_params = map::TranslateParams { k: k, threshold: threshold };
 
     // TODO handle multiple files and `input_list`
     let ms = index::query_sbwt(&query_file, &sbwt, &lcs);
