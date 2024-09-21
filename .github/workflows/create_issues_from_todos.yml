@@ -7,7 +7,10 @@ on:
 jobs:
   create_issues:
     runs-on: ubuntu-latest
+    environment: Modify issues
     steps:
       - uses: "actions/checkout@v3"
       - name: TODO to issue
         uses: alstr/todo-to-issue-action@v4
+        with:
+          token: ${{ secrets.MODIFY_SABLAST_ISSUES }}
