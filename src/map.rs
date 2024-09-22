@@ -79,7 +79,7 @@ pub fn random_match_threshold(
     return k;
 }
 
-/// Derandomizes a noisy _k_-bounded matching statistic.
+/// Derandomizes a single noisy _k_-bounded matching statistic.
 ///
 /// Derandomizes the `current_ms` matching statistic (MS) based on the
 /// `next_run` value obtained from the output of this function for the
@@ -102,6 +102,7 @@ pub fn ms_to_run(
     threshold: usize,
     k: usize,
 ) -> i64 {
+    assert!(k > 0);
     assert!(threshold > 1);
     assert!(current_ms <= k);
     assert!(next_run <= k as i64);
@@ -123,16 +124,30 @@ pub fn ms_to_run(
     return run;
 }
 
+/// Derandomizes a sequence of noisy _k_-bounded matching statistics.
+///
+/// Iterates over a sequence of noisy _k_bounded matching statistics
+/// `ms` in reverse to identify values that are the result of random
+/// matching between _k_-mers of size `k` and an index that the lower
+/// bound `threshold` was calculated for.
+///
+/// # Examples
+/// TODO Add examples to derandomize_ms documentation
+///
 pub fn derandomize_ms(
-    ms: &Vec<usize>,
+    ms: &[usize],
     params_in: &Option<TranslateParams>
 ) -> Vec<i64> {
     let params = params_in.clone().unwrap();
     let len = ms.len();
 
+    assert!(params.k > 0);
+    assert!(params.threshold > 1);
+    assert!(ms.len() > 2);
+
     let mut runs: Vec<i64> = vec![0; len];
 
-    // Traverse the matching statistics in reverse
+    // Traverse the matching statistics in reverse.
     runs[len - 1] = ms[len - 1] as i64;
     for i in 2..len {
 	runs[len - i] = ms_to_run(ms[len - i], runs[len - i + 1], params.threshold, params.k);
@@ -141,7 +156,25 @@ pub fn derandomize_ms(
     return runs;
 }
 
-/// Converts a derandomized k-bounded matching statistics vec to an alignment vec.
+/// Converts a derandomized _k_-bounded matching statistics vec to an alignment vec.
+///
+/// Iterates over a derandomized sequence of _k_bounded matching
+/// statistics `runs` and creates a sequence containing a character
+/// representation of the underlying alignment that generated `runs`.
+///
+/// The alignment is encoded using the following characters:
+/// - **M** : Match between query and reference.
+/// - **-** : Characters in the query that are not found in the reference.
+/// - **X** : Single character mismatch or insertion into the query.
+/// - **R** : Two consecutive 'R's signify a discontinuity in the alignment.
+///        The right 'R' is at the start of a _k_-mer that is not adjacent
+///        to the last character in the _k_-mer corresponding to the left
+///        'R'. This implies either a deletion of unknown length in the query,
+///        or insertion of _k_-mers from elsewhere in the reference into the query.
+///
+/// # Examples
+/// TODO Add examples to translate_runs documentation.
+///
 pub fn translate_runs(
     ms: &[usize],
     runs: &[i64],
