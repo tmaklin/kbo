@@ -26,6 +26,26 @@ fn log_rm_max_cdf(
     n_kmers as f64 * (- ((1.0_f64.ln() - (alphabet_size as f64).ln()).exp()).powi(t as i32 + 1)).ln_1p()
 }
 
+/// Determines a lower bound for non-random matching statistic values.
+///
+/// Computes the probabilities that the possible values for the
+/// _k_-bounded matching statistics (MS) of a _k_-mer with size `k`
+/// mapped against an index with `n_kmers` total _k_-mers and
+/// `alphabet_size` possible values at each character are random
+/// matches. Computation terminates when the MS value that produces a
+/// random match probability below `max_error_prob` is found and
+/// returned.
+///
+/// If no MS value passes the check, the function returns `k` instead.
+///
+/// # Examples
+/// TODO Add examples to random_match_threshold documentation
+///
+/// # Distribution of random matches in _k_-bounded matching statistics
+/// TODO Add the maths
+///
+/// Credit to Jarno N. Alanko for calculating the random match distribution.
+///
 pub fn random_match_threshold(
     k: usize,
     n_kmers: usize,
