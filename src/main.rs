@@ -81,7 +81,11 @@ fn main() {
 	    // TODO Query multiple inputs in sablast map
 	    info!("Querying SBWT index...");
 
-      let mut run_lengths = sablast::map(&seq_files[0], &sbwt, &lcs);
+	    let aln = sablast::map(&seq_files[0], &sbwt, &lcs);
+	    let mut run_lengths: Vec<(usize, usize, usize, usize, char)> = sablast::format::run_lengths(&aln.0).iter().map(|x| (x.0, x.1, x.2, x.3, '+')).collect();
+	    let mut run_lengths_rev: Vec<(usize, usize, usize, usize, char)> = sablast::format::run_lengths(&aln.1).iter().map(|x| (x.0, x.1, x.2, x.3, '-')).collect();
+	    run_lengths.append(&mut run_lengths_rev);
+
 	    run_lengths.sort_by_key(|x| x.0);
 
 	    println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches");

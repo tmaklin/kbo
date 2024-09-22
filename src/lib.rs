@@ -16,12 +16,13 @@ use sbwt::SbwtIndexVariant;
 
 pub mod index;
 pub mod map;
+pub mod format;
 
 pub fn map(
     query_file: &String,
     sbwt: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
-) -> Vec<(usize, usize, usize, usize, char)> {
+) -> (Vec<char>, Vec<char>) {
     let (k, threshold) = match sbwt {
 	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
 	    (sbwt.k(), map::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4 as usize, 0.0000001 as f64))
@@ -39,9 +40,6 @@ pub fn map(
 		map::derandomize_ms(&ms_rev, &Some(translate_params.clone())));
     let aln = (map::translate_runs(&ms_fw, &runs.0, &Some(translate_params.clone())),
 	       map::translate_runs(&ms_rev, &runs.1, &Some(translate_params)));
-    let mut run_lengths: Vec<(usize, usize, usize, usize, char)> = map::run_lengths(&aln.0).iter().map(|x| (x.0, x.1, x.2, x.3, '+')).collect();
-    let mut run_lengths_rev: Vec<(usize, usize, usize, usize, char)> = map::run_lengths(&aln.1).iter().map(|x| (x.0, x.1, x.2, x.3, '-')).collect();
-    run_lengths.append(&mut run_lengths_rev);
 
-    return run_lengths;
+    return aln;
 }
