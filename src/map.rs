@@ -40,30 +40,42 @@ pub fn random_match_threshold(
     return k;
 }
 
-fn ms_to_run(
-    curr: usize,
-    next: usize,
+/// Returns the derandomized _k_-bounded matching statistic (a "run").
+///
+/// Derandomizes the `current_ms` matching statistic (MS) based on the
+/// `next_run` value obtained from the output of this function for the
+/// next MS when read left-to-right, the _k_-mer size `k`, and the
+/// `threshold` which specifies a lower bound to consider the MS a
+/// non-random match.
+///
+/// Positive values of the output i64 value mean that i64 bases from
+/// the beginning of the k-mer match the reference, ie. same as the
+/// MS, while negative values denote distance from the last base in
+/// the last _k_-mer that produced a match.
+///
+/// # Examples
+///
+/// TODO Add examples to ms_to_run documentation
+///
+pub fn ms_to_run(
+    current_ms: usize,
     next_run: i64,
     threshold: usize,
     k: usize,
 ) -> i64 {
-    let run: i64 = if curr == k && next == k {
-	k as i64
-    } else if curr == k && next_run == 1 {
-	k as i64
-    } else if curr == k && next_run < 0 {
-	k as i64
-    } else if curr < threshold {
-	next_run - 1
-    } else if curr > threshold && next_run <= 0 {
-	curr as i64
-    } else if curr > threshold && next_run == 1 {
-	curr as i64
-    } else if curr > threshold && next_run < curr as i64 {
-	curr as i64
-    } else {
-	next_run - 1
-    };
+    // Default is to decrease MS by 1.
+    let mut run: i64 = next_run - 1;
+
+    if current_ms == k {
+	// Beginning of a full k-mer match
+	run = k as i64;
+    }
+
+    if current_ms > threshold && next_run < current_ms as i64 {
+	// Beginning of a partial k-mer match
+	// Only works if threshold > 1
+	run = current_ms as i64;
+    }
 
     return run;
 }
@@ -123,7 +135,7 @@ pub fn derandomize_ms(
     // Traverse the matching statistics in reverse
     runs[len - 1] = ms[len - 1] as i64;
     for i in 2..len {
-	runs[len - i] = ms_to_run(ms[len - i], ms[len - i + 1], runs[len - i + 1], params.threshold, params.k);
+	runs[len - i] = ms_to_run(ms[len - i], runs[len - i + 1], params.threshold, params.k);
     }
 
     return runs;
