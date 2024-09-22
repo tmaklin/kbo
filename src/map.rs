@@ -143,8 +143,8 @@ pub fn derandomize_ms(
 
 /// Converts a derandomized k-bounded matching statistics vec to an alignment vec.
 pub fn translate_runs(
-    ms: &Vec<usize>,
-    runs: &Vec<i64>,
+    ms: &[usize],
+    runs: &[i64],
     params_in: &Option<TranslateParams>,
 ) -> Vec<char> {
     let params = params_in.clone().unwrap();
