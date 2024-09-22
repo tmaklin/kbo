@@ -28,18 +28,16 @@ pub fn map(
 	    (sbwt.k(), map::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4 as usize, 0.0000001 as f64))
 	},
     };
-    let translate_params = map::TranslateParams { k: k, threshold: threshold };
-
     // TODO handle multiple files and `input_list`
     let ms = index::query_sbwt(&query_file, &sbwt, &lcs);
 
     info!("Translating result...");
     let ms_fw = ms.iter().map(|x| x.0).collect::<Vec<usize>>();
     let ms_rev = ms.iter().map(|x| x.1).collect::<Vec<usize>>();
-    let runs = (map::derandomize_ms(&ms_fw, &Some(translate_params.clone())),
-		map::derandomize_ms(&ms_rev, &Some(translate_params.clone())));
-    let aln = (map::translate_runs(&ms_fw, &runs.0, &Some(translate_params.clone())),
-	       map::translate_runs(&ms_rev, &runs.1, &Some(translate_params)));
+    let runs = (map::derandomize_ms(&ms_fw, k, threshold),
+		map::derandomize_ms(&ms_rev, k, threshold));
+    let aln = (map::translate_runs(&ms_fw, &runs.0, k, threshold),
+	       map::translate_runs(&ms_rev, &runs.1, k, threshold));
 
     return aln;
 }
