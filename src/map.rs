@@ -23,6 +23,9 @@ fn log_rm_max_cdf(
     alphabet_size: usize,
     n_kmers: usize,
 ) -> f64 {
+    assert!(n_kmers > 0);
+    assert!(alphabet_size > 0);
+
     n_kmers as f64 * (- ((1.0_f64.ln() - (alphabet_size as f64).ln()).exp()).powi(t as i32 + 1)).ln_1p()
 }
 
@@ -52,6 +55,12 @@ pub fn random_match_threshold(
     alphabet_size: usize,
     max_error_prob: f64,
 ) -> usize {
+    assert!(k > 0);
+    assert!(n_kmers > 0);
+    assert!(alphabet_size > 0);
+    assert!(max_error_prob <= 1 as f64);
+    assert!(max_error_prob > 0 as f64);
+
     for i in 1..k {
 	if log_rm_max_cdf(i, alphabet_size, n_kmers) > (-max_error_prob).ln_1p() {
 	    return i;
@@ -83,6 +92,10 @@ pub fn ms_to_run(
     threshold: usize,
     k: usize,
 ) -> i64 {
+    assert!(threshold > 1);
+    assert!(current_ms <= k);
+    assert!(next_run <= k as i64);
+
     // Default is to decrease MS by 1.
     let mut run: i64 = next_run - 1;
 
