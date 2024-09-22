@@ -123,49 +123,6 @@ pub fn ms_to_run(
     return run;
 }
 
-fn run_to_aln(
-    runs: &Vec<i64>,
-    curr_ms: usize,
-    threshold: usize,
-    k: usize,
-    res: &mut Vec<char>,
-    pos: &mut usize,
-) {
-    let prev: i64 = runs[*pos - 1];
-    let curr: i64 = runs[*pos];
-    let next: i64 = runs[*pos + 1];
-
-    if curr == k as i64 && next == k as i64 {
-	res[*pos] = 'M';
-    } else if curr > threshold as i64 && (next > 0 && next < threshold as i64) {
-	res[*pos] = 'R';
-	res[*pos + 1] = 'R';
-    } else if next == 1 && curr == curr_ms as i64 {
-	res[*pos] = 'M';
-    } else if curr > threshold as i64 {
-	res[*pos] = 'M';
-    } else if curr == next - 1 && curr > 0 {
-	res[*pos] = 'M';
-    } else if curr == 0 && next == 1 && prev > 0 {
-	res[*pos] = 'X';
-	res[*pos - 1] = 'M';
-    } else if curr == 0 && next == 1 && prev == -1 {
-	let mut next_gap: usize = pos.clone();
-	let mut gap_len: usize = 0;
-	while runs[next_gap - 1] < 0 && next_gap > 1 {
-	    gap_len += 1;
-	    next_gap -= 1;
-	}
-	// TODO Determine what counts as an insertion or gap in run_to_aln
-	while *pos < *pos + gap_len && *pos < runs.len() {
-	    res[*pos] = if gap_len > 29 { '-' } else { 'I' };
-	    *pos += 1;
-	}
-    } else {
-	res[*pos] = ' ';
-    };
-}
-
 pub fn derandomize_ms(
     ms: &Vec<usize>,
     params_in: &Option<TranslateParams>
@@ -191,15 +148,50 @@ pub fn translate_runs(
     params_in: &Option<TranslateParams>,
 ) -> Vec<char> {
     let params = params_in.clone().unwrap();
+    let threshold = params.threshold;
+    let k = params.k;
     let len = runs.len();
-    let mut aln = vec![' '; len];
+    let mut res = vec![' '; len];
 
     // Traverse the runs
-    for mut i in 3..(len - 1) {
-	run_to_aln(&runs, ms[i], params.threshold, params.k, &mut aln, &mut i);
+    for mut pos in 3..(len - 1) {
+	let prev: i64 = runs[pos - 1];
+	let curr: i64 = runs[pos];
+	let next: i64 = runs[pos + 1];
+	let curr_ms = ms[pos];
+
+	if curr == k as i64 && next == k as i64 {
+	    res[pos] = 'M';
+	} else if curr > threshold as i64 && (next > 0 && next < threshold as i64) {
+	    res[pos] = 'R';
+	    res[pos + 1] = 'R';
+	} else if next == 1 && curr == curr_ms as i64 {
+	    res[pos] = 'M';
+	} else if curr > threshold as i64 {
+	    res[pos] = 'M';
+	} else if curr == next - 1 && curr > 0 {
+	    res[pos] = 'M';
+	} else if curr == 0 && next == 1 && prev > 0 {
+	    res[pos] = 'X';
+	    res[pos - 1] = 'M';
+	} else if curr == 0 && next == 1 && prev == -1 {
+	    let mut next_gap: usize = pos.clone();
+	    let mut gap_len: usize = 0;
+	    while runs[next_gap - 1] < 0 && next_gap > 1 {
+		gap_len += 1;
+		next_gap -= 1;
+	    }
+	    // TODO Determine what counts as an insertion or gap in run_to_aln
+	    while pos < pos + gap_len && pos < runs.len() {
+		res[pos] = if gap_len > 29 { '-' } else { 'I' };
+		pos += 1;
+	    }
+	} else {
+	    res[pos] = ' ';
+	};
     }
 
-    return aln;
+    return res;
 }
 
 pub fn run_lengths(
