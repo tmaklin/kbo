@@ -77,10 +77,10 @@ pub fn random_match_threshold(
 /// `threshold` which specifies a lower bound to consider the MS a
 /// non-random match.
 ///
-/// Positive values of the output i64 value mean that i64 bases from
-/// the beginning of the k-mer match the reference, ie. same as the
-/// MS, while negative values denote distance from the last base in
-/// the last _k_-mer that produced a match.
+/// Positive values of the output i64 value mean that i64 characters
+/// from the beginning of the k-mer match the reference, ie. same as
+/// the MS, while negative values denote distance from the last
+/// character in the last _k_-mer that produced a match.
 ///
 /// # Examples
 ///
