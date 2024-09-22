@@ -29,7 +29,7 @@ fn log_rm_max_cdf(
     n_kmers as f64 * (- ((1.0_f64.ln() - (alphabet_size as f64).ln()).exp()).powi(t as i32 + 1)).ln_1p()
 }
 
-/// Determines a lower bound for non-random matching statistic values.
+/// Determines a lower bound for non-random _k_-bounded matching statistic values.
 ///
 /// Computes the probabilities that the possible values for the
 /// _k_-bounded matching statistics (MS) of a _k_-mer with size `k`
