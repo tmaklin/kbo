@@ -11,6 +11,7 @@
 // the MIT license, <LICENSE-MIT> or <http://opensource.org/licenses/MIT>,
 // at your option.
 //
+use std::io::Write;
 use std::ops::Deref;
 use std::path::PathBuf;
 
@@ -79,25 +80,24 @@ pub fn build_sbwt(
 }
 
 pub fn serialize_sbwt(
-    sbwt: sbwt::SbwtIndex<sbwt::SubsetMatrix>,
-    lcs: &Option<sbwt::LcsArray>,
-    params_in: &Option<SBWTParams>,
+    outfile_prefix: &str,
+    sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
+    lcs: &sbwt::LcsArray,
 ) {
-    let params = params_in.clone().unwrap_or(SBWTParams::default());
+    let sbwt_outfile = format!("{}.sbwt", outfile_prefix);
+    let lcs_outfile = format!("{}.lcs", outfile_prefix);
 
-    let mut sbwt_outfile = params.index_prefix.clone().unwrap_or("sbwt".to_string());
-    sbwt_outfile.push_str(".sbwt");
-    let mut sbwt_out = std::io::BufWriter::new(std::fs::File::create(sbwt_outfile).unwrap());
+    // Write sbwt
+    let sbwt_conn = std::fs::File::create(&sbwt_outfile).unwrap_or_else(|_| panic!("Expected write access to {}", sbwt_outfile));
+    let mut sbwt_out = std::io::BufWriter::new(sbwt_conn);
+    sbwt_out.write_all(&(b"SubsetMatrix".len() as u64).to_le_bytes()).expect("Serialized SBWT header part 1.");
+    sbwt_out.write_all(b"SubsetMatrix").expect("Serialized SBWT header part 2.");
+    sbwt.serialize(&mut sbwt_out).expect("Serialized SBWT index.");
 
-    sbwt.n_kmers();
-    sbwt::write_sbwt_index_variant(&SbwtIndexVariant::SubsetMatrix(sbwt), &mut sbwt_out).unwrap();
-
-    if let Some(lcs) = lcs{
-        let mut lcs_outfile = params.index_prefix.clone().unwrap_or("sbwt".to_string());
-        lcs_outfile.push_str(".lcs");
-        let mut lcs_out = std::io::BufWriter::new(std::fs::File::create(&lcs_outfile).unwrap());
-        lcs.serialize(&mut lcs_out).unwrap();
-    }
+    // Write lcs array
+    let lcs_conn = std::fs::File::create(&lcs_outfile).unwrap_or_else(|_| panic!("Expected write access to {}", lcs_outfile));
+    let mut lcs_out = std::io::BufWriter::new(lcs_conn);
+    lcs.serialize(&mut lcs_out).expect("Serialized LCS array.");
 }
 
 /// Loads a prebuilt SBWT index and its LCS array from disk.

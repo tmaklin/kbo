@@ -62,7 +62,7 @@ fn main() {
 	    let (sbwt, lcs) = sablast::index::build_sbwt(&seq_files[0], &Some(sbwt_params.clone()));
 
 	    info!("Serializing SBWT index...");
-	    sablast::index::serialize_sbwt(sbwt, &lcs, &Some(sbwt_params));
+	    sablast::index::serialize_sbwt(&output_prefix.as_ref().unwrap(), &sbwt, &lcs.as_ref().unwrap());
 
 	},
         Some(cli::Commands::Map {
