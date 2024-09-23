@@ -114,22 +114,23 @@ pub fn build_sbwt_from_file(
     build_options: &Option<BuildOpts>,
 ) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
     // Get temp dir path from build_options, otherwise use whatever std::env::temp_dir() returns
-    let temp_dir = build_options.as_ref().unwrap().temp_dir.clone().unwrap_or(std::env::temp_dir().to_str().unwrap().to_string());
+    let build_opts = if build_options.is_some() { build_options.clone().unwrap() } else { BuildOpts::default() };
+    let temp_dir = if build_opts.temp_dir.is_some() { build_opts.temp_dir.unwrap() } else { std::env::temp_dir().to_str().unwrap().to_string() };
 
     let algorithm = BitPackedKmerSorting::new()
-	.mem_gb(build_options.as_ref().unwrap().mem_gb)
+	.mem_gb(build_opts.mem_gb)
 	.dedup_batches(false)
 	.temp_dir(PathBuf::from(OsString::from(temp_dir)).as_path());
 
     let reader = FastxStreamer{inner: needletail::parse_fastx_file(infile).expect("valid path/file"), record: Vec::new()};
 
     let (sbwt, lcs) = SbwtIndexBuilder::new()
-	.k(build_options.as_ref().unwrap().k)
-	.n_threads(build_options.as_ref().unwrap().num_threads)
-	.add_rev_comp(build_options.as_ref().unwrap().add_revcomp)
+	.k(build_opts.k)
+	.n_threads(build_opts.num_threads)
+	.add_rev_comp(build_opts.add_revcomp)
 	.algorithm(algorithm)
 	.build_lcs(true)
-	.precalc_length(build_options.as_ref().unwrap().prefix_precalc)
+	.precalc_length(build_opts.prefix_precalc)
 	.run(reader);
 
     (SbwtIndexVariant::SubsetMatrix(sbwt), lcs.unwrap())
@@ -165,21 +166,21 @@ pub fn build_sbwt_from_vecs(
     slices: &[Vec<u8>],
     build_options: &Option<BuildOpts>,
 ) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
-    // Get temp dir path from build_options, otherwise use whatever std::env::temp_dir() returns
-    let temp_dir = build_options.as_ref().unwrap().temp_dir.clone().unwrap_or(std::env::temp_dir().to_str().unwrap().to_string());
+    let build_opts = if build_options.is_some() { build_options.clone().unwrap() } else { BuildOpts::default() };
+    let temp_dir = if build_opts.temp_dir.is_some() { build_opts.temp_dir.unwrap() } else { std::env::temp_dir().to_str().unwrap().to_string() };
 
     let algorithm = BitPackedKmerSorting::new()
-	.mem_gb(build_options.as_ref().unwrap().mem_gb)
+	.mem_gb(build_opts.mem_gb)
 	.dedup_batches(false)
 	.temp_dir(PathBuf::from(OsString::from(temp_dir)).as_path());
 
     let (sbwt, lcs) = SbwtIndexBuilder::new()
-	.k(build_options.as_ref().unwrap().k)
-	.n_threads(build_options.as_ref().unwrap().num_threads)
-	.add_rev_comp(build_options.as_ref().unwrap().add_revcomp)
+	.k(build_opts.k)
+	.n_threads(build_opts.num_threads)
+	.add_rev_comp(build_opts.add_revcomp)
 	.algorithm(algorithm)
 	.build_lcs(true)
-	.precalc_length(build_options.as_ref().unwrap().prefix_precalc)
+	.precalc_length(build_opts.prefix_precalc)
 	.run_from_vecs(slices);
 
     (SbwtIndexVariant::SubsetMatrix(sbwt), lcs.unwrap())
