@@ -28,9 +28,10 @@
 
 /// Translates a single derandomized _k_-bounded matching statistic.
 ///
-/// Translates the current derandomized matching statistic (MS) based
-/// on the values of its left and right neighbors and the lower bound
-/// for random matches.
+/// Translates the current derandomized matching statistic (MS)
+/// `ms_curr` based on the values of its left `ms_prev` and right
+/// `ms_next` neighbors and the lower bound `threshold` for random
+/// matches.
 ///
 /// Returns a tuple containing the translation of the current MS and
 /// translation of the right neighbor match. The right neighbor is an
@@ -80,8 +81,11 @@ pub fn translate_ms_val(
 /// Translates a sequence of derandomized _k_-bounded matching statistics.
 ///
 /// Iterates over a derandomized sequence of _k_bounded matching
-/// statistics `runs` and creates a sequence containing a character
-/// representation of the underlying alignment that generated `runs`.
+/// statistics `derand_ms` for _k_-mers with size `k` derandomized
+/// with the threshold `threshold`.
+///
+/// Returns a sequence containing a character representation of the
+/// underlying alignment.
 ///
 /// # Examples
 /// TODO Add examples to translate_ms_vec documentation.
