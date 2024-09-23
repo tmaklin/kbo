@@ -32,6 +32,3 @@ assert_approx_eq = "1.1.0"
 
 [package.metadata.patch]
 crates = ["needletail"]
-
-[patch.crates-io]
-needletail = { path = "./target/patch/needletail-0.5.1" }
