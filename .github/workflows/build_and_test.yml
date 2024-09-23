@@ -28,7 +28,7 @@ jobs:
       run: cargo build --verbose
 
     - name: Run unit and integration tests
-      run: cargo test --verbose
+      run: cargo test --no-fail-fast --verbose
 
     - name: Run documenation examples as tests
       run: cargo test --doc --verbose
