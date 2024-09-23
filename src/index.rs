@@ -133,6 +133,17 @@ pub fn load_sbwt(
     (sbwt, lcs)
 }
 
+/// Queries an SBWT index for the _k_-bounded matching statistics.
+///
+/// Matches the _k_-mers in `query` against the SBWT index `index` and
+/// its longest common suffix array `lcs`.
+///
+/// Returns a vector containing the _k_-bounded matching statistic at
+/// the position of each element in the query.
+///
+/// # Examples
+/// TODO Add examples to query_sbwt documentation
+///
 pub fn query_sbwt(
     query: &[u8],
     index: &sbwt::SbwtIndexVariant,
