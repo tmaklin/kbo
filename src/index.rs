@@ -105,6 +105,48 @@ pub fn build_sbwt_from_file(
     (sbwt, lcs)
 }
 
+/// Builds an SBWT index and its LCS array from sequences in memory.
+///
+/// Passes all character sequences in `slices` to the SBWT API calls
+/// to build the SBWT index and LCS array. Use the [BuildOpts]
+/// argument `build_options` to control the options and resources
+/// passed to the index builder.
+///
+/// Note this function considers all data in `slices` as belonging to
+/// the same sequence, meaning that only one index will be built.
+///
+/// Returns a tuple containing the SBWT index and the LCS array.
+///
+/// Requires write access to some temporary directory. Path can be set
+/// using temp_dir in BuildOpts; defaults to $TMPDIR on Unix if not set.
+///
+/// # Examples
+/// TODO Add examples to build_sbwt documentation.
+///
+pub fn build_sbwt_from_vecs(
+    slices: &[Vec<u8>],
+    build_options: &Option<BuildOpts>,
+) -> (sbwt::SbwtIndexVariant, Option<sbwt::LcsArray>) {
+    // Get temp dir path from build_options, otherwise use whatever std::env::temp_dir() returns
+    let temp_dir = build_options.as_ref().unwrap().temp_dir.clone().unwrap_or(std::env::temp_dir().to_str().unwrap().to_string());
+
+    let algorithm = BitPackedKmerSorting::new()
+	.mem_gb(build_options.as_ref().unwrap().mem_gb)
+	.dedup_batches(false)
+	.temp_dir(PathBuf::from(OsString::from(temp_dir)).as_path());
+
+    let (sbwt, lcs) = SbwtIndexBuilder::new()
+	.k(build_options.as_ref().unwrap().k)
+	.n_threads(build_options.as_ref().unwrap().num_threads)
+	.add_rev_comp(build_options.as_ref().unwrap().add_revcomp)
+	.algorithm(algorithm)
+	.build_lcs(true)
+	.precalc_length(build_options.as_ref().unwrap().prefix_precalc)
+	.run_from_vecs(slices);
+
+    (SbwtIndexVariant::SubsetMatrix(sbwt), lcs)
+}
+
 pub fn serialize_sbwt(
     outfile_prefix: &str,
     sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
