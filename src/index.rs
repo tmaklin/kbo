@@ -354,7 +354,7 @@ mod tests {
 	assert_eq!(lcs, lcs_loaded);
 	match sbwt {
             sbwt::SbwtIndexVariant::SubsetMatrix(ref index) => {
-		match sbwt {
+		match sbwt_loaded {
 		    sbwt::SbwtIndexVariant::SubsetMatrix(ref index_loaded) => {
 			assert_eq!(index, index_loaded);
 		    },
