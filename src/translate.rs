@@ -23,8 +23,6 @@
 //!           'R'. This implies either a deletion of unknown length in the query,
 //!           or insertion of _k_-mers from elsewhere in the reference into the query.
 //!
-//! ## Translation algorithm for _k_-bounded matching statistics
-//! TODO Describe how the different MS vectors translate into alignments.
 
 /// Translates a single derandomized _k_-bounded matching statistic.
 ///
@@ -39,7 +37,101 @@
 /// affect its value.
 ///
 /// # Examples
-/// TODO add examples to translate_ms_val
+/// ## Query with only matches
+/// ```rust
+/// use sablast::translate::translate_ms_val;
+///
+/// // Parameters       : k = 3, threshold = 2
+/// //
+/// // Ref sequence     : A,C,G,C,A,G
+/// // Query sequence   : A,C,G,C,A,G
+/// //
+/// // Result MS vector : 1,2,3,3,3,3
+/// // Testing this pos :     |
+/// // Expected output  : M,M,M,M,M,M
+///
+/// translate_ms_val(1, 2, 3, 2);
+/// ```
+///
+/// ## Query with a single mismatch
+/// ```rust
+/// use sablast::translate::translate_ms_val;
+///
+/// // Parameters       : k = 3, threshold = 2
+/// //
+/// // Ref sequence     : A,C,G,T,C,A,G
+/// // Query sequence   : A,C,G,C,C,A,G
+/// //
+/// // Result MS vector : 1,2,3,0,1,2,3
+/// // Testing this pos :       |
+/// // Expected output  : M,M,M,X,M,M,M
+///
+/// translate_ms_val(0, 1, 3, 2);
+/// ```
+///
+/// ## Query with a single insertion:
+/// ```rust
+/// use sablast::translate::translate_ms_val;
+///
+/// // Ref sequence     : A,C,G,-,C,A,G
+/// // Query sequence   : A,C,G,C,C,A,G
+/// //
+/// // Result MS vector : 1,2,3,0,1,2,3
+/// // Testing this pos :       |
+/// // Expected output  : M,M,M,X,M,M,M
+///
+/// translate_ms_val(0, 1, 3, 2);
+/// ```
+///
+/// Note that this case is identical to the query with a single
+/// mismatch. These two are indistinguishible based on the _k_-bounded
+/// matching statistics alone although the input sequences are
+/// different.
+///
+/// ## Query with multiple insertions:
+/// ```rust
+/// use sablast::translate::translate_ms_val;
+///
+/// // Ref sequence     : A,C,G, -,-,C,A,G
+/// // Query sequence   : A,C,G, T,T,C,C,A,G
+/// //
+/// // Result MS vector : 1,2,3,-1,0,1,2,3
+/// // Testing this pos :        |
+/// // Expected output  : M,M,M, -,-,M,M,M
+///
+/// translate_ms_val(-1, 0, 3, 2);
+/// ```
+/// ## Query with a deletion or recombination
+/// ```rust
+/// use sablast::translate::translate_ms_val;
+///
+///
+/// // Parameters       : k = 3, threshold = 2
+/// //
+/// // Ref sequence     : A,C,G,T,T,T,C,A,G
+/// // Query sequence   : A,C,G,-,-,-,C,A,G
+/// //
+/// // Result MS vector : 1,2,3,1,2,3
+/// // Testing this pos :     |
+/// // Expected output  : M,M,R,R,M,M
+///
+/// translate_ms_val(3, 1, 2, 2);
+/// ```
+///
+/// Although in this case two characters have been deleted from the
+/// query, if the missing region was longer the matching statistics
+/// (MS) could also represent recombination of a sequence from
+/// elsewhere in the query into the position preceding the three
+/// consecutive T's in the reference.
+///
+/// Recombinations and deletions are indistinguishable in the
+/// _k_-bounded matching statistics alone but they can be solved by
+/// comparing the MS vector with the reference and
+/// query. Additionally, when a segment of reasonable length is
+/// encapsulated by two consecutive R's on both the left and right
+/// side, the region in between possibly originates from elsewhere in
+/// the reference.
+///
 pub fn translate_ms_val(
     ms_curr: i64,
     ms_next: i64,
@@ -88,7 +180,18 @@ pub fn translate_ms_val(
 /// underlying alignment.
 ///
 /// # Examples
-/// TODO Add examples to translate_ms_vec documentation.
+/// ```rust
+/// use sablast::translate::translate_ms_vec;
+///
+/// // Parameters       : k = 3, threshold = 2
+/// // Ref sequence     : A,A,A,G,A,A,C,C,A,-,T,C,A, -,-,G,G,G, C,G
+/// // Query sequence   : C,A,A,G,-,-,C,C,A,C,T,C,A, T,T,G,G,G, T,C
+/// // Input MS         : 0,1,2,3,    1,2,3,0,1,2,3,-1,0,1,2,3,-1,0
+/// // Expected output  : X,M,M,R,    R,M,M,X,M,M,M, -,-,M,M,M, -,-
+///
+/// let input: Vec<i64> = vec![0,1,2,3,1,2,3,0,1,2,3,-1,0,1,2,3,-1,0];
+/// translate_ms_vec(&input, 3, 2);
+/// ```
 ///
 pub fn translate_ms_vec(
     derand_ms: &[i64],
