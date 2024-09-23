@@ -124,6 +124,96 @@ pub fn translate_ms_vec(
 //
 #[cfg(test)]
 mod tests {
+    // Test cases for translate_ms_val
+    // Comments use '-' for characters that are not in a ref or query sequence
+    #[test]
+    fn translate_ms_val_with_discontinuity() {
+	// Parameters       : k = 3, threshold = 2
+	//
+	// Ref sequence     : A,C,G,T,T,T,C,A,G
+	// Query sequence   : A,C,G,-,-,-,C,A,G
+	//
+	// Result MS vector : 1,2,3,1,2,3
+	// Testing this pos :     |
+	// Expected output  : M,M,R,R,M,M
+
+	let expected = ('R','R');
+	let got = super::translate_ms_val(3, 1, 2, 2);
+
+	assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn translate_ms_val_with_mismatch() {
+	// Parameters       : k = 3, threshold = 2
+	//
+	// Ref sequence     : A,C,G,T,C,A,G
+	// Query sequence   : A,C,G,C,C,A,G
+	//
+	// Result MS vector : 1,2,3,0,1,2,3
+	// Testing this pos :       |
+	// Expected output  : M,M,M,X,M,M,M
+
+	let expected = ('X',' ');
+	let got = super::translate_ms_val(0, 1, 3, 2);
+
+	assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn translate_ms_val_with_single_insertion() {
+	// Parameters       : k = 3, threshold = 2
+	//
+	// Ref sequence     : A,C,G,-,C,A,G
+	// Query sequence   : A,C,G,C,C,A,G
+	//
+	// Result MS vector : 1,2,3,0,1,2,3
+	// Testing this pos :       |
+	// Expected output  : M,M,M,X,M,M,M
+
+	// Note this is identical to translate_ms_with_mismatch, these
+	// are indistinguishible in outputs but have different inputs.
+	// Kept here as a demonstration.
+	let expected = ('X', ' ');
+	let got = super::translate_ms_val(0, 1, 3, 2);
+
+	assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn translate_ms_val_with_many_insertions() {
+	// Parameters       : k = 3, threshold = 2
+	//
+	// Ref sequence     : A,C,G, -,-,C,A,G
+	// Query sequence   : A,C,G, T,T,C,C,A,G
+	//
+	// Result MS vector : 1,2,3,-1,0,1,2,3
+	// Testing this pos :        |
+	// Expected output  : M,M,M, -,-,M,M,M
+
+	let expected = ('-', ' ');
+	let got = super::translate_ms_val(-1, 0, 3, 2);
+
+	assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn translate_ms_val_with_only_matches() {
+	// Parameters       : k = 3, threshold = 2
+	//
+	// Ref sequence     : A,C,G,C,A,G
+	// Query sequence   : A,C,G,C,A,G
+	//
+	// Result MS vector : 1,2,3,3,3,3
+	// Testing this pos :     |
+	// Expected output  : M,M,M,M,M,M
+
+	let expected = ('M', ' ');
+	let got = super::translate_ms_val(1, 2, 3, 2);
+
+	assert_eq!(got, expected);
+    }
+    
     #[test]
     fn translate_ms_vec() {
 	let expected = vec!['M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M'];
