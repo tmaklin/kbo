@@ -40,23 +40,23 @@
 /// # Examples
 /// TODO add examples to translate_ms_val
 pub fn translate_ms_val(
-    curr: i64,
-    next: i64,
-    prev: i64,
+    ms_curr: i64,
+    ms_next: i64,
+    ms_prev: i64,
     threshold: usize,
 ) -> (char, char) {
     let mut aln_curr = ' ';
     let mut aln_next = ' ';
-    if curr > threshold as i64 && next > 0 && next < threshold as i64 {
+    if ms_curr > threshold as i64 && ms_next > 0 && ms_next < threshold as i64 {
 	// Current position is first character in a jump to another k-mer,
 	// or there is deletion of unknown length in the query wrt. the reference.
 	//
 	// Use two consecutive 'R's to denote breakpoint between two k-mers
 	aln_curr = 'R';
 	aln_next = 'R';
-    } else if curr <= 0 {
+    } else if ms_curr <= 0 {
 	// Start of a mismatch region
-	if next == 1 && prev > 0 {
+	if ms_next == 1 && ms_prev > 0 {
 	    // Mismatched character or insertion of 1 character in the query.
 	    //
 	    // Use 'X' for mismatch or 1 character insert
@@ -86,24 +86,24 @@ pub fn translate_ms_val(
 ///
 pub fn translate_ms_vec(
     ms: &[usize],
-    runs: &[i64],
+    derand_ms: &[i64],
     k: usize,
     threshold: usize,
 ) -> Vec<char> {
     assert!(k > 0);
     assert!(threshold > 1);
     assert!(ms.len() == runs.len());
-    assert!(runs.len() > 2);
+    assert!(derand_ms.len() > 2);
 
-    let len = runs.len();
+    let len = derand_ms.len();
     let mut res = vec![' '; len];
 
-    // Traverse the runs
+    // Traverse the derandomized matchibng statistics
     for mut pos in 0..len {
-	let prev: i64 = if pos > 1 { runs[pos - 1] } else { 31 };
-	let curr: i64 = runs[pos];
-	let next: i64 = if pos < len - 1 { runs[pos + 1] } else { runs[pos] };
 	let curr_ms = ms[pos];
+	let prev: i64 = if pos > 1 { derand_ms[pos - 1] } else { 31 };
+	let curr: i64 = derand_ms[pos];
+	let next: i64 = if pos < len - 1 { derand_ms[pos + 1] } else { derand_ms[pos] };
 
 	let mut aln_curr = res[pos];
 	let mut aln_next = if pos + 1 < len - 1 { res[pos + 1] } else { 'M' };
