@@ -12,6 +12,7 @@
 // at your option.
 //
 use log::info;
+use needletail::Sequence;
 use sbwt::SbwtIndexVariant;
 
 pub mod derandomize;
@@ -30,12 +31,19 @@ pub fn map(
 	},
     };
     // TODO handle multiple files and `input_list`
-    let ms = index::query_sbwt(&query_file, &sbwt, &lcs);
+
+    let mut reader = needletail::parse_fastx_file(query_file).expect("valid path/file");
+    let Some(rec) = reader.next() else { panic!("Invalid query {}", query_file); };
+    let seqrec = rec.expect("invalid_record");
+
+    let seq_fwd = seqrec.normalize(true);
+    let ms_fwd = index::query_sbwt(seq_fwd.sequence(), &sbwt, &lcs);
+
+    let seq_rev = seq_fwd.reverse_complement();
+    let ms_rev = index::query_sbwt(seq_rev.sequence(), &sbwt, &lcs);
 
     info!("Translating result...");
-    let ms_fw = ms.iter().map(|x| x.0).collect::<Vec<usize>>();
-    let ms_rev = ms.iter().map(|x| x.1).collect::<Vec<usize>>();
-    let runs = (derandomize::derandomize_ms_vec(&ms_fw, k, threshold),
+    let runs = (derandomize::derandomize_ms_vec(&ms_fwd, k, threshold),
 		derandomize::derandomize_ms_vec(&ms_rev, k, threshold));
     let aln = (translate::translate_ms_vec(&runs.0, k, threshold),
 	       translate::translate_ms_vec(&runs.1, k, threshold));
