@@ -74,7 +74,7 @@ fn main() {
 	    init_log(if *verbose { 2 } else { 1 });
 	    info!("Loading SBWT index...");
 
-	    let (sbwt, lcs) = sablast::index::load_sbwt(index_prefix.clone().unwrap());
+	    let (sbwt, lcs) = sablast::index::load_sbwt(index_prefix.as_ref().unwrap());
 
 	    // TODO Handle `--input-list in sablast map
 

@@ -100,29 +100,37 @@ pub fn serialize_sbwt(
     }
 }
 
+/// Loads a prebuilt SBWT index and its LCS array from disk.
+///
+/// Reads the SBWT index stored at `index_prefix` + ".sbwt" and the
+/// LCS array at `index_prefix` + ".lcs".
+///
+/// Returns a tuple containing the SBWT index variant and the LCS
+/// array.
+///
+/// Panics if the SBWT or the LCS file are not readable with
+/// std::fs::File::open.
+///
+/// # Examples
+/// TODO Add examples to load_sbwt documentation.
+///
 pub fn load_sbwt(
-    index_prefix: String,
+    index_prefix: &str,
 ) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
-    let mut indexfile = index_prefix.clone();
-    let mut lcsfile = indexfile.clone();
-    indexfile.push_str(".sbwt");
-    lcsfile.push_str(".lcs");
+    let indexfile = format!("{}.sbwt", index_prefix);
+    let lcsfile = format!("{}.lcs", index_prefix);
 
-    // Read sbwt
-    let mut index_reader = std::io::BufReader::new(std::fs::File::open(indexfile).unwrap());
+    // Load sbwt
+    let sbwt_conn = std::fs::File::open(&indexfile).unwrap_or_else(|_| panic!("Expected SBWT at {}", indexfile));
+    let mut index_reader = std::io::BufReader::new(sbwt_conn);
     let sbwt = sbwt::load_sbwt_index_variant(&mut index_reader).unwrap();
 
     // Load the lcs array
-    let lcs = match std::fs::File::open(&lcsfile) {
-        Ok(f) => {
-            let mut lcs_reader = std::io::BufReader::new(f);
-            sbwt::LcsArray::load(&mut lcs_reader).unwrap()
-        }
-        Err(_) => {
-            panic!("No LCS array found at {}", lcsfile);
-        }
-    };
-    return (sbwt, lcs);
+    let lcs_conn = std::fs::File::open(&lcsfile).unwrap_or_else(|_| panic!("Expected LCS array at {}", lcsfile));
+    let mut lcs_reader = std::io::BufReader::new(lcs_conn);
+    let lcs = sbwt::LcsArray::load(&mut lcs_reader).unwrap();
+
+    (sbwt, lcs)
 }
 
 pub fn query_sbwt(
