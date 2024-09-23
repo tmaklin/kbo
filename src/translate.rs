@@ -11,23 +11,22 @@
 // the MIT license, <LICENSE-MIT> or <http://opensource.org/licenses/MIT>,
 // at your option.
 //
-//! Translating deterministic _k_-bounded matching statistics into an
-//! alignment representation.
+//! Translating deterministic _k_-bounded matching statistics into alignments.
 //!
 //! The translated alignment is encoded using the following characters:
 //! - **M** : Match between query and reference.
 //! - **-** : Characters in the query that are not found in the reference.
 //! - **X** : Single character mismatch or insertion into the query.
 //! - **R** : Two consecutive 'R's signify a discontinuity in the alignment.
-//!        The right 'R' is at the start of a _k_-mer that is not adjacent
-//!        to the last character in the _k_-mer corresponding to the left
-//!        'R'. This implies either a deletion of unknown length in the query,
-//!        or insertion of _k_-mers from elsewhere in the reference into the query.
+//!           The right 'R' is at the start of a _k_-mer that is not adjacent
+//!           to the last character in the _k_-mer corresponding to the left
+//!           'R'. This implies either a deletion of unknown length in the query,
+//!           or insertion of _k_-mers from elsewhere in the reference into the query.
 //!
 //! ## Translation algorithm for _k_-bounded matching statistics
 //! TODO Describe how the different MS vectors translate into alignments.
 
-/// Translates a single derandomized _k_-bounded matching statistics into an alignment.
+/// Translates a single derandomized _k_-bounded matching statistic.
 ///
 /// Translates the current derandomized matching statistic (MS) based
 /// on the values of its left and right neighbors and the lower bound
@@ -76,7 +75,7 @@ pub fn translate_ms_val(
     (aln_curr, aln_next)
 }
 
-/// Translates a sequence of derandomized _k_-bounded matching statistics into an alignment.
+/// Translates a sequence of derandomized _k_-bounded matching statistics.
 ///
 /// Iterates over a derandomized sequence of _k_bounded matching
 /// statistics `runs` and creates a sequence containing a character
