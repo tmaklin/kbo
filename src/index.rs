@@ -166,7 +166,7 @@ pub fn build_sbwt_from_vecs(
     slices: &[Vec<u8>],
     build_options: &Option<BuildOpts>,
 ) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
-    assert!(slices.len() > 0);
+    assert!(!slices.is_empty());
 
     let build_opts = if build_options.is_some() { build_options.clone().unwrap() } else { BuildOpts::default() };
     let temp_dir = if build_opts.temp_dir.is_some() { build_opts.temp_dir.unwrap() } else { std::env::temp_dir().to_str().unwrap().to_string() };
@@ -313,7 +313,7 @@ pub fn query_sbwt(
     sbwt: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
 ) -> Vec<usize> {
-    assert!(query.len() > 0);
+    assert!(!query.is_empty());
     let ms = match sbwt {
         SbwtIndexVariant::SubsetMatrix(index) => {
 	    let streaming_index = sbwt::StreamingIndex::new(index, lcs);

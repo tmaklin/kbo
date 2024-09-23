@@ -79,15 +79,15 @@ pub fn random_match_threshold(
     assert!(k > 0);
     assert!(n_kmers > 0);
     assert!(alphabet_size > 0);
-    assert!(max_error_prob <= 1 as f64);
-    assert!(max_error_prob > 0 as f64);
+    assert!(max_error_prob <= 1_f64);
+    assert!(max_error_prob > 0_f64);
 
     for i in 1..k {
 	if log_rm_max_cdf(i, alphabet_size, n_kmers) > (-max_error_prob).ln_1p() {
 	    return i;
 	}
     }
-    return k;
+    k
 }
 
 /// Derandomizes a single noisy _k_-bounded matching statistic.
@@ -185,7 +185,7 @@ pub fn derandomize_ms_val(
 	run = curr_noisy_ms as i64;
     }
 
-    return run;
+    run
 }
 
 /// Derandomizes a sequence of noisy _k_-bounded matching statistics.

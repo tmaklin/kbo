@@ -27,7 +27,7 @@ pub fn map(
 ) -> (Vec<char>, Vec<char>) {
     let (k, threshold) = match sbwt {
 	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4 as usize, 0.0000001 as f64))
+	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, 0.0000001_f64))
 	},
     };
     // TODO handle multiple files and `input_list`
@@ -37,16 +37,15 @@ pub fn map(
     let seqrec = rec.expect("invalid_record");
 
     let seq_fwd = seqrec.normalize(true);
-    let ms_fwd = index::query_sbwt(seq_fwd.sequence(), &sbwt, &lcs);
+    let ms_fwd = index::query_sbwt(seq_fwd.sequence(), sbwt, lcs);
 
     let seq_rev = seq_fwd.reverse_complement();
-    let ms_rev = index::query_sbwt(seq_rev.sequence(), &sbwt, &lcs);
+    let ms_rev = index::query_sbwt(seq_rev.sequence(), sbwt, lcs);
 
     info!("Translating result...");
     let runs = (derandomize::derandomize_ms_vec(&ms_fwd, k, threshold),
 		derandomize::derandomize_ms_vec(&ms_rev, k, threshold));
-    let aln = (translate::translate_ms_vec(&runs.0, k, threshold),
-	       translate::translate_ms_vec(&runs.1, k, threshold));
 
-    return aln;
+    (translate::translate_ms_vec(&runs.0, k, threshold),
+     translate::translate_ms_vec(&runs.1, k, threshold))
 }

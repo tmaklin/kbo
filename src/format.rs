@@ -11,8 +11,9 @@
 // the MIT license, <LICENSE-MIT> or <http://opensource.org/licenses/MIT>,
 // at your option.
 //
+//! Converting alignment representations into various output formats.
 pub fn run_lengths(
-    aln: &Vec<char>,
+    aln: &[char],
 ) -> Vec<(usize, usize, usize, usize)> {
     // Store run lengths as Vec<(start, end, matches, mismatches)>
     let mut encodings: Vec<(usize, usize, usize, usize)> = Vec::new();
@@ -34,7 +35,7 @@ pub fn run_lengths(
 	    i += 1;
 	}
     }
-    return encodings;
+    encodings
 }
 
 ////////////////////////////////////////////////////////////////////////////////
