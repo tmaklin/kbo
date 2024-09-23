@@ -220,7 +220,6 @@ mod tests {
     #[test]
     fn translate_ms_vec() {
 	// Parameters       : k = 3, threshold = 2
-	// TODO check the k-mers
 	// Ref sequence     : A,A,A,G,A,A,C,C,A,-,T,C,A, -,-,G,G,G, C,G
 	// Query sequence   : C,A,A,G,-,-,C,C,A,C,T,C,A, T,T,G,G,G, T,C
 	//
