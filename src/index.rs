@@ -318,3 +318,44 @@ pub fn query_sbwt(
     };
     ms.iter().map(|x| x.0).collect()
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests
+//
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn build_and_query_sbwt() {
+	let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
+	let query: Vec<u8> = vec![b'C',b'A',b'A',b'G',b'C',b'C',b'A',b'C',b'T',b'C',b'A',b'T',b'T',b'G',b'G',b'G',b'T',b'C'];
+
+	let (sbwt, lcs) = super::build_sbwt_from_vecs(&reference, &Some(super::BuildOpts{ k: 3, ..Default::default() }));
+
+	let expected = vec![1,2,2,3,2,2,3,2,1,2,3,1,1,1,2,3,1,2];
+	let got = super::query_sbwt(&query, &sbwt, &lcs);
+
+	assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn build_serialize_load_sbwt() {
+	let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
+	let (sbwt, lcs) = super::build_sbwt_from_vecs(&reference, &Some(super::BuildOpts{ k: 3, ..Default::default() }));
+
+	let index_prefix = std::env::temp_dir().to_str().unwrap().to_owned() + "/serialized_index";
+	super::serialize_sbwt(&index_prefix, &sbwt, &lcs);
+
+	let (sbwt_loaded, lcs_loaded) = super::load_sbwt(&index_prefix);
+
+	assert_eq!(lcs, lcs_loaded);
+	match sbwt {
+            sbwt::SbwtIndexVariant::SubsetMatrix(ref index) => {
+		match sbwt {
+		    sbwt::SbwtIndexVariant::SubsetMatrix(ref index_loaded) => {
+			assert_eq!(index, index_loaded);
+		    },
+		};
+	    },
+	};
+    }
+}
