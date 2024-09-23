@@ -82,7 +82,7 @@ impl sbwt::SeqStream for FastxStreamer {
 pub fn build_sbwt_from_file(
     infile: &str,
     build_options: &Option<BuildOpts>,
-) -> (sbwt::SbwtIndexVariant, Option<sbwt::LcsArray>) {
+) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
     // Get temp dir path from build_options, otherwise use whatever std::env::temp_dir() returns
     let temp_dir = build_options.as_ref().unwrap().temp_dir.clone().unwrap_or(std::env::temp_dir().to_str().unwrap().to_string());
 
@@ -102,7 +102,7 @@ pub fn build_sbwt_from_file(
 	.precalc_length(build_options.as_ref().unwrap().prefix_precalc)
 	.run(reader);
 
-    (SbwtIndexVariant::SubsetMatrix(sbwt), lcs)
+    (SbwtIndexVariant::SubsetMatrix(sbwt), lcs.unwrap())
 }
 
 /// Builds an SBWT index and its LCS array from sequences in memory.
@@ -126,7 +126,7 @@ pub fn build_sbwt_from_file(
 pub fn build_sbwt_from_vecs(
     slices: &[Vec<u8>],
     build_options: &Option<BuildOpts>,
-) -> (sbwt::SbwtIndexVariant, Option<sbwt::LcsArray>) {
+) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
     // Get temp dir path from build_options, otherwise use whatever std::env::temp_dir() returns
     let temp_dir = build_options.as_ref().unwrap().temp_dir.clone().unwrap_or(std::env::temp_dir().to_str().unwrap().to_string());
 
@@ -144,7 +144,7 @@ pub fn build_sbwt_from_vecs(
 	.precalc_length(build_options.as_ref().unwrap().prefix_precalc)
 	.run_from_vecs(slices);
 
-    (SbwtIndexVariant::SubsetMatrix(sbwt), lcs)
+    (SbwtIndexVariant::SubsetMatrix(sbwt), lcs.unwrap())
 }
 
 pub fn serialize_sbwt(
