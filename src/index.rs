@@ -82,7 +82,7 @@ impl sbwt::SeqStream for FastxStreamer {
 pub fn build_sbwt_from_file(
     infile: &str,
     build_options: &Option<BuildOpts>,
-) -> (sbwt::SbwtIndex<sbwt::SubsetMatrix>, Option<sbwt::LcsArray>) {
+) -> (sbwt::SbwtIndexVariant, Option<sbwt::LcsArray>) {
     // Get temp dir path from build_options, otherwise use whatever std::env::temp_dir() returns
     let temp_dir = build_options.as_ref().unwrap().temp_dir.clone().unwrap_or(std::env::temp_dir().to_str().unwrap().to_string());
 
@@ -102,7 +102,7 @@ pub fn build_sbwt_from_file(
 	.precalc_length(build_options.as_ref().unwrap().prefix_precalc)
 	.run(reader);
 
-    (sbwt, lcs)
+    (SbwtIndexVariant::SubsetMatrix(sbwt), lcs)
 }
 
 /// Builds an SBWT index and its LCS array from sequences in memory.
@@ -149,7 +149,7 @@ pub fn build_sbwt_from_vecs(
 
 pub fn serialize_sbwt(
     outfile_prefix: &str,
-    sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
+    sbwt: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
 ) {
     let sbwt_outfile = format!("{}.sbwt", outfile_prefix);
@@ -160,7 +160,11 @@ pub fn serialize_sbwt(
     let mut sbwt_out = std::io::BufWriter::new(sbwt_conn);
     sbwt_out.write_all(&(b"SubsetMatrix".len() as u64).to_le_bytes()).expect("Serialized SBWT header part 1.");
     sbwt_out.write_all(b"SubsetMatrix").expect("Serialized SBWT header part 2.");
-    sbwt.serialize(&mut sbwt_out).expect("Serialized SBWT index.");
+    match sbwt {
+        SbwtIndexVariant::SubsetMatrix(index) => {
+	    index.serialize(&mut sbwt_out).expect("Serialized SBWT index.");
+	},
+    };
 
     // Write lcs array
     let lcs_conn = std::fs::File::create(&lcs_outfile).unwrap_or_else(|_| panic!("Expected write access to {}", lcs_outfile));
@@ -214,12 +218,12 @@ pub fn load_sbwt(
 ///
 pub fn query_sbwt(
     query: &[u8],
-    index: &sbwt::SbwtIndexVariant,
+    sbwt: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
 ) -> Vec<usize> {
-    let ms = match index {
-        SbwtIndexVariant::SubsetMatrix(sbwt) => {
-	    let streaming_index = sbwt::StreamingIndex::new(sbwt, lcs);
+    let ms = match sbwt {
+        SbwtIndexVariant::SubsetMatrix(index) => {
+	    let streaming_index = sbwt::StreamingIndex::new(index, lcs);
 	    streaming_index.matching_statistics(query)
 	},
     };
