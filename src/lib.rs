@@ -37,8 +37,8 @@ pub fn map(
     let ms_rev = ms.iter().map(|x| x.1).collect::<Vec<usize>>();
     let runs = (derandomize::derandomize_ms_vec(&ms_fw, k, threshold),
 		derandomize::derandomize_ms_vec(&ms_rev, k, threshold));
-    let aln = (translate::translate_ms_vec(&ms_fw, &runs.0, k, threshold),
-	       translate::translate_ms_vec(&ms_rev, &runs.1, k, threshold));
+    let aln = (translate::translate_ms_vec(&runs.0, k, threshold),
+	       translate::translate_ms_vec(&runs.1, k, threshold));
 
     return aln;
 }
