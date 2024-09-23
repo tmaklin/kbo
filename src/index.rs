@@ -207,8 +207,8 @@ pub fn build_sbwt_from_vecs(
 /// // Build the SBWT
 /// let (sbwt, lcs) = build_sbwt_from_vecs(&reference, &Some(BuildOpts{ k: 3, ..Default::default() }));
 ///
-/// // Serialize the sbwt to $TMPDIR/serialized_index
-/// let index_prefix = std::env::temp_dir().to_str().unwrap().to_owned() + "/serialized_index";
+/// // Serialize the sbwt to $TMPDIR/serialized_index_1
+/// let index_prefix = std::env::temp_dir().to_str().unwrap().to_owned() + "/serialized_index_1";
 /// serialize_sbwt(&index_prefix, &sbwt, &lcs);
 /// ```
 ///
@@ -258,8 +258,8 @@ pub fn serialize_sbwt(
 /// // Build the SBWT
 /// let (sbwt, lcs) = build_sbwt_from_vecs(&reference, &Some(BuildOpts{ k: 3, ..Default::default() }));
 ///
-/// // Serialize the sbwt to $TMPDIR/serialized_index
-/// let index_prefix = std::env::temp_dir().to_str().unwrap().to_owned() + "/serialized_index";
+/// // Serialize the sbwt to $TMPDIR/serialized_index_2
+/// let index_prefix = std::env::temp_dir().to_str().unwrap().to_owned() + "/serialized_index_2";
 /// serialize_sbwt(&index_prefix, &sbwt, &lcs);
 ///
 /// // Load index
@@ -346,7 +346,7 @@ mod tests {
 	let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
 	let (sbwt, lcs) = super::build_sbwt_from_vecs(&reference, &Some(super::BuildOpts{ k: 3, ..Default::default() }));
 
-	let index_prefix = std::env::temp_dir().to_str().unwrap().to_owned() + "/serialized_index";
+	let index_prefix = std::env::temp_dir().to_str().unwrap().to_owned() + "/serialized_index_test";
 	super::serialize_sbwt(&index_prefix, &sbwt, &lcs);
 
 	let (sbwt_loaded, lcs_loaded) = super::load_sbwt(&index_prefix);
