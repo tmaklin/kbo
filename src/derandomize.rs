@@ -146,7 +146,7 @@ pub fn derandomize_ms_vec(
     let mut runs: Vec<i64> = vec![0; len];
 
     // Traverse the matching statistics in reverse.
-    runs[len - 1] = ms[len - 1] as i64;
+    runs[len - 1] = if ms[len - 1] > threshold { ms[len - 1]} else { 0 } as i64;
     for i in 2..len {
 	runs[len - i] = derandomize_ms_val(ms[len - i], runs[len - i + 1], threshold, k);
     }
