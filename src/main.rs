@@ -11,8 +11,6 @@
 // the MIT license, <LICENSE-MIT> or <http://opensource.org/licenses/MIT>,
 // at your option.
 //
-use std::ffi::OsString;
-
 use clap::Parser;
 use log::info;
 
@@ -47,11 +45,10 @@ fn main() {
         }) => {
 	    init_log(if *verbose { 2 } else { 1 });
 
-            let sbwt_params = sablast::index::SBWTParams {
+            let sbwt_build_options = sablast::index::BuildOpts {
 		num_threads: *num_threads,
 		mem_gb: *mem_gb,
-		temp_dir: Some(std::path::PathBuf::from(OsString::from(temp_dir.clone().unwrap()))),
-		index_prefix: output_prefix.clone(),
+		temp_dir: temp_dir.clone(),
                 ..Default::default()
             };
 	    // TODO Handle --input-list in sablast build
@@ -59,7 +56,7 @@ fn main() {
 	    // TODO Handle multiple inputs in sablast build
 
 	    info!("Building SBWT index...");
-	    let (sbwt, lcs) = sablast::index::build_sbwt(&seq_files[0], &Some(sbwt_params.clone()));
+	    let (sbwt, lcs) = sablast::index::build_sbwt(&seq_files[0], &Some(sbwt_build_options));
 
 	    info!("Serializing SBWT index...");
 	    sablast::index::serialize_sbwt(&output_prefix.as_ref().unwrap(), &sbwt, &lcs.as_ref().unwrap());

@@ -11,8 +11,8 @@
 // the MIT license, <LICENSE-MIT> or <http://opensource.org/licenses/MIT>,
 // at your option.
 //
+use std::ffi::OsString;
 use std::io::Write;
-use std::ops::Deref;
 use std::path::PathBuf;
 
 use needletail::Sequence;
@@ -22,61 +22,87 @@ use sbwt::SbwtIndexVariant;
 
 // Parameters for SBWT construction
 #[derive(Clone)]
-pub struct SBWTParams {
+pub struct BuildOpts {
     pub k: usize,
     pub add_revcomp: bool,
     pub num_threads: usize,
     pub mem_gb: usize,
+    pub temp_dir: Option<String>,
     pub prefix_precalc: usize,
-    pub temp_dir: Option<PathBuf>,
-    pub index_prefix: Option<String>,
 }
 // Defaults
-impl Default for SBWTParams {
-    fn default() -> SBWTParams {
-        SBWTParams {
+impl Default for BuildOpts {
+    fn default() -> BuildOpts {
+        BuildOpts {
 	    k: 31,
 	    add_revcomp: false,
 	    num_threads: 1,
 	    mem_gb: 4,
 	    prefix_precalc: 8,
 	    temp_dir: None,
-	    index_prefix: None,
         }
     }
 }
 
-pub fn build_sbwt(
-    infile: &String,
-    params_in: &Option<SBWTParams>,
-) -> (sbwt::SbwtIndex<sbwt::SubsetMatrix>, Option<sbwt::LcsArray>) {
-    let params = params_in.clone().unwrap_or(SBWTParams::default());
+struct FastxStreamer {
+    inner: Box<dyn needletail::parser::FastxReader>,
+    record: Vec<u8>
+}
 
-    let temp_dir = params.temp_dir.unwrap_or(std::env::temp_dir());
-    let algorithm = BitPackedKmerSorting::new()
-	.mem_gb(params.mem_gb)
-	.dedup_batches(false)
-	.temp_dir(temp_dir.deref());
-
-    let mut reader = needletail::parse_fastx_file(&infile.clone()).expect("valid path/file");
-
-    let mut seqs = vec!();
-    while let Some(rec) = reader.next()  {
-	let seqrec = rec.expect("invalid_record");
-	let seq = seqrec.normalize(true);
-	seqs.push(seq.deref().to_owned());
+impl sbwt::SeqStream for FastxStreamer {
+    fn stream_next(&mut self) -> Option<&[u8]> {
+	let rec = self.inner.next();
+	match rec {
+	    Some(Ok(seqrec)) => {
+		// Remove newlines and non IUPAC characters
+		let normalized = seqrec.normalize(true);
+		self.record = normalized.as_ref().to_vec();
+		Some(&self.record)
+	    },
+	    _ => None,
+	}
     }
+}
+
+/// Builds an SBWT index and its LCS array from a fasta or fastq file.
+///
+/// Streams all valid DNA sequences from `infile` to the SBWT API
+/// calls to build the SBWT index and LCS array. Use the [BuildOpts]
+/// argument `build_options` to control the options and resources
+/// passed to the index builder.
+///
+/// Returns a tuple containing the SBWT index and the LCS array.
+///
+/// Requires write access to some temporary directory. Path can be set
+/// using temp_dir in BuildOpts; defaults to $TMPDIR on Unix if not set.
+///
+/// # Examples
+/// TODO Add examples to build_sbwt documentation.
+///
+pub fn build_sbwt(
+    infile: &str,
+    build_options: &Option<BuildOpts>,
+) -> (sbwt::SbwtIndex<sbwt::SubsetMatrix>, Option<sbwt::LcsArray>) {
+    // Get temp dir path from build_options, otherwise use whatever std::env::temp_dir() returns
+    let temp_dir = build_options.as_ref().unwrap().temp_dir.clone().unwrap_or(std::env::temp_dir().to_str().unwrap().to_string());
+
+    let algorithm = BitPackedKmerSorting::new()
+	.mem_gb(build_options.as_ref().unwrap().mem_gb)
+	.dedup_batches(false)
+	.temp_dir(PathBuf::from(OsString::from(temp_dir)).as_path());
+
+    let reader = FastxStreamer{inner: needletail::parse_fastx_file(infile).expect("valid path/file"), record: Vec::new()};
 
     let (sbwt, lcs) = SbwtIndexBuilder::new()
-	.k(params.k)
-	.n_threads(params.num_threads)
-	.add_rev_comp(params.add_revcomp)
+	.k(build_options.as_ref().unwrap().k)
+	.n_threads(build_options.as_ref().unwrap().num_threads)
+	.add_rev_comp(build_options.as_ref().unwrap().add_revcomp)
 	.algorithm(algorithm)
 	.build_lcs(true)
-	.precalc_length(params.prefix_precalc)
-	.run_from_vecs(&seqs);
+	.precalc_length(build_options.as_ref().unwrap().prefix_precalc)
+	.run(reader);
 
-    return (sbwt, lcs);
+    (sbwt, lcs)
 }
 
 pub fn serialize_sbwt(
