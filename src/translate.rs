@@ -45,6 +45,8 @@ pub fn translate_ms_val(
     ms_prev: i64,
     threshold: usize,
 ) -> (char, char) {
+    assert!(threshold > 1);
+
     let mut aln_curr = ' ';
     let mut aln_next = ' ';
     if ms_curr > threshold as i64 && ms_next > 0 && ms_next < threshold as i64 {
