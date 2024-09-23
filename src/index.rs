@@ -79,7 +79,7 @@ impl sbwt::SeqStream for FastxStreamer {
 /// # Examples
 /// TODO Add examples to build_sbwt documentation.
 ///
-pub fn build_sbwt(
+pub fn build_sbwt_from_file(
     infile: &str,
     build_options: &Option<BuildOpts>,
 ) -> (sbwt::SbwtIndex<sbwt::SubsetMatrix>, Option<sbwt::LcsArray>) {
