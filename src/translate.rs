@@ -108,11 +108,14 @@ pub fn translate_ms_vec(
 	let curr: i64 = derand_ms[pos];
 	let next: i64 = if pos < len - 1 { derand_ms[pos + 1] } else { derand_ms[pos] };
 
-	let (aln_curr, aln_next) = translate_ms_val(curr, next, prev, threshold);
+	// Two consecutive 'R's mean this pos was already set by the previous iteration
+	if !(pos > 1 && res[pos - 1] == 'R' && res[pos] == 'R') {
+	    let (aln_curr, aln_next) = translate_ms_val(curr, next, prev, threshold);
 
-	res[pos] = aln_curr;
-	if pos + 1 < len - 1 && aln_next != ' ' {
-	    res[pos + 1] = aln_next;
+	    res[pos] = aln_curr;
+	    if pos + 1 < len - 1 && aln_next != ' ' {
+		res[pos + 1] = aln_next;
+	    }
 	}
     }
 
@@ -218,13 +221,13 @@ mod tests {
     fn translate_ms_vec() {
 	// Parameters       : k = 3, threshold = 2
 	// TODO check the k-mers
-	// Ref sequence     : A,A,A,G,A,A,C,C,A,-,T,C,A, -,-,G,G,G,C,G
-	// Query sequence   : C,A,A,G,-,-,C,C,A,C,T,C,A, T,T,G,G,G,T,C
+	// Ref sequence     : A,A,A,G,A,A,C,C,A,-,T,C,A, -,-,G,G,G, C,G
+	// Query sequence   : C,A,A,G,-,-,C,C,A,C,T,C,A, T,T,G,G,G, T,C
 	//
-	// Result MS vector : 0,1,2,3,    1,2,3,0,1,2,3,-1,0,1,2,3,0,1
-	// Expected output  : X,M,M,R,    R,M,M,X,M,M,M, -,-,M,M,M,-,-
+	// Result MS vector : 0,1,2,3,    1,2,3,0,1,2,3,-1,0,1,2,3,-1,0
+	// Expected output  : X,M,M,R,    R,M,M,X,M,M,M, -,-,M,M,M, -,-
 
-	let input: Vec<i64> = vec![0,1,2,3,1,2,3,0,1,2,3,-1,0,1,2,3,0,1];
+	let input: Vec<i64> = vec![0,1,2,3,1,2,3,0,1,2,3,-1,0,1,2,3,-1,0];
 	let expected: Vec<char> = vec!['X','M','M','R','R','M','M','X','M','M','M','-','-','M','M','M','-','-'];
 	let got = super::translate_ms_vec(&input, 3, 2);
 
