@@ -100,8 +100,9 @@
 /// // Expected output  : M,M,M, -,-,M,M,M
 ///
 /// translate_ms_val(-1, 0, 3, 2);
+///
 /// ```
-/// ## Query with a deletion or recombination
+/// ## Query with a deletion
 /// ```rust
 /// use sablast::translate::translate_ms_val;
 ///
@@ -119,18 +120,39 @@
 /// ```
 ///
 /// Although in this case two characters have been deleted from the
-/// query, if the missing region was longer the matching statistics
-/// (MS) could also represent recombination of a sequence from
-/// elsewhere in the query into the position preceding the three
+/// query, if the query extends beyond what is shown the matching
+/// statistics (MS) could also represent recombination of a sequence
+/// from elsewhere in the query into the position preceding the three
 /// consecutive T's in the reference.
 ///
-/// Recombinations and deletions are indistinguishable in the
-/// _k_-bounded matching statistics alone but they can be solved by
-/// comparing the MS vector with the reference and
-/// query. Additionally, when a segment of reasonable length is
-/// encapsulated by two consecutive R's on both the left and right
-/// side, the region in between possibly originates from elsewhere in
-/// the reference.
+/// ## Query with recombination
+/// ```rust
+/// use sablast::translate::translate_ms_val;
+///
+/// // Parameters       : k = 3, threshold = 2
+/// //
+/// // Ref sequence     : A,C,G,T,T,T,C,G,G,C,C,C
+/// // Query sequence   : A,C,G,C,G,G,T,T,T,C,C,C
+/// //
+/// // Result MS vector : 1,2,3,1,2,3,3,3,3,1,2,3
+/// // Testing this pos :                 |
+/// // Expected output  : M,M,R,R,M,M,M,M,R,R,M,M
+///
+/// translate_ms_val(3, 1, 3, 2);
+/// ```
+///
+/// Note how the two regions with the consecutive 'R's are similar to
+/// the Query with a deletion case. The first R,R pair is exactly the
+/// same, while the second R,R pair is only different because the
+/// match extends further to the left of it.
+///
+/// When a segment of reasonable length is encapsulated by two
+/// consecutive R's on both the left and right side, the region in
+/// between possibly originates from elsewhere in the reference.
+///
+/// In general recombinations and deletions are indistinguishable in
+/// the _k_-bounded matching statistics alone but they can be solved
+/// by comparing the MS vector with the reference and query.
 ///
 pub fn translate_ms_val(
     ms_curr: i64,
@@ -180,14 +202,32 @@ pub fn translate_ms_val(
 /// underlying alignment.
 ///
 /// # Examples
+/// ## Translate a generic MS vector
 /// ```rust
 /// use sablast::translate::translate_ms_vec;
 ///
 /// // Parameters       : k = 3, threshold = 2
+/// //
 /// // Ref sequence     : A,A,A,G,A,A,C,C,A,-,T,C,A, -,-,G,G,G, C,G
 /// // Query sequence   : C,A,A,G,-,-,C,C,A,C,T,C,A, T,T,G,G,G, T,C
 /// // Input MS         : 0,1,2,3,    1,2,3,0,1,2,3,-1,0,1,2,3,-1,0
 /// // Expected output  : X,M,M,R,    R,M,M,X,M,M,M, -,-,M,M,M, -,-
+///
+/// let input: Vec<i64> = vec![0,1,2,3,1,2,3,0,1,2,3,-1,0,1,2,3,-1,0];
+/// translate_ms_vec(&input, 3, 2);
+/// ```
+///
+/// ## Translate a MS vector with recombination
+/// ```rust
+/// use sablast::translate::translate_ms_vec;
+///
+/// // Parameters       : k = 3, threshold = 2
+/// //
+/// // Ref sequence     : A,C,G,T,T,T,C,G,G,C,C,C
+/// // Query sequence   : A,C,G,C,G,G,T,T,T,C,C,C
+/// //
+/// // Result MS vector : 1,2,3,1,2,3,3,3,3,1,2,3
+/// // Expected output  : M,M,R,R,M,M,M,M,R,R,M,M
 ///
 /// let input: Vec<i64> = vec![0,1,2,3,1,2,3,0,1,2,3,-1,0,1,2,3,-1,0];
 /// translate_ms_vec(&input, 3, 2);
@@ -233,7 +273,7 @@ mod tests {
     // Test cases for translate_ms_val
     // Comments use '-' for characters that are not in a ref or query sequence
     #[test]
-    fn translate_ms_val_with_discontinuity() {
+    fn translate_ms_val_with_deletion() {
 	// Parameters       : k = 3, threshold = 2
 	//
 	// Ref sequence     : A,C,G,T,T,T,C,A,G
@@ -245,6 +285,23 @@ mod tests {
 
 	let expected = ('R','R');
 	let got = super::translate_ms_val(3, 1, 2, 2);
+
+	assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn translate_ms_val_with_recombination() {
+	// Parameters       : k = 3, threshold = 2
+	//
+	// Ref sequence     : A,C,G,T,T,T,C,G,G,C,C,C
+	// Query sequence   : A,C,G,C,G,G,T,T,T,C,C,C
+	//
+	// Result MS vector : 1,2,3,1,2,3,3,3,3,1,2,3
+	// Testing this pos :                 |
+	// Expected output  : M,M,R,R,M,M,M,M,R,R,M,M
+
+	let expected = ('R','R');
+	let got = super::translate_ms_val(3, 1, 3, 2);
 
 	assert_eq!(got, expected);
     }
@@ -323,6 +380,7 @@ mod tests {
     #[test]
     fn translate_ms_vec() {
 	// Parameters       : k = 3, threshold = 2
+	//
 	// Ref sequence     : A,A,A,G,A,A,C,C,A,-,T,C,A, -,-,G,G,G, C,G
 	// Query sequence   : C,A,A,G,-,-,C,C,A,C,T,C,A, T,T,G,G,G, T,C
 	//
@@ -331,6 +389,23 @@ mod tests {
 
 	let input: Vec<i64> = vec![0,1,2,3,1,2,3,0,1,2,3,-1,0,1,2,3,-1,0];
 	let expected: Vec<char> = vec!['X','M','M','R','R','M','M','X','M','M','M','-','-','M','M','M','-','-'];
+	let got = super::translate_ms_vec(&input, 3, 2);
+
+	assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn translate_ms_vec_with_recombination() {
+	// Parameters       : k = 3, threshold = 2
+	//
+	// Ref sequence     : A,C,G,T,T,T,C,G,G,C,C,C
+	// Query sequence   : A,C,G,C,G,G,T,T,T,C,C,C
+	//
+	// Result MS vector : 1,2,3,1,2,3,3,3,3,1,2,3
+	// Expected output  : M,M,R,R,M,M,M,M,R,R,M,M
+
+	let input: Vec<i64> = vec![1,2,3,1,2,3,3,3,3,1,2,3];
+	let expected: Vec<char> = vec!['M','M','R','R','M','M','M','M','R','R','M','M'];
 	let got = super::translate_ms_vec(&input, 3, 2);
 
 	assert_eq!(got, expected);
