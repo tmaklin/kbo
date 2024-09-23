@@ -104,8 +104,61 @@ pub fn random_match_threshold(
 /// character in the last _k_-mer that produced a match.
 ///
 /// # Examples
+/// ## Noisy MS has only matches
+/// ```rust
+/// use sablast::derandomize::derandomize_ms_val;
 ///
-/// TODO Add examples to ms_to_run documentation
+/// // Parameters       : k = 3, threshold = 2
+/// //
+/// // Noisy MS         : 1,2,3,3,3
+/// // Derandomized MS  : 1,2,3,3,3
+/// // Testing this pos :     |
+///
+/// let derand_ms = derandomize_ms_val(3, 3, 2, 3);
+/// // `derand_ms` is 3
+/// ```
+///
+/// ## Noisy MS has only noise
+/// ```rust
+/// use sablast::derandomize::derandomize_ms_val;
+///
+/// // Parameters       : k = 3, threshold = 2
+/// //
+/// // Noisy MS         :  0, 0, 2, 1,0
+/// // Derandomized MS  : -4,-3,-2,-1,0
+/// // Testing this pos :        |
+///
+/// let derand_ms = derandomize_ms_val(2, -1, 2, 3);
+/// // `derand_ms` is -2
+/// ```
+///
+/// ## Noisy MS is at beginning of a full _k_-mer match
+/// ```rust
+/// use sablast::derandomize::derandomize_ms_val;
+///
+/// // Parameters       : k = 3, threshold = 2
+/// //
+/// // Noisy MS         : 1,2,3, 1,2
+/// // Derandomized MS  : 1,2,3,-1,0
+/// // Testing this pos :     |
+///
+/// let derand_ms = derandomize_ms_val(3, -1, 2, 3);
+/// // `derand_ms` is 3
+/// ```
+///
+/// ## Noisy MS is at beginning of a partial _k_-mer match
+/// ```rust
+/// use sablast::derandomize::derandomize_ms_val;
+///
+/// // Parameters       : k = 4, threshold = 2
+/// //
+/// // Noisy MS         : 1,2,3,-1,0,1,2,3,4,4
+/// // Derandomized MS  : 1,2,3,-1,0,1,2,3,4,4
+/// // Testing this pos :     |
+///
+/// let derand_ms = derandomize_ms_val(3, -1, 2, 4);
+/// // `derand_ms` is 3
+/// ```
 ///
 pub fn derandomize_ms_val(
     curr_noisy_ms: usize,
@@ -128,7 +181,7 @@ pub fn derandomize_ms_val(
 
     if curr_noisy_ms > threshold && next_derand_ms < curr_noisy_ms as i64 {
 	// Beginning of a partial k-mer match
-	// Only works if threshold > 1
+	// Only useful if threshold > 1 and k > 3
 	run = curr_noisy_ms as i64;
     }
 
