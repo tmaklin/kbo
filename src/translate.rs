@@ -48,8 +48,8 @@ pub fn translate_ms_val(
 ) -> (char, char) {
     assert!(threshold > 1);
 
-    let mut aln_curr = ' ';
-    let mut aln_next = ' ';
+    let aln_curr: char;
+    let mut aln_next: char = ' ';
     if ms_curr > threshold as i64 && ms_next > 0 && ms_next < threshold as i64 {
 	// Current position is first character in a jump to another k-mer,
 	// or there is deletion of unknown length in the query wrt. the reference.
@@ -103,13 +103,10 @@ pub fn translate_ms_vec(
     let mut res = vec![' '; len];
 
     // Traverse the derandomized matchibng statistics
-    for mut pos in 0..len {
+    for pos in 0..len {
 	let prev: i64 = if pos > 1 { derand_ms[pos - 1] } else { 31 };
 	let curr: i64 = derand_ms[pos];
 	let next: i64 = if pos < len - 1 { derand_ms[pos + 1] } else { derand_ms[pos] };
-
-	let mut aln_curr = res[pos];
-	let mut aln_next = if pos + 1 < len - 1 { res[pos + 1] } else { 'M' };
 
 	let (aln_curr, aln_next) = translate_ms_val(curr, next, prev, threshold);
 
@@ -119,7 +116,7 @@ pub fn translate_ms_vec(
 	}
     }
 
-    return res;
+    res
 }
 
 ////////////////////////////////////////////////////////////////////////////////
