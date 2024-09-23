@@ -11,6 +11,7 @@
 // the MIT license, <LICENSE-MIT> or <http://opensource.org/licenses/MIT>,
 // at your option.
 //
+//! Wrapper for using the [sbwt](https://docs.rs/sbwt) API to build and query SBWT indexes.
 use std::ffi::OsString;
 use std::io::Write;
 use std::path::PathBuf;
@@ -20,7 +21,28 @@ use sbwt::BitPackedKmerSorting;
 use sbwt::SbwtIndexBuilder;
 use sbwt::SbwtIndexVariant;
 
-// Parameters for SBWT construction
+/// Controls the parameters and resources available to the SBWT construction algorithm.
+///
+/// Used to specify values for:
+/// - _k_-mer size `k`.
+/// - Whether to reverse complement inputs or not `add_revcomp`.
+/// - Number of threads `num_threads` to use.
+/// - Amount of RAM available (in GB) before resorting to temporary disk space `mem_gb`.
+/// - Temporary directory path `temp_dir`.
+/// - Size of the precalculated lookup table stored in the index `prefix_precalc`.
+///
+/// Implements [BuildOpts::default] with these values:
+/// ```rust
+/// sablast::index::BuildOpts {
+///     k: 31,
+///     add_revcomp: false,
+///     num_threads: 1,
+///     mem_gb: 4,
+///     prefix_precalc: 8,
+///     temp_dir: None,
+/// };
+/// ```
+///
 #[derive(Clone)]
 pub struct BuildOpts {
     pub k: usize,
@@ -77,7 +99,15 @@ impl sbwt::SeqStream for FastxStreamer {
 /// using temp_dir in BuildOpts; defaults to $TMPDIR on Unix if not set.
 ///
 /// # Examples
-/// TODO Add examples to build_sbwt documentation.
+/// ```rust
+/// use sablast::index::*;
+///
+/// // Inputs
+/// let reference_file = "tests/data/clbS.fna.gz";
+///
+/// // Build the SBWT
+/// let (sbwt, lcs) = build_sbwt_from_file(&reference_file, &Some(BuildOpts::default()));
+/// ```
 ///
 pub fn build_sbwt_from_file(
     infile: &str,
@@ -121,7 +151,15 @@ pub fn build_sbwt_from_file(
 /// using temp_dir in BuildOpts; defaults to $TMPDIR on Unix if not set.
 ///
 /// # Examples
-/// TODO Add examples to build_sbwt documentation.
+/// ```rust
+/// use sablast::index::*;
+///
+/// // Inputs
+/// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
+///
+/// // Build the SBWT
+/// let (sbwt, lcs) = build_sbwt_from_vecs(&reference, &Some(BuildOpts{ k: 3, ..Default::default() }));
+/// ```
 ///
 pub fn build_sbwt_from_vecs(
     slices: &[Vec<u8>],
@@ -147,6 +185,30 @@ pub fn build_sbwt_from_vecs(
     (SbwtIndexVariant::SubsetMatrix(sbwt), lcs.unwrap())
 }
 
+/// Writes an SBWT index and its LCS array to disk.
+///
+/// Creates the files `outfile_prefix` + ".sbwt" and `outfile_prefix` +
+/// ".lcs" to store the SBWT index `sbwt` and the LCS array `lcs`.
+///
+/// Panics if the output files cannot be created with
+/// std::fs::File::create or are not writable by
+/// std::io::BufWriter::new.
+///
+/// # Examples
+/// ```rust
+/// use sablast::index::*;
+///
+/// // Inputs
+/// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
+///
+/// // Build the SBWT
+/// let (sbwt, lcs) = build_sbwt_from_vecs(&reference, &Some(BuildOpts{ k: 3, ..Default::default() }));
+///
+/// // Serialize the sbwt to $TMPDIR/serialized_index
+/// let index_prefix = std::env::temp_dir().to_str().unwrap().to_owned() + "/serialized_index";
+/// serialize_sbwt(&index_prefix, &sbwt, &lcs);
+/// ```
+///
 pub fn serialize_sbwt(
     outfile_prefix: &str,
     sbwt: &sbwt::SbwtIndexVariant,
@@ -184,7 +246,22 @@ pub fn serialize_sbwt(
 /// std::fs::File::open.
 ///
 /// # Examples
-/// TODO Add examples to load_sbwt documentation.
+/// ```rust
+/// use sablast::index::*;
+///
+/// // Inputs
+/// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
+///
+/// // Build the SBWT
+/// let (sbwt, lcs) = build_sbwt_from_vecs(&reference, &Some(BuildOpts{ k: 3, ..Default::default() }));
+///
+/// // Serialize the sbwt to $TMPDIR/serialized_index
+/// let index_prefix = std::env::temp_dir().to_str().unwrap().to_owned() + "/serialized_index";
+/// serialize_sbwt(&index_prefix, &sbwt, &lcs);
+///
+/// // Load index
+/// let (sbwt_loaded, lcs_loaded) = load_sbwt(&index_prefix);
+/// ```
 ///
 pub fn load_sbwt(
     index_prefix: &str,
@@ -214,7 +291,19 @@ pub fn load_sbwt(
 /// the position of each element in the query.
 ///
 /// # Examples
-/// TODO Add examples to query_sbwt documentation
+/// ```rust
+/// use sablast::index::*;
+///
+/// // Inputs
+/// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
+/// let query: Vec<u8> = vec![b'C',b'A',b'A',b'G',b'C',b'C',b'A',b'C',b'T',b'C',b'A',b'T',b'T',b'G',b'G',b'G',b'T',b'C'];
+///
+/// // Build the SBWT
+/// let (sbwt, lcs) = build_sbwt_from_vecs(&reference, &Some(BuildOpts{ k: 3, ..Default::default() }));
+///
+/// // Run query
+/// let ms = query_sbwt(&query, &sbwt, &lcs);
+/// ```
 ///
 pub fn query_sbwt(
     query: &[u8],
