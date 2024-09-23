@@ -201,7 +201,61 @@ mod tests {
 	factor.for_each(|i| assert_eq!(super::random_match_threshold(k, n_kmers, alphabet_size, (0.01_f64).powf(i as f64)), expected[i - 1]));
     }
 
-    // TODO Test cases for derandomize_ms_val
+    #[test]
+    fn derandomize_ms_val_full_match() {
+	// Parameters       : k = 3, threshold = 2
+	//
+	// Noisy MS         : 1,2,3,3,3
+	// Derandomized MS  : 1,2,3,3,3
+	// Testing this pos :     |
+
+	let expected = 3;
+	let got = super::derandomize_ms_val(3, 3, 2, 3);
+
+	assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn derandomize_ms_val_only_noise() {
+	// Parameters       : k = 3, threshold = 2
+	//
+	// Noisy MS         :  0, 0, 2, 1,0
+	// Derandomized MS  : -4,-3,-2,-1,0
+	// Testing this pos :        |
+
+	let expected = -2;
+	let got = super::derandomize_ms_val(2, -1, 2, 3);
+
+	assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn derandomize_ms_val_beginning_of_full_match() {
+	// Parameters       : k = 3, threshold = 2
+	//
+	// Noisy MS         : 1,2,3, 1,2
+	// Derandomized MS  : 1,2,3,-1,0
+	// Testing this pos :     |
+
+	let expected = 3;
+	let got = super::derandomize_ms_val(3, -1, 2, 3);
+
+	assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn derandomize_ms_val_beginning_of_partial_match() {
+	// Parameters       : k = 4, threshold = 2
+	//
+	// Noisy MS         : 1,2,3,-1,0,1,2,3,4,4
+	// Derandomized MS  : 1,2,3,-1,0,1,2,3,4,4
+	// Testing this pos :     |
+
+	let expected = 3;
+	let got = super::derandomize_ms_val(3, -1, 2, 4);
+
+	assert_eq!(got, expected);
+    }
 
     #[test]
     fn derandomize_ms_vec() {
