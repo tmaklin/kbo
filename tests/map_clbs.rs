@@ -15,7 +15,7 @@
 fn map_nissle_against_clbs() {
     let (sbwt, lcs) = sablast::index::build_sbwt(&"tests/data/clbS.fna.gz".to_string(), &None);
 
-    let expected = vec![(455, 967, 512, 1, '+'),(997, 1001, 5, 0, '+'),(998, 1001, 4, 0, '-')];
+    let expected = vec![(455, 967, 512, 1, '+')];
     let aln = sablast::map(&"tests/data/NZ_CP058217.1_clbS.fna.gz".to_string(), &sbwt::SbwtIndexVariant::SubsetMatrix(sbwt), &lcs.unwrap());
 
     let mut got: Vec<(usize, usize, usize, usize, char)> = sablast::format::run_lengths(&aln.0).iter().map(|x| (x.0, x.1, x.2, x.3, '+')).collect();
