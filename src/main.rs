@@ -11,8 +11,12 @@
 // the MIT license, <LICENSE-MIT> or <http://opensource.org/licenses/MIT>,
 // at your option.
 //
+use std::io::Write;
+
 use clap::Parser;
 use log::info;
+use rayon::iter::ParallelIterator;
+use rayon::iter::IntoParallelRefIterator;
 
 // Command-line interface
 mod cli;
@@ -61,29 +65,35 @@ fn main() {
 	},
         Some(cli::Commands::Map {
 	    seq_files,
-	    input_list,
 	    index_prefix,
+	    num_threads,
 	    verbose,
         }) => {
 	    init_log(if *verbose { 2 } else { 1 });
-	    info!("Loading SBWT index...");
+	    rayon::ThreadPoolBuilder::new()
+		.num_threads(*num_threads)
+		.thread_name(|i| format!("rayon-thread-{}", i))
+		.build_global()
+		.unwrap();
 
+	    info!("Loading SBWT index...");
 	    let (sbwt, lcs) = sablast::index::load_sbwt(index_prefix.as_ref().unwrap());
 
-	    // TODO Handle `--input-list in sablast map
-
-	    // TODO Query multiple inputs in sablast map
 	    info!("Querying SBWT index...");
-
-	    let aln = sablast::map(&seq_files[0], &sbwt, &lcs);
-	    let mut run_lengths: Vec<(usize, usize, usize, usize, char)> = sablast::format::run_lengths(&aln.0).iter().map(|x| (x.0, x.1, x.2, x.3, '+')).collect();
-	    let mut run_lengths_rev: Vec<(usize, usize, usize, usize, char)> = sablast::format::run_lengths(&aln.1).iter().map(|x| (x.0, x.1, x.2, x.3, '-')).collect();
-	    run_lengths.append(&mut run_lengths_rev);
-
-	    run_lengths.sort_by_key(|x| x.0);
-
 	    println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches");
-	    run_lengths.iter().for_each(|x| println!("{}\t{}\t{}\t{}\t{}\t{}\t{}", &seq_files[0], &index_prefix.clone().unwrap(), x.0, x.1, x.4, x.2 + x.3, x.3));
+	    seq_files.par_iter().for_each(|file| {
+		let aln = sablast::map(file, &sbwt, &lcs);
+		let mut run_lengths: Vec<(usize, usize, usize, usize, char)> = sablast::format::run_lengths(&aln.0).iter().map(|x| (x.0, x.1, x.2, x.3, '+')).collect();
+		let mut run_lengths_rev: Vec<(usize, usize, usize, usize, char)> = sablast::format::run_lengths(&aln.1).iter().map(|x| (x.0, x.1, x.2, x.3, '-')).collect();
+		run_lengths.append(&mut run_lengths_rev);
+		run_lengths.sort_by_key(|x| x.0);
+		run_lengths.iter().for_each(|x| {
+		    let stdout = std::io::stdout();
+		    let _ = writeln!(&mut stdout.lock(),
+				     "{}\t{}\t{}\t{}\t{}\t{}\t{}",
+				     file, index_prefix.as_ref().unwrap(), x.0, x.1, x.4, x.2 + x.3, x.3);
+		});
+	    });
 	},
 	None => {}
     }

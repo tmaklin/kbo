@@ -15,10 +15,11 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 ## core
 needletail = "0.5.1"
+rayon = "1"
 sbwt = "0.3.1"
 
 ## cli
-clap = { version = "4.4.18", features = ["derive"] }
+clap = { version = "4", features = ["derive"] }
 
 ## logging
 log = "0.4.20"
@@ -26,4 +27,4 @@ stderrlog = "0.6.0"
 
 [dev-dependencies]
 ## tests
-assert_approx_eq = "1.1.0"
+assert_approx_eq = "1"
