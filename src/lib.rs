@@ -20,6 +20,27 @@ pub mod format;
 pub mod index;
 pub mod translate;
 
+pub fn build(
+    seq_files: &Vec<String>,
+    build_opts: index::BuildOpts,
+) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
+    let mut seq_data: Vec<Vec<u8>> = Vec::new();
+    seq_files.iter().for_each(|file| {
+	let mut reader = needletail::parse_fastx_file(file).unwrap_or_else(|_| panic!("Expected valid fastX file at {}", file));
+	loop {
+	    let rec = reader.next();
+	    match rec {
+		Some(Ok(seqrec)) => {
+		    seq_data.push(seqrec.normalize(true).as_ref().to_vec());
+		},
+		_ => break
+	    }
+	}
+    });
+
+    index::build_sbwt_from_vecs(&seq_data, &Some(build_opts))
+}
+
 pub fn map(
     query_file: &String,
     sbwt: &sbwt::SbwtIndexVariant,

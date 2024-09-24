@@ -13,11 +13,11 @@
 //
 use clap::Parser;
 use log::info;
-use needletail::Sequence;
 
 // Command-line interface
 mod cli;
 
+/// Initializes the logger with verbosity given in `log_max_level`.
 fn init_log(log_max_level: usize) {
     stderrlog::new()
 	.module(module_path!())
@@ -28,13 +28,12 @@ fn init_log(log_max_level: usize) {
 	.unwrap();
 }
 
-// Use `sablast` to list the available commands or `sablast <command>` to run.
+/// Use `sablast` to list the available commands or `sablast <command>` to run.
 fn main() {
     let cli = cli::Cli::parse();
 
     // Subcommands:
     match &cli.command {
-        // Run the full pipeline
         Some(cli::Commands::Build {
 	    seq_files,
 	    output_prefix,
@@ -52,23 +51,8 @@ fn main() {
                 ..Default::default()
             };
 
-	    info!("Reading input files...");
-	    let mut seqs: Vec<Vec<u8>> = Vec::new();
-	    seq_files.iter().for_each(|file| {
-		let mut reader = needletail::parse_fastx_file(file).unwrap_or_else(|_| panic!("Expected valid fastX file at {}", file));
-		loop {
-		    let rec = reader.next();
-		    match rec {
-			Some(Ok(seqrec)) => {
-			    seqs.push(seqrec.normalize(true).as_ref().to_vec());
-			},
-			_ => break
-		    }
-		}
-	    });
-
-	    info!("Building SBWT index...");
-	    let (sbwt, lcs) = sablast::index::build_sbwt_from_vecs(&seqs, &Some(sbwt_build_options));
+	    info!("Building SBWT index from {} files...", seq_files.len());
+	    let (sbwt, lcs) = sablast::build(seq_files, sbwt_build_options);
 
 	    info!("Serializing SBWT index...");
 	    sablast::index::serialize_sbwt(&output_prefix.as_ref().unwrap(), &sbwt, &lcs);
