@@ -88,7 +88,7 @@ pub fn build(
 }
 
 pub fn map(
-    query_file: &String,
+    query_file: &str,
     sbwt: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
 ) -> (Vec<char>, Vec<char>) {
@@ -118,7 +118,7 @@ pub fn map(
 }
 
 pub fn find(
-    query_file: &String,
+    query_file: &str,
     sbwt: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
 ) -> Vec<(usize, usize, char, usize, usize)> {
