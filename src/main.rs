@@ -13,6 +13,7 @@
 //
 use clap::Parser;
 use log::info;
+use needletail::Sequence;
 
 // Command-line interface
 mod cli;
@@ -36,7 +37,6 @@ fn main() {
         // Run the full pipeline
         Some(cli::Commands::Build {
 	    seq_files,
-	    input_list,
 	    output_prefix,
 	    num_threads,
 	    mem_gb,
@@ -51,12 +51,10 @@ fn main() {
 		temp_dir: temp_dir.clone(),
                 ..Default::default()
             };
-	    // TODO Handle --input-list in sablast build
 
-	    let mut inputs = seq_files.clone();
 	    info!("Reading input files...");
 	    let mut seqs: Vec<Vec<u8>> = Vec::new();
-	    inputs.iter().for_each(|file| {
+	    seq_files.iter().for_each(|file| {
 		let mut reader = needletail::parse_fastx_file(file).unwrap_or_else(|_| panic!("Expected valid fastX file at {}", file));
 		loop {
 		    let rec = reader.next();

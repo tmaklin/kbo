@@ -29,10 +29,6 @@ pub enum Commands {
         #[arg(group = "input", required = true)]
         seq_files: Vec<String>,
 
-	// Input sequence list
-        #[arg(short = 'l', long = "input-list", group = "input", required = true, help_heading = "Input")]
-        input_list: Option<String>,
-
 	// Outputs
         #[arg(short = 'o', long = "out-prefix", required = false, help_heading = "Output")]
         output_prefix: Option<String>,
