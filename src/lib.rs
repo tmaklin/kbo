@@ -117,6 +117,44 @@ pub fn map(
      translate::translate_ms_vec(&runs.1, k, threshold))
 }
 
+/// Finds the _k_-mers from an SBWT index in a query fasta or fastq file.
+///
+/// Aligns the sequence data and its reverse complement in `query`
+/// against the SBWT index `sbwt` and its LCS array `lcs` using
+/// [map]. Then uses [format::run_lengths] to extract the local
+/// alignments from the matching statistics.
+///
+/// Returns a vector of tuples, where each element represents a local
+/// alignment block and contains the following values:
+/// 1. Start of local alignment block in query (1-based indexing).
+/// 2. End of local alignment block in query.
+/// 3. Whether local alignmentis on the original sequence ('+') or its reverse complement ('-').
+/// 4. Total length of the local alignment block.
+/// 5. Number of mismatching characters and 1-character insertions in the block.
+///
+/// # Input format detection
+/// The sequence data is read using
+/// [needletail::parser::parse_fastx_file](https://docs.rs/needletail/latest/needletail/parser/fn.parse_fastx_file.html).
+///
+/// Input file format (fasta or fastq) is detected automatically and
+/// the files may be compressed in a
+/// [DEFLATE-based](https://en.wikipedia.org/wiki/Deflate) format (.gz
+/// files).
+///
+/// # Examples
+/// ```rust
+/// use sablast::build;
+/// use sablast::find;
+/// use sablast::index::BuildOpts;
+///
+/// let reference = vec!["tests/data/clbS.fna.gz".to_string()];
+/// let (sbwt, lcs) = build(&reference, BuildOpts::default());
+///
+/// let query_file = "tests/data/NZ_CP058217.1_clbS.fna.gz";
+///
+/// let local_alignments = find(query_file, &sbwt, &lcs);
+/// ```
+///
 pub fn find(
     query_file: &str,
     sbwt: &sbwt::SbwtIndexVariant,
