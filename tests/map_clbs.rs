@@ -15,12 +15,8 @@
 fn map_nissle_against_clbs() {
     let (sbwt, lcs) = sablast::index::build_sbwt_from_file(&"tests/data/clbS.fna.gz".to_string(), &None);
 
-    let expected = vec![(455, 967, 512, 1, '+')];
-    let aln = sablast::matches(&"tests/data/NZ_CP058217.1_clbS.fna.gz".to_string(), &sbwt, &lcs);
-
-    let mut got: Vec<(usize, usize, usize, usize, char)> = sablast::format::run_lengths(&aln.0).iter().map(|x| (x.0, x.1, x.2, x.3, '+')).collect();
-    let mut run_lengths_rev: Vec<(usize, usize, usize, usize, char)> = sablast::format::run_lengths(&aln.1).iter().map(|x| (x.0, x.1, x.2, x.3, '-')).collect();
-    got.append(&mut run_lengths_rev);
+    let expected = vec![(455, 967, '+', 513, 1)];
+    let got = sablast::find(&"tests/data/NZ_CP058217.1_clbS.fna.gz".to_string(), &sbwt, &lcs);
 
     assert_eq!(got, expected);
 }
