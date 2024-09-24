@@ -63,7 +63,7 @@ fn main() {
 	    sablast::index::serialize_sbwt(output_prefix.as_ref().unwrap(), &sbwt, &lcs);
 
 	},
-        Some(cli::Commands::Map {
+        Some(cli::Commands::Find {
 	    seq_files,
 	    index_prefix,
 	    num_threads,

@@ -50,7 +50,7 @@ pub enum Commands {
     },
 
     // Find indexed k-mers in a query
-    Map {
+    Find {
 	// Input fasta or fastq query file(s)
         #[arg(group = "input", required = true)]
         seq_files: Vec<String>,
