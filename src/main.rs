@@ -53,10 +53,24 @@ fn main() {
             };
 	    // TODO Handle --input-list in sablast build
 
-	    // TODO Handle multiple inputs in sablast build
+	    let mut inputs = seq_files.clone();
+	    info!("Reading input files...");
+	    let mut seqs: Vec<Vec<u8>> = Vec::new();
+	    inputs.iter().for_each(|file| {
+		let mut reader = needletail::parse_fastx_file(file).unwrap_or_else(|_| panic!("Expected valid fastX file at {}", file));
+		loop {
+		    let rec = reader.next();
+		    match rec {
+			Some(Ok(seqrec)) => {
+			    seqs.push(seqrec.normalize(true).as_ref().to_vec());
+			},
+			_ => break
+		    }
+		}
+	    });
 
 	    info!("Building SBWT index...");
-	    let (sbwt, lcs) = sablast::index::build_sbwt_from_file(&seq_files[0], &Some(sbwt_build_options));
+	    let (sbwt, lcs) = sablast::index::build_sbwt_from_vecs(&seqs, &Some(sbwt_build_options));
 
 	    info!("Serializing SBWT index...");
 	    sablast::index::serialize_sbwt(&output_prefix.as_ref().unwrap(), &sbwt, &lcs);
