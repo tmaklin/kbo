@@ -54,8 +54,9 @@ fn main() {
 	    info!("Building SBWT index from {} files...", seq_files.len());
 	    let (sbwt, lcs) = sablast::build(seq_files, sbwt_build_options);
 
-	    info!("Serializing SBWT index...");
-	    sablast::index::serialize_sbwt(&output_prefix.as_ref().unwrap(), &sbwt, &lcs);
+	    info!("Serializing SBWT index to {}.sbwt ...", output_prefix.as_ref().unwrap());
+	    info!("Serializing LCS array to {}.lcs ...", output_prefix.as_ref().unwrap());
+	    sablast::index::serialize_sbwt(output_prefix.as_ref().unwrap(), &sbwt, &lcs);
 
 	},
         Some(cli::Commands::Map {
