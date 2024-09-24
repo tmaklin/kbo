@@ -190,7 +190,7 @@ pub fn derandomize_ms_val(
 
 /// Derandomizes a sequence of noisy _k_-bounded matching statistics.
 ///
-/// Iterates over a sequence of noisy _k_bounded matching statistics
+/// Iterates over a sequence of noisy _k_-bounded matching statistics
 /// `ms` in reverse to identify values that are the result of random
 /// matching between _k_-mers of size `k` and an index that the lower
 /// bound `threshold` was calculated for.

@@ -194,7 +194,7 @@ pub fn translate_ms_val(
 
 /// Translates a sequence of derandomized _k_-bounded matching statistics.
 ///
-/// Iterates over a derandomized sequence of _k_bounded matching
+/// Iterates over a derandomized sequence of _k_-bounded matching
 /// statistics `derand_ms` for _k_-mers with size `k` derandomized
 /// with the threshold `threshold`.
 ///
