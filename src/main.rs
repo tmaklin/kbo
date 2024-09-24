@@ -82,16 +82,15 @@ fn main() {
 	    info!("Querying SBWT index...");
 	    println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches");
 	    seq_files.par_iter().for_each(|file| {
-		let aln = sablast::map(file, &sbwt, &lcs);
-		let mut run_lengths: Vec<(usize, usize, usize, usize, char)> = sablast::format::run_lengths(&aln.0).iter().map(|x| (x.0, x.1, x.2, x.3, '+')).collect();
-		let mut run_lengths_rev: Vec<(usize, usize, usize, usize, char)> = sablast::format::run_lengths(&aln.1).iter().map(|x| (x.0, x.1, x.2, x.3, '-')).collect();
-		run_lengths.append(&mut run_lengths_rev);
-		run_lengths.sort_by_key(|x| x.0);
+		// Get local alignments
+		let run_lengths = sablast::find(file, &sbwt, &lcs);
+
+		// Print results with query and ref name added
 		run_lengths.iter().for_each(|x| {
 		    let stdout = std::io::stdout();
 		    let _ = writeln!(&mut stdout.lock(),
 				     "{}\t{}\t{}\t{}\t{}\t{}\t{}",
-				     file, index_prefix.as_ref().unwrap(), x.0, x.1, x.4, x.2 + x.3, x.3);
+				     file, index_prefix.as_ref().unwrap(), x.0, x.1, x.2, x.3, x.4);
 		});
 	    });
 	},

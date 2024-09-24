@@ -116,3 +116,19 @@ pub fn map(
     (translate::translate_ms_vec(&runs.0, k, threshold),
      translate::translate_ms_vec(&runs.1, k, threshold))
 }
+
+pub fn find(
+    query_file: &String,
+    sbwt: &sbwt::SbwtIndexVariant,
+    lcs: &sbwt::LcsArray,
+) -> Vec<(usize, usize, char, usize, usize)> {
+    let aln = map(query_file, &sbwt, &lcs);
+
+    let mut run_lengths: Vec<(usize, usize, char, usize, usize)> = format::run_lengths(&aln.0).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect();
+    let mut run_lengths_rev: Vec<(usize, usize, char, usize, usize)> = format::run_lengths(&aln.1).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect();
+
+    run_lengths.append(&mut run_lengths_rev);
+    run_lengths.sort_by_key(|x| x.0);
+
+    run_lengths
+}
