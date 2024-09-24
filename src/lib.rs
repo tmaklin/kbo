@@ -28,7 +28,7 @@ pub mod translate;
 ///
 /// All files and sequence data in `seq_files` are merged into the
 /// same index. It is not possible extract the individual sequences
-/// from the index after it has been built; use [map] with the TODO
+/// from the index after it has been built; use [matches] with the TODO
 /// options instead if you need to know which reference sequences the
 /// alignments are for.
 ///
@@ -87,7 +87,7 @@ pub fn build(
     index::build_sbwt_from_vecs(&seq_data, &Some(build_opts))
 }
 
-pub fn map(
+pub fn matches(
     query_file: &str,
     sbwt: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
@@ -97,7 +97,6 @@ pub fn map(
 	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, 0.0000001_f64))
 	},
     };
-    // TODO handle multiple files and `input_list`
 
     let mut reader = needletail::parse_fastx_file(query_file).expect("valid path/file");
     let Some(rec) = reader.next() else { panic!("Invalid query {}", query_file); };
@@ -121,7 +120,7 @@ pub fn map(
 ///
 /// Aligns the sequence data and its reverse complement in `query`
 /// against the SBWT index `sbwt` and its LCS array `lcs` using
-/// [map]. Then uses [format::run_lengths] to extract the local
+/// [matches]. Then uses [format::run_lengths] to extract the local
 /// alignments from the matching statistics.
 ///
 /// Returns a vector of tuples, where each element represents a local
@@ -160,7 +159,7 @@ pub fn find(
     sbwt: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
 ) -> Vec<(usize, usize, char, usize, usize)> {
-    let aln = map(query_file, &sbwt, &lcs);
+    let aln = matches(query_file, sbwt, lcs);
 
     let mut run_lengths: Vec<(usize, usize, char, usize, usize)> = format::run_lengths(&aln.0).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect();
     let mut run_lengths_rev: Vec<(usize, usize, char, usize, usize)> = format::run_lengths(&aln.1).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect();
