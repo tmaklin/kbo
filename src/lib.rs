@@ -87,6 +87,49 @@ pub fn build(
     index::build_sbwt_from_vecs(&seq_data, &Some(build_opts))
 }
 
+/// Matches a query fasta or fastq file against an SBWT index.
+///
+/// Reads the sequence data in `query_file` and matches it and its
+/// reverse complement against the SBWT index `sbwt` and its LCS array
+/// `lcs` using [index::query_sbwt]. Then, derandomizes the resulting
+/// _k_-bounded matching statistics vector using
+/// [derandomize::derandomize_ms_vec] and translates the matching
+/// statistics to a character representation of the alignment using
+/// [translate::translate_ms_vec].
+///
+/// Returns a tuple of two vectors, the first one containing the
+/// character representation of the alignment for the canonical strand
+/// of the query sequence and the second for its reverse complement.
+///
+/// Panics if the query file is not readable or if it's not a valid
+/// FASTX file.
+///
+/// # Output format
+/// See the documentation for [translate].
+///
+/// # Input format detection
+/// The sequence data is read using
+/// [needletail::parser::parse_fastx_file](https://docs.rs/needletail/latest/needletail/parser/fn.parse_fastx_file.html).
+///
+/// Input file format (fasta or fastq) is detected automatically and
+/// the files may be compressed in a
+/// [DEFLATE-based](https://en.wikipedia.org/wiki/Deflate) format (.gz
+/// files).
+///
+/// # Example
+/// ```rust
+/// use sablast::build;
+/// use sablast::matches;
+/// use sablast::index::BuildOpts;
+///
+/// let reference = vec!["tests/data/clbS.fna.gz".to_string()];
+/// let (sbwt, lcs) = build(&reference, BuildOpts::default());
+///
+/// let query_file = "tests/data/NZ_CP058217.1_clbS.fna.gz";
+///
+/// let ms_vectors = matches(query_file, &sbwt, &lcs);
+/// ```
+///
 pub fn matches(
     query_file: &str,
     sbwt: &sbwt::SbwtIndexVariant,
