@@ -50,7 +50,10 @@
 /// // Testing this pos :     |
 /// // Expected output  : M,M,M,M,M,M
 ///
-/// translate_ms_val(1, 2, 3, 2);
+/// let translated = translate_ms_val(1, 2, 3, 2);
+/// // `translated` has ('M', ' ')
+/// # assert_eq!(translated.0, 'M');
+/// # assert_eq!(translated.1, ' ');
 /// ```
 ///
 /// ## Query with a single mismatch
@@ -66,7 +69,10 @@
 /// // Testing this pos :       |
 /// // Expected output  : M,M,M,X,M,M,M
 ///
-/// translate_ms_val(0, 1, 3, 2);
+/// let translated = translate_ms_val(0, 1, 3, 2);
+/// // `translated` has ('X', ' ')
+/// # assert_eq!(translated.0, 'X');
+/// # assert_eq!(translated.1, ' ');
 /// ```
 ///
 /// ## Query with a single insertion:
@@ -80,7 +86,10 @@
 /// // Testing this pos :       |
 /// // Expected output  : M,M,M,X,M,M,M
 ///
-/// translate_ms_val(0, 1, 3, 2);
+/// let translated = translate_ms_val(0, 1, 3, 2);
+/// // `translated` has ('X', ' ')
+/// # assert_eq!(translated.0, 'X');
+/// # assert_eq!(translated.1, ' ');
 /// ```
 ///
 /// Note that this case is identical to the query with a single
@@ -99,7 +108,10 @@
 /// // Testing this pos :        |
 /// // Expected output  : M,M,M, -,-,M,M,M
 ///
-/// translate_ms_val(-1, 0, 3, 2);
+/// let translated = translate_ms_val(-1, 0, 3, 2);
+/// // `translated` has ('-', ' ')
+/// # assert_eq!(translated.0, '-');
+/// # assert_eq!(translated.1, ' ');
 ///
 /// ```
 /// ## Query with a deletion
@@ -116,7 +128,10 @@
 /// // Testing this pos :     |
 /// // Expected output  : M,M,R,R,M,M
 ///
-/// translate_ms_val(3, 1, 2, 2);
+/// let translated = translate_ms_val(3, 1, 2, 2);
+/// // `translated` has ('R', 'R')
+/// # assert_eq!(translated.0, 'R');
+/// # assert_eq!(translated.1, 'R');
 /// ```
 ///
 /// Although in this case two characters have been deleted from the
@@ -138,7 +153,10 @@
 /// // Testing this pos :                 |
 /// // Expected output  : M,M,R,R,M,M,M,M,R,R,M,M
 ///
-/// translate_ms_val(3, 1, 3, 2);
+/// let translated = translate_ms_val(3, 1, 3, 2);
+/// // `translated` has ('R', 'R')
+/// # assert_eq!(translated.0, 'R');
+/// # assert_eq!(translated.1, 'R');
 /// ```
 ///
 /// Note how the two regions with the consecutive 'R's are similar to
@@ -214,7 +232,9 @@ pub fn translate_ms_val(
 /// // Expected output  : X,M,M,R,    R,M,M,X,M,M,M, -,-,M,M,M, -,-
 ///
 /// let input: Vec<i64> = vec![0,1,2,3,1,2,3,0,1,2,3,-1,0,1,2,3,-1,0];
-/// translate_ms_vec(&input, 3, 2);
+/// let translated = translate_ms_vec(&input, 3, 2);
+/// // `translated` has ['X','M','M','R','R','M','M','X','M','M','M','-','-','M','M','M','-','-']
+/// # assert_eq!(translated, vec!['X','M','M','R','R','M','M','X','M','M','M','-','-','M','M','M','-','-']);
 /// ```
 ///
 /// ## Translate a MS vector with recombination
@@ -229,8 +249,10 @@ pub fn translate_ms_val(
 /// // Result MS vector : 1,2,3,1,2,3,3,3,3,1,2,3
 /// // Expected output  : M,M,R,R,M,M,M,M,R,R,M,M
 ///
-/// let input: Vec<i64> = vec![0,1,2,3,1,2,3,0,1,2,3,-1,0,1,2,3,-1,0];
-/// translate_ms_vec(&input, 3, 2);
+/// let input: Vec<i64> = vec![1,2,3,1,2,3,3,3,3,1,2,3,];
+/// let translated = translate_ms_vec(&input, 3, 2);
+/// // `translated` has ['M','M','R','R','M','M','M','M','R','R','M','M']
+/// # assert_eq!(translated, vec!['M','M','R','R','M','M','M','M','R','R','M','M']);
 /// ```
 ///
 pub fn translate_ms_vec(
