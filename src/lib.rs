@@ -111,8 +111,8 @@ pub fn build(
 /// use sablast::matches;
 /// use sablast::index::BuildOpts;
 ///
-/// let reference = vec!["tests/data/clbS.fna.gz".to_string()];
-/// let (sbwt, lcs) = build(&reference, BuildOpts::default());
+/// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
+/// let (sbwt, lcs) = build(&reference, BuildOpts{ k: 3, ..Default::default() });
 ///
 /// let query = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
@@ -156,8 +156,8 @@ pub fn matches(
 /// use sablast::find;
 /// use sablast::index::BuildOpts;
 ///
-/// let reference = vec!["tests/data/clbS.fna.gz".to_string()];
-/// let (sbwt, lcs) = build(&reference, BuildOpts::default());
+/// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
+/// let (sbwt, lcs) = build(&reference, BuildOpts{ k: 3, ..Default::default() });
 ///
 /// let query = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
