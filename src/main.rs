@@ -22,6 +22,24 @@ use rayon::iter::IntoParallelRefIterator;
 // Command-line interface
 mod cli;
 
+// Reads all sequence data from a fastX file
+fn read_fastx_file(
+    file: &str,
+) -> Vec<Vec<u8>> {
+    let mut seq_data: Vec<Vec<u8>> = Vec::new();
+    let mut reader = needletail::parse_fastx_file(file).unwrap_or_else(|_| panic!("Expected valid fastX file at {}", file));
+    loop {
+	let rec = reader.next();
+	match rec {
+	    Some(Ok(seqrec)) => {
+		seq_data.push(seqrec.normalize(true).as_ref().to_vec());
+	    },
+	    _ => break
+	}
+    }
+    seq_data
+}
+
 /// Initializes the logger with verbosity given in `log_max_level`.
 fn init_log(log_max_level: usize) {
     stderrlog::new()
@@ -74,16 +92,7 @@ fn main() {
 	    info!("Building SBWT index from {} files...", seq_files.len());
 	    let mut seq_data: Vec<Vec<u8>> = Vec::new();
 	    seq_files.iter().for_each(|file| {
-		let mut reader = needletail::parse_fastx_file(file).unwrap_or_else(|_| panic!("Expected valid fastX file at {}", file));
-		loop {
-		    let rec = reader.next();
-		    match rec {
-			Some(Ok(seqrec)) => {
-			    seq_data.push(seqrec.normalize(true).as_ref().to_vec());
-			},
-			_ => break
-		    }
-		}
+		seq_data.append(&mut read_fastx_file(file));
 	    });
 
 	    let (sbwt, lcs) = sablast::build(&seq_data, sbwt_build_options);
@@ -151,29 +160,8 @@ fn main() {
 		.build_global()
 		.unwrap();
 
-	    let mut ref_data: Vec<Vec<u8>> = Vec::new();
-	    let mut ref_reader = needletail::parse_fastx_file(ref_file).unwrap_or_else(|_| panic!("Expected valid fastX file at {}", ref_file));
-	    loop {
-		let rec = ref_reader.next();
-		match rec {
-		    Some(Ok(seqrec)) => {
-			ref_data.push(seqrec.normalize(true).as_ref().to_vec());
-		    },
-		    _ => break
-		}
-	    }
-
-	    let mut query_data: Vec<Vec<u8>> = Vec::new();
-	    let mut query_reader = needletail::parse_fastx_file(query_file).unwrap_or_else(|_| panic!("Expected valid fastX file at {}", query_file));
-	    loop {
-		let rec = query_reader.next();
-		match rec {
-		    Some(Ok(seqrec)) => {
-			query_data.push(seqrec.normalize(true).as_ref().to_vec());
-		    },
-		    _ => break
-		}
-	    }
+	    let ref_data = read_fastx_file(ref_file);
+	    let query_data = read_fastx_file(query_file);
 
 	    let opts = sablast::index::BuildOpts { add_revcomp: true, ..Default::default() };
 	    let (sbwt, lcs) = sablast::index::build_sbwt_from_vecs(&query_data, &Some(opts));
