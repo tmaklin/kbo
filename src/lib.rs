@@ -108,8 +108,26 @@ pub fn matches(
 
 /// Maps a query sequence against a reference sequence.
 ///
-/// Builds an SBWT index from the sequence data in `query_seq` and
-/// maps the data in `ref_seq` against it.
+/// Maps the sequence data in `ref_seq` against the SBWT index
+/// `query_sbwt` and `query_lcs` and converts the alignment to a
+/// mapping relative to `ref_seq`.
+///
+/// Return the reference sequence with characters that are not present
+/// in the query masked with a '-'.
+///
+/// # Examples
+/// ```rust
+/// use sablast::build;
+/// use sablast::map;
+/// use sablast::index::BuildOpts;
+///
+/// let query: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
+/// let (sbwt_query, lcs_query) = build(&query, BuildOpts{ k: 3, ..Default::default() });
+///
+/// let reference = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
+///
+/// let alignment = map(&reference, &sbwt_query, &lcs_query);
+/// ```
 ///
 pub fn map(
     ref_seq: &[u8],
