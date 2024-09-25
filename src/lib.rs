@@ -40,20 +40,6 @@ pub mod translate;
 /// Panics if a file in `seq_files` is not readable or a valid FASTX
 /// file.
 ///
-/// # Input format detection
-/// The sequence data is read using
-/// [needletail::parser::parse_fastx_file](https://docs.rs/needletail/latest/needletail/parser/fn.parse_fastx_file.html).
-///
-/// Input file format (fasta or fastq) is detected automatically and
-/// the files may be compressed in a
-/// [DEFLATE-based](https://en.wikipedia.org/wiki/Deflate) format (.gz
-/// files).
-///
-/// [Bzip2](https://sourceware.org/bzip2/) and
-/// [liblzma](https://tukaani.org/xz/) compression (.bz2 and .xz
-/// files) can be enabled using the needletail features field in
-/// sablast Cargo.toml if compiling from source.
-///
 /// # Examples
 /// ```rust
 /// use sablast::build;
