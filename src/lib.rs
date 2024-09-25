@@ -11,8 +11,6 @@
 // the MIT license, <LICENSE-MIT> or <http://opensource.org/licenses/MIT>,
 // at your option.
 //
-use log::info;
-use needletail::Sequence;
 use sbwt::SbwtIndexVariant;
 
 pub mod derandomize;
@@ -61,30 +59,16 @@ pub mod translate;
 /// use sablast::build;
 /// use sablast::index::BuildOpts;
 ///
-/// let inputs = vec!["tests/data/clbS.fna.gz".to_string(), "tests/data/NZ_CP058217.1_clbS.fna.gz".to_string()];
+/// let inputs: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
 ///
 /// let (sbwt_index, lcs_array) = build(&inputs, BuildOpts::default());
 /// ```
 ///
 pub fn build(
-    seq_files: &[String],
+    seq_data: &[Vec<u8>],
     build_opts: index::BuildOpts,
 ) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
-    let mut seq_data: Vec<Vec<u8>> = Vec::new();
-    seq_files.iter().for_each(|file| {
-	let mut reader = needletail::parse_fastx_file(file).unwrap_or_else(|_| panic!("Expected valid fastX file at {}", file));
-	loop {
-	    let rec = reader.next();
-	    match rec {
-		Some(Ok(seqrec)) => {
-		    seq_data.push(seqrec.normalize(true).as_ref().to_vec());
-		},
-		_ => break
-	    }
-	}
-    });
-
-    index::build_sbwt_from_vecs(&seq_data, &Some(build_opts))
+    index::build_sbwt_from_vecs(seq_data, &Some(build_opts))
 }
 
 /// Matches a query fasta or fastq file against an SBWT index.
