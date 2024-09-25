@@ -180,3 +180,63 @@ pub fn find(
     let aln = matches(query_seq, sbwt, lcs);
     format::run_lengths(&aln)
 }
+
+// TODO Implement refining the translated MS vectors
+// 1. Search for Xs
+// 2. Extract 2*k+1 region centered on the X.
+// 3. Map region to query.
+// 4. Resolve SNP vs insertion.
+// 5. If SNP get the base.
+pub fn refine_translation(
+    ref_seq: &[u8],
+    query_seq: &[u8],
+    translation: &[char],
+    raw: &[u8]
+) -> Vec<u8> {
+    let k: usize = 31;
+
+    let mut refined = raw.to_vec().clone();
+
+    let mut i = refined.len() - 1;
+    while i > 0 {
+	if translation[i] == 'X' {
+	eprintln!("{}/{}", i, refined.len());
+	    let l_try: i64 = i as i64 - k as i64;
+	    let l_start: usize = if l_try < 0 { 0 } else { l_try as usize };
+	    let r_end: usize = if i + 1 + k > refined.len() { refined.len() - 1 } else { i + 1 + k };
+
+	    let left = Vec::from_iter(ref_seq[l_start..i].iter().cloned());
+	    let right = Vec::from_iter(ref_seq[(i + 1)..r_end].iter().cloned());
+
+	    let (sbwt_left, lcs_left) = index::build_sbwt_from_vecs(&[left], &Some(index::BuildOpts::default()));
+	    let where_left = find(query_seq, &sbwt_left, &lcs_left);
+
+	    let (sbwt_right, lcs_right) = index::build_sbwt_from_vecs(&[right], &Some(index::BuildOpts::default()));
+	    let where_right = find(query_seq, &sbwt_right, &lcs_right);
+
+	    // This assumes matches are unique
+	    if where_right[0].0 - 2 == where_left[0].1 {
+		refined[i] = query_seq[where_right[0].0 - 1];
+	    }
+	} else {
+	    refined[i] = raw[i];
+	}
+	i -= 1;
+    }
+
+    refined
+}
+
+pub fn map_refine(
+    ref_seq: &[u8],
+    query_seq: &[u8],
+    query_sbwt: &sbwt::SbwtIndexVariant,
+    query_lcs: &sbwt::LcsArray,
+) -> Vec<u8> {
+    let aln = matches(ref_seq, &query_sbwt, &query_lcs);
+
+    let raw = format::relative_to_ref(ref_seq, &aln);
+    let refined = refine_translation(ref_seq, query_seq, &aln, &raw);
+
+    refined
+}
