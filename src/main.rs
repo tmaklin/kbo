@@ -57,7 +57,21 @@ fn main() {
             };
 
 	    info!("Building SBWT index from {} files...", seq_files.len());
-	    let (sbwt, lcs) = sablast::build(seq_files, sbwt_build_options);
+	    let mut seq_data: Vec<Vec<u8>> = Vec::new();
+	    seq_files.iter().for_each(|file| {
+		let mut reader = needletail::parse_fastx_file(file).unwrap_or_else(|_| panic!("Expected valid fastX file at {}", file));
+		loop {
+		    let rec = reader.next();
+		    match rec {
+			Some(Ok(seqrec)) => {
+			    seq_data.push(seqrec.normalize(true).as_ref().to_vec());
+			},
+			_ => break
+		    }
+		}
+	    });
+
+	    let (sbwt, lcs) = sablast::build(&seq_data, sbwt_build_options);
 
 	    info!("Serializing SBWT index to {}.sbwt ...", output_prefix.as_ref().unwrap());
 	    info!("Serializing LCS array to {}.lcs ...", output_prefix.as_ref().unwrap());
