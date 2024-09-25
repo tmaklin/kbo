@@ -81,24 +81,26 @@ fn main() {
 	    let (sbwt, lcs) = sablast::index::load_sbwt(index_prefix.as_ref().unwrap());
 
 	    info!("Querying SBWT index...");
-	    println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches");
+	    println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches\tin.contig");
 	    seq_files.par_iter().for_each(|file| {
 
 		let mut reader = needletail::parse_fastx_file(file).expect("valid path/file");
-		let Some(rec) = reader.next() else { panic!("Invalid query {}", file); };
-		let seqrec = rec.expect("Valid fastX record");
-		let seq = seqrec.normalize(true);
+		while let Some(rec) = reader.next() {
+		    let seqrec = rec.expect("Valid fastX record");
+		    let seq = seqrec.normalize(true);
+		    let contig = seqrec.id();
 
-		// Get local alignments
-		let run_lengths = sablast::find(&seq, &sbwt, &lcs);
+		    // Get local alignments
+		    let run_lengths = sablast::find(&seq, &sbwt, &lcs);
 
-		// Print results with query and ref name added
-		run_lengths.iter().for_each(|x| {
-		    let stdout = std::io::stdout();
-		    let _ = writeln!(&mut stdout.lock(),
-				     "{}\t{}\t{}\t{}\t{}\t{}\t{}",
-				     file, index_prefix.as_ref().unwrap(), x.0, x.1, x.2, x.3, x.4);
-		});
+		    // Print results with query and ref name added
+		    run_lengths.iter().for_each(|x| {
+			let stdout = std::io::stdout();
+			let _ = writeln!(&mut stdout.lock(),
+					 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+					 file, index_prefix.as_ref().unwrap(), x.0, x.1, x.2, x.3, x.4, std::str::from_utf8(contig).expect("UTF-8"));
+		    });
+		}
 	    });
 	},
 	None => {}
