@@ -193,6 +193,16 @@ pub fn serialize_sbwt(
 ///
 /// // Load index
 /// let (sbwt_loaded, lcs_loaded) = load_sbwt(&index_prefix);
+/// # assert_eq!(lcs, lcs_loaded);
+/// # match sbwt_loaded {
+/// #     sbwt::SbwtIndexVariant::SubsetMatrix(ref loaded) => {
+/// #         match sbwt_loaded {
+/// #             sbwt::SbwtIndexVariant::SubsetMatrix(ref built) => {
+/// #                 assert_eq!(built, loaded);
+/// #             },
+/// #         };
+/// #     }
+/// # }
 /// ```
 ///
 pub fn load_sbwt(
@@ -235,6 +245,8 @@ pub fn load_sbwt(
 ///
 /// // Run query
 /// let ms = query_sbwt(&query, &sbwt, &lcs);
+/// // `ms` has [1,2,2,3,2,2,3,2,1,2,3,1,1,1,2,3,1,2]
+/// # assert_eq!(ms, vec![1,2,2,3,2,2,3,2,1,2,3,1,1,1,2,3,1,2]);
 /// ```
 ///
 pub fn query_sbwt(
