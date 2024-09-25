@@ -87,11 +87,17 @@ fn main() {
 		let mut reader = needletail::parse_fastx_file(file).expect("valid path/file");
 		while let Some(rec) = reader.next() {
 		    let seqrec = rec.expect("Valid fastX record");
-		    let seq = seqrec.normalize(true);
 		    let contig = seqrec.id();
+		    let seq = seqrec.normalize(true);
 
-		    // Get local alignments
-		    let run_lengths = sablast::find(&seq, &sbwt, &lcs);
+		    // Get local alignments for forward strand
+		    let mut run_lengths: Vec<(usize, usize, char, usize, usize)> = sablast::find(&seq, &sbwt, &lcs).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect();
+
+		    // Add local alignments for reverse _complement
+		    run_lengths.append(&mut sablast::find(&seq.reverse_complement(), &sbwt, &lcs).iter().map(|x| (x.0, x.1, '-', x.2 + x.3, x.3)).collect());
+
+		    // Sort by q.start
+		    run_lengths.sort_by_key(|x| x.0);
 
 		    // Print results with query and ref name added
 		    run_lengths.iter().for_each(|x| {
