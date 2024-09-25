@@ -221,7 +221,7 @@ pub fn derandomize_ms_vec(
 
     // Traverse the matching statistics in reverse.
     derand_ms[len - 1] = if noisy_ms[len - 1] > threshold { noisy_ms[len - 1]} else { 0 } as i64;
-    for i in 2..len {
+    for i in 2..(len + 1) {
 	derand_ms[len - i] = derandomize_ms_val(noisy_ms[len - i], derand_ms[len - i + 1], threshold, k);
     }
 

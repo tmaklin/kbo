@@ -246,7 +246,6 @@ pub fn translate_ms_vec(
     let mut res = vec![' '; len];
 
     // Traverse the derandomized matching statistics
-    // TODO if the first character matches this currently marks it incorrectly as '-'
     for pos in 0..len {
 	let prev: i64 = if pos > 1 { derand_ms[pos - 1] } else { 31 };
 	let curr: i64 = derand_ms[pos];
