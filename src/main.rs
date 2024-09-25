@@ -15,6 +15,7 @@ use std::io::Write;
 
 use clap::Parser;
 use log::info;
+use needletail::Sequence;
 use rayon::iter::ParallelIterator;
 use rayon::iter::IntoParallelRefIterator;
 
@@ -82,8 +83,14 @@ fn main() {
 	    info!("Querying SBWT index...");
 	    println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches");
 	    seq_files.par_iter().for_each(|file| {
+
+		let mut reader = needletail::parse_fastx_file(file).expect("valid path/file");
+		let Some(rec) = reader.next() else { panic!("Invalid query {}", file); };
+		let seqrec = rec.expect("Valid fastX record");
+		let seq = seqrec.normalize(true);
+
 		// Get local alignments
-		let run_lengths = sablast::find(file, &sbwt, &lcs);
+		let run_lengths = sablast::find(&seq, &sbwt, &lcs);
 
 		// Print results with query and ref name added
 		run_lengths.iter().for_each(|x| {

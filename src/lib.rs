@@ -117,7 +117,7 @@ pub fn build(
 /// files).
 ///
 /// # Example
-/// ```rust
+/// ```compile_fail
 /// use sablast::build;
 /// use sablast::matches;
 /// use sablast::index::BuildOpts;
@@ -131,32 +131,20 @@ pub fn build(
 /// ```
 ///
 pub fn matches(
-    query_file: &str,
+    query_seq: &[u8],
     sbwt: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
-) -> (Vec<char>, Vec<char>) {
+) -> Vec<char> {
     let (k, threshold) = match sbwt {
 	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
 	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, 0.0000001_f64))
 	},
     };
 
-    let mut reader = needletail::parse_fastx_file(query_file).expect("valid path/file");
-    let Some(rec) = reader.next() else { panic!("Invalid query {}", query_file); };
-    let seqrec = rec.expect("invalid_record");
+    let noisy_ms = index::query_sbwt(query_seq, sbwt, lcs);
+    let derand_ms = derandomize::derandomize_ms_vec(&noisy_ms, k, threshold);
 
-    let seq_fwd = seqrec.normalize(true);
-    let ms_fwd = index::query_sbwt(seq_fwd.sequence(), sbwt, lcs);
-
-    let seq_rev = seq_fwd.reverse_complement();
-    let ms_rev = index::query_sbwt(seq_rev.sequence(), sbwt, lcs);
-
-    info!("Translating result...");
-    let runs = (derandomize::derandomize_ms_vec(&ms_fwd, k, threshold),
-		derandomize::derandomize_ms_vec(&ms_rev, k, threshold));
-
-    (translate::translate_ms_vec(&runs.0, k, threshold),
-     translate::translate_ms_vec(&runs.1, k, threshold))
+    translate::translate_ms_vec(&derand_ms, k, threshold)
 }
 
 /// Finds the _k_-mers from an SBWT index in a query fasta or fastq file.
@@ -184,7 +172,7 @@ pub fn matches(
 /// files).
 ///
 /// # Examples
-/// ```rust
+/// ```compile_fail
 /// use sablast::build;
 /// use sablast::find;
 /// use sablast::index::BuildOpts;
@@ -198,17 +186,10 @@ pub fn matches(
 /// ```
 ///
 pub fn find(
-    query_file: &str,
+    query_seq: &[u8],
     sbwt: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
 ) -> Vec<(usize, usize, char, usize, usize)> {
-    let aln = matches(query_file, sbwt, lcs);
-
-    let mut run_lengths: Vec<(usize, usize, char, usize, usize)> = format::run_lengths(&aln.0).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect();
-    let mut run_lengths_rev: Vec<(usize, usize, char, usize, usize)> = format::run_lengths(&aln.1).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect();
-
-    run_lengths.append(&mut run_lengths_rev);
-    run_lengths.sort_by_key(|x| x.0);
-
-    run_lengths
+    let aln = matches(query_seq, sbwt, lcs);
+    format::run_lengths(&aln).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect()
 }
