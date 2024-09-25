@@ -106,6 +106,22 @@ pub fn matches(
     translate::translate_ms_vec(&derand_ms, k, threshold)
 }
 
+/// Maps a query sequence against a reference sequence.
+///
+/// Builds an SBWT index from the sequence data in `query_seq` and
+/// maps the data in `ref_seq` against it.
+///
+pub fn map(
+    query_seq: &[u8],
+    ref_seq: &[u8],
+) -> Vec<u8> {
+    let opts = index::BuildOpts { add_revcomp: true, ..Default::default() };
+    let (sbwt_query, lcs_query) = index::build_sbwt_from_vecs(&[query_seq.to_vec()], &Some(opts));
+    let aln = matches(ref_seq, &sbwt_query, &lcs_query);
+
+    ref_seq.iter().zip(aln.iter()).map(|x| if *x.1 == 'M' || *x.1 == 'R' { *x.0 } else { b'-' }).collect()
+}
+
 /// Finds the _k_-mers from an SBWT index in a query fasta or fastq file.
 ///
 /// Aligns the sequence data in `query_seq` against the SBWT index

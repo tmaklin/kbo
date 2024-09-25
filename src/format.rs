@@ -38,6 +38,34 @@ pub fn run_lengths(
     encodings
 }
 
+pub fn run_lengths2(
+    aln: &[char],
+) -> Vec<(usize, usize, usize, usize)> {
+    // Store run lengths as Vec<(start, end, matches, mismatches)>
+    let mut encodings: Vec<(usize, usize, usize, usize)> = Vec::new();
+
+    let mut i = 0;
+    let mut match_start: bool = false;
+    while i < aln.len() {
+	match_start = (aln[i] != '-' && aln[i] != ' ') && !match_start;
+	let mut discont: bool = false;
+	if match_start {
+	    let start = i;
+	    let mut matches: usize = 0;
+	    while i < aln.len() && (aln[i] != '-' && aln[i] != ' ' && !discont) {
+		matches += (aln[i] == 'M' || aln[i] == 'R') as usize;
+		i += 1;
+		discont = aln[i - 1] == 'R';
+	    }
+	    encodings.push((start + 1, i, matches, i - start - matches));
+	    match_start = false;
+	} else {
+	    i += 1;
+	}
+    }
+    encodings
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Tests
 //

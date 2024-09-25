@@ -138,6 +138,45 @@ fn main() {
 		}
 	    });
 	},
+        Some(cli::Commands::Map {
+	    query_files,
+	    ref_file,
+	    num_threads,
+	    verbose,
+        }) => {
+	    init_log(if *verbose { 2 } else { 1 });
+	    rayon::ThreadPoolBuilder::new()
+		.num_threads(*num_threads)
+		.thread_name(|i| format!("rayon-thread-{}", i))
+		.build_global()
+		.unwrap();
+
+	    // Ref will be concatenated, TODO could use pairs
+	    let mut ref_data: Vec<u8> = Vec::new();
+	    let mut ref_reader = needletail::parse_fastx_file(ref_file).unwrap_or_else(|_| panic!("Expected valid fastX file at {}", ref_file));
+	    loop {
+		let rec = ref_reader.next();
+		match rec {
+		    Some(Ok(seqrec)) => {
+			ref_data.append(&mut seqrec.normalize(true).as_ref().to_vec());
+		    },
+		    _ => break
+		}
+	    }
+
+	    query_files.par_iter().for_each(|file| {
+		let mut reader = needletail::parse_fastx_file(file).expect("valid path/file");
+		while let Some(rec) = reader.next() {
+		    let seqrec = rec.expect("Valid fastX record");
+		    let contig = seqrec.id();
+		    let query_data = seqrec.normalize(true);
+
+		    let res = sablast::map(&query_data, &ref_data);
+		    println!(">{}", std::str::from_utf8(contig).expect("UTF-8"));
+		    println!("{}", std::str::from_utf8(&res).expect("UTF-8"));
+		}
+	    });
+	},
 	None => {}
     }
 }

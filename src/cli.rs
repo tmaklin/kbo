@@ -68,4 +68,24 @@ pub enum Commands {
         #[arg(long = "verbose", default_value_t = false)]
         verbose: bool,
     },
+
+    // Map a query or queries to a reference and return the alignment
+    Map {
+	// Input fasta or fastq query file(s)
+        #[arg(group = "input", required = true)]
+        query_files: Vec<String>,
+
+	// Reference fasta
+        #[arg(short = 'r', long = "reference", required = true, help_heading = "Input")]
+        ref_file: String,
+
+	// Resources
+	// // Threads
+        #[arg(short = 't', long = "threads", default_value_t = 1)]
+        num_threads: usize,
+
+	// Verbosity
+        #[arg(long = "verbose", default_value_t = false)]
+        verbose: bool,
+    },
 }
