@@ -120,6 +120,8 @@ pub fn map(
     let aln = matches(ref_seq, &sbwt_query, &lcs_query);
 
     ref_seq.iter().zip(aln.iter()).map(|x| if *x.1 == 'M' || *x.1 == 'R' { *x.0 } else { b'-' }).collect()
+    let aln = matches(ref_seq, &query_sbwt, &query_lcs);
+    format::relative_to_ref(ref_seq, &aln)
 }
 
 /// Finds the _k_-mers from an SBWT index in a query fasta or fastq file.

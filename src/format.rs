@@ -38,6 +38,13 @@ pub fn run_lengths(
     encodings
 }
 
+pub fn relative_to_ref(
+    ref_seq: &[u8],
+    alignment: &Vec<char>,
+) -> Vec<u8> {
+    ref_seq.iter().zip(alignment.iter()).map(|x| if *x.1 == 'M' || *x.1 == 'R' { *x.0 } else { b'-' }).collect()
+}
+
 pub fn run_lengths2(
     aln: &[char],
 ) -> Vec<(usize, usize, usize, usize)> {
