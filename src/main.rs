@@ -139,7 +139,7 @@ fn main() {
 	    });
 	},
         Some(cli::Commands::Map {
-	    query_files,
+	    query_file ,
 	    ref_file,
 	    num_threads,
 	    verbose,
