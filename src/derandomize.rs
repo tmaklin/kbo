@@ -26,6 +26,7 @@
 ///
 /// # Examples
 /// ```rust
+/// # use assert_approx_eq::assert_approx_eq;
 /// use sablast::derandomize::log_rm_max_cdf;
 ///
 /// let alphabet_size = 4;
@@ -33,6 +34,7 @@
 ///
 /// let res = log_rm_max_cdf(10, alphabet_size, n_kmers);
 /// // `res` is -4.825812199808644
+/// # assert_approx_eq!(res, -4.825812199808644, 1e-8);
 /// ```
 ///
 pub fn log_rm_max_cdf(
@@ -69,6 +71,7 @@ pub fn log_rm_max_cdf(
 ///
 /// let threshold = random_match_threshold(k, n_kmers, alphabet_size, max_error_prob);
 /// // `threshold` is 15
+/// # assert_eq!(threshold, 15);
 /// ```
 pub fn random_match_threshold(
     k: usize,
@@ -116,6 +119,7 @@ pub fn random_match_threshold(
 ///
 /// let derand_ms = derandomize_ms_val(3, 3, 2, 3);
 /// // `derand_ms` is 3
+/// # assert_eq!(derand_ms, 3);
 /// ```
 ///
 /// ## Noisy MS has only noise
@@ -130,6 +134,7 @@ pub fn random_match_threshold(
 ///
 /// let derand_ms = derandomize_ms_val(2, -1, 2, 3);
 /// // `derand_ms` is -2
+/// # assert_eq!(derand_ms, -2);
 /// ```
 ///
 /// ## Noisy MS is at beginning of a full _k_-mer match
@@ -144,6 +149,7 @@ pub fn random_match_threshold(
 ///
 /// let derand_ms = derandomize_ms_val(3, -1, 2, 3);
 /// // `derand_ms` is 3
+/// # assert_eq!(derand_ms, 3);
 /// ```
 ///
 /// ## Noisy MS is at beginning of a partial _k_-mer match
@@ -158,6 +164,7 @@ pub fn random_match_threshold(
 ///
 /// let derand_ms = derandomize_ms_val(3, -1, 2, 4);
 /// // `derand_ms` is 3
+/// # assert_eq!(derand_ms, 3);
 /// ```
 ///
 pub fn derandomize_ms_val(
@@ -205,6 +212,7 @@ pub fn derandomize_ms_val(
 ///
 /// let derand_ms = derandomize_ms_vec(&noisy_ms, k, threshold);
 /// // `derand_ms` has [0,1,2,3,1,2,3,0,1,2,3,-1,0,1,2,3,-1,0]
+/// # assert_eq!(derand_ms, vec![0,1,2,3,1,2,3,0,1,2,3,-1,0,1,2,3,-1,0]);
 /// ```
 ///
 pub fn derandomize_ms_vec(
