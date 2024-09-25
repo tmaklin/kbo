@@ -189,7 +189,7 @@ pub fn find(
     query_seq: &[u8],
     sbwt: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
-) -> Vec<(usize, usize, char, usize, usize)> {
+) -> Vec<(usize, usize, usize, usize)> {
     let aln = matches(query_seq, sbwt, lcs);
-    format::run_lengths(&aln).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect()
+    format::run_lengths(&aln)
 }
