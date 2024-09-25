@@ -2,6 +2,7 @@
 name = "sablast"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.77.0"
 authors = ["Tommi Mäklin <tommi@maklin.fi>"]
 description = "Spectral Burrows-Wheeler transform accelerated local alignment search"
 readme = "README.md"
@@ -13,11 +14,14 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 ## core
-needletail = "0.5.1"
+# TODO Re-enable reading compressed sequences in needletail
+# This requires resolving the libllzma linker issue in build_artifacts.yml
+needletail = { version = "0.5.1", default-features = false }
+rayon = "1"
 sbwt = "0.3.1"
 
 ## cli
-clap = { version = "4.4.18", features = ["derive"] }
+clap = { version = "4", features = ["derive"] }
 
 ## logging
 log = "0.4.20"
@@ -25,4 +29,4 @@ stderrlog = "0.6.0"
 
 [dev-dependencies]
 ## tests
-assert_approx_eq = "1.1.0"
+assert_approx_eq = "1"
