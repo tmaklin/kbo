@@ -16,7 +16,6 @@ use std::ffi::OsString;
 use std::io::Write;
 use std::path::PathBuf;
 
-use needletail::Sequence;
 use sbwt::BitPackedKmerSorting;
 use sbwt::SbwtIndexBuilder;
 use sbwt::SbwtIndexVariant;
@@ -64,76 +63,6 @@ impl Default for BuildOpts {
 	    temp_dir: None,
         }
     }
-}
-
-struct FastxStreamer {
-    inner: Box<dyn needletail::parser::FastxReader>,
-    record: Vec<u8>
-}
-
-impl sbwt::SeqStream for FastxStreamer {
-    fn stream_next(&mut self) -> Option<&[u8]> {
-	let rec = self.inner.next();
-	match rec {
-	    Some(Ok(seqrec)) => {
-		// Remove newlines and non IUPAC characters
-		let normalized = seqrec.normalize(true);
-		self.record = normalized.as_ref().to_vec();
-		Some(&self.record)
-	    },
-	    _ => None,
-	}
-    }
-}
-
-/// Builds an SBWT index and its LCS array from a fasta or fastq file.
-///
-/// Streams all valid DNA sequences from `infile` to the SBWT API
-/// calls to build the SBWT index and LCS array. Use the [BuildOpts]
-/// argument `build_options` to control the options and resources
-/// passed to the index builder.
-///
-/// Returns a tuple containing the SBWT index and the LCS array.
-///
-/// Requires write access to some temporary directory. Path can be set
-/// using temp_dir in BuildOpts; defaults to $TMPDIR on Unix if not set.
-///
-/// # Examples
-/// ```rust
-/// use sablast::index::*;
-///
-/// // Inputs
-/// let reference_file = "tests/data/clbS.fna.gz";
-///
-/// // Build the SBWT
-/// let (sbwt, lcs) = build_sbwt_from_file(&reference_file, &Some(BuildOpts::default()));
-/// ```
-///
-pub fn build_sbwt_from_file(
-    infile: &str,
-    build_options: &Option<BuildOpts>,
-) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
-    // Get temp dir path from build_options, otherwise use whatever std::env::temp_dir() returns
-    let build_opts = if build_options.is_some() { build_options.clone().unwrap() } else { BuildOpts::default() };
-    let temp_dir = if build_opts.temp_dir.is_some() { build_opts.temp_dir.unwrap() } else { std::env::temp_dir().to_str().unwrap().to_string() };
-
-    let algorithm = BitPackedKmerSorting::new()
-	.mem_gb(build_opts.mem_gb)
-	.dedup_batches(false)
-	.temp_dir(PathBuf::from(OsString::from(temp_dir)).as_path());
-
-    let reader = FastxStreamer{inner: needletail::parse_fastx_file(infile).expect("valid path/file"), record: Vec::new()};
-
-    let (sbwt, lcs) = SbwtIndexBuilder::new()
-	.k(build_opts.k)
-	.n_threads(build_opts.num_threads)
-	.add_rev_comp(build_opts.add_revcomp)
-	.algorithm(algorithm)
-	.build_lcs(true)
-	.precalc_length(build_opts.prefix_precalc)
-	.run(reader);
-
-    (SbwtIndexVariant::SubsetMatrix(sbwt), lcs.unwrap())
 }
 
 /// Builds an SBWT index and its LCS array from sequences in memory.
