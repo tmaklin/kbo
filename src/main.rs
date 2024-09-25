@@ -154,11 +154,6 @@ fn main() {
 	    verbose,
         }) => {
 	    init_log(if *verbose { 2 } else { 1 });
-	    rayon::ThreadPoolBuilder::new()
-		.num_threads(*num_threads)
-		.thread_name(|i| format!("rayon-thread-{}", i))
-		.build_global()
-		.unwrap();
 
 	    let ref_data = read_fastx_file(ref_file);
 	    let query_data = read_fastx_file(query_file);
