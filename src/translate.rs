@@ -287,6 +287,14 @@ pub fn translate_ms_vec(
     res
 }
 
+// TODO Implement refining the translated MS vectors
+// 1. Search for Xs
+// 2. Extract 2*k+1 region centered on the X.
+// 3. Map region to query.
+// 4. Resolve SNP vs insertion.
+// 5. If SNP get the base.
+pub fn refine_translation() { todo!() }
+
 ////////////////////////////////////////////////////////////////////////////////
 // Tests
 //
