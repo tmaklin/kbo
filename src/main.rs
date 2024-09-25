@@ -151,31 +151,40 @@ fn main() {
 		.build_global()
 		.unwrap();
 
-	    // Ref will be concatenated, TODO could use pairs
-	    let mut ref_data: Vec<u8> = Vec::new();
+	    let mut ref_data: Vec<Vec<u8>> = Vec::new();
 	    let mut ref_reader = needletail::parse_fastx_file(ref_file).unwrap_or_else(|_| panic!("Expected valid fastX file at {}", ref_file));
 	    loop {
 		let rec = ref_reader.next();
 		match rec {
 		    Some(Ok(seqrec)) => {
-			ref_data.append(&mut seqrec.normalize(true).as_ref().to_vec());
+			ref_data.push(seqrec.normalize(true).as_ref().to_vec());
 		    },
 		    _ => break
 		}
 	    }
 
-	    query_files.par_iter().for_each(|file| {
-		let mut reader = needletail::parse_fastx_file(file).expect("valid path/file");
-		while let Some(rec) = reader.next() {
-		    let seqrec = rec.expect("Valid fastX record");
-		    let contig = seqrec.id();
-		    let query_data = seqrec.normalize(true);
-
-		    let res = sablast::map(&query_data, &ref_data);
-		    println!(">{}", std::str::from_utf8(contig).expect("UTF-8"));
-		    println!("{}", std::str::from_utf8(&res).expect("UTF-8"));
+	    let mut query_data: Vec<Vec<u8>> = Vec::new();
+	    let mut query_reader = needletail::parse_fastx_file(query_file).unwrap_or_else(|_| panic!("Expected valid fastX file at {}", query_file));
+	    loop {
+		let rec = query_reader.next();
+		match rec {
+		    Some(Ok(seqrec)) => {
+			query_data.push(seqrec.normalize(true).as_ref().to_vec());
+		    },
+		    _ => break
 		}
+	    }
+
+	    let opts = sablast::index::BuildOpts { add_revcomp: true, ..Default::default() };
+	    let (sbwt, lcs) = sablast::index::build_sbwt_from_vecs(&query_data, &Some(opts));
+
+	    let mut res: Vec<u8> = Vec::new();
+	    ref_data.iter().for_each(|ref_contig| {
+		res.append(&mut sablast::map(&ref_contig, &sbwt, &lcs));
 	    });
+
+	    println!(">{}", query_file);
+	    println!("{}", std::str::from_utf8(&res).expect("UTF-8"));
 	},
 	None => {}
     }

@@ -112,14 +112,10 @@ pub fn matches(
 /// maps the data in `ref_seq` against it.
 ///
 pub fn map(
-    query_seq: &[u8],
     ref_seq: &[u8],
+    query_sbwt: &sbwt::SbwtIndexVariant,
+    query_lcs: &sbwt::LcsArray,
 ) -> Vec<u8> {
-    let opts = index::BuildOpts { add_revcomp: true, ..Default::default() };
-    let (sbwt_query, lcs_query) = index::build_sbwt_from_vecs(&[query_seq.to_vec()], &Some(opts));
-    let aln = matches(ref_seq, &sbwt_query, &lcs_query);
-
-    ref_seq.iter().zip(aln.iter()).map(|x| if *x.1 == 'M' || *x.1 == 'R' { *x.0 } else { b'-' }).collect()
     let aln = matches(ref_seq, &query_sbwt, &query_lcs);
     format::relative_to_ref(ref_seq, &aln)
 }
