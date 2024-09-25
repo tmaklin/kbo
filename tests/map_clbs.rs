@@ -17,7 +17,7 @@ fn map_nissle_against_clbs() {
 
     let (sbwt, lcs) = sablast::index::build_sbwt_from_file(&"tests/data/clbS.fna.gz".to_string(), &None);
 
-    let expected = vec![(455, 967, '+', 513, 1)];
+    let expected = vec![(455, 967, 512, 1)];
 
     let mut reader = needletail::parse_fastx_file("tests/data/NZ_CP058217.1_clbS.fna.gz".to_string()).expect("valid path/file");
     let Some(rec) = reader.next() else { panic!("Couldn't read from tests/data/NZ_CP058217.1_clbS.fna.gz") };
