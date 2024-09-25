@@ -87,6 +87,8 @@ pub fn build(
 /// let query = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
 /// let ms_vectors = matches(&query, &sbwt, &lcs);
+/// // `ms_vectors` has ['-','-','-','-','-','-','-','-','-','M','M','M','-','-']
+/// # assert_eq!(ms_vectors, vec!['-','-','-','-','-','-','-','-','-','M','M','M','-','-']);
 /// ```
 ///
 pub fn matches(
@@ -127,6 +129,8 @@ pub fn matches(
 /// let reference = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
 /// let alignment = map(&reference, &sbwt_query, &lcs_query);
+/// // `ms_vectors` has [45,45,45,45,45,45,45,45,45,65,71,71,45,45]
+/// # assert_eq!(alignment, vec![45,45,45,45,45,45,45,45,45,65,71,71,45,45]);
 /// ```
 ///
 pub fn map(
@@ -164,6 +168,8 @@ pub fn map(
 /// let query = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
 /// let local_alignments = find(&query, &sbwt, &lcs);
+/// // `local_alignments` has [(10, 12, 3, 0)]
+/// # assert_eq!(local_alignments, vec![(10, 12, 3, 0)]);
 /// ```
 ///
 pub fn find(
