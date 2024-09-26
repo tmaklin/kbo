@@ -344,7 +344,7 @@ pub fn translate_ms_vec(
 /// let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
 /// let translated = translate_ms_vec(&derand_ms, k, threshold);
 ///
-/// let refined = refine_translation(&translated, &noisy_ms, &sbwt);
+/// let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
 ///
 /// # let expected = vec!['M','M','M','M','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
 /// # assert_eq!(refined, expected);
@@ -354,6 +354,7 @@ pub fn refine_translation(
     translation: &[char],
     noisy_ms: &[(usize, Range<usize>)],
     query_sbwt: &sbwt::SbwtIndexVariant,
+    threshold: usize,
 ) -> Vec<char> {
     assert!(!translation.is_empty());
     assert!(translation.len() == noisy_ms.len());
@@ -366,15 +367,13 @@ pub fn refine_translation(
     };
 
     // Could prove midpoint is the best guess using conditional probabilities?
-    let midpoint = k/2;
 
-    // TODO Handle fragmented regions in refine_translation.
-    // This function needs to consider cases where the ms drops before reaching k when extending right.
     let mut refined = translation.to_vec().clone();
     match query_sbwt {
 	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
 	    for i in 1..(refined.len()) {
 		if refined[i - 1] == 'X' {
+		    let midpoint = if noisy_ms[i + k - 1].0 == k { k/2 } else { (threshold + 1)/2 };
 		    refined[i - 1] = sbwt.access_kmer(noisy_ms[i + k - (midpoint + 1)].1.start)[midpoint - 1] as char;
 		}
 	    }
