@@ -30,3 +30,8 @@ stderrlog = "0.6.0"
 [dev-dependencies]
 ## tests
 assert_approx_eq = "1"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
