@@ -14,6 +14,7 @@
 //! Wrapper for using the [sbwt](https://docs.rs/sbwt) API to build and query SBWT indexes.
 use std::ffi::OsString;
 use std::io::Write;
+use std::ops::Range;
 use std::path::PathBuf;
 
 use sbwt::BitPackedKmerSorting;
@@ -229,8 +230,9 @@ pub fn load_sbwt(
 /// Matches the _k_-mers in `query` against the SBWT index `index` and
 /// its longest common suffix array `lcs`.
 ///
-/// Returns a vector containing the _k_-bounded matching statistic at
-/// the position of each element in the query.
+/// Returns a vector containing tuples with the _k_-bounded matching
+/// statistic at the position of each element in the query and the
+/// [colex interval](https://docs.rs/sbwt/latest/sbwt/) of the match.
 ///
 /// # Examples
 /// ```rust
@@ -244,7 +246,7 @@ pub fn load_sbwt(
 /// let (sbwt, lcs) = build_sbwt_from_vecs(&reference, &Some(BuildOpts{ k: 3, ..Default::default() }));
 ///
 /// // Run query
-/// let ms = query_sbwt(&query, &sbwt, &lcs);
+/// let ms: Vec<usize> = query_sbwt(&query, &sbwt, &lcs).iter().map(|x| x.0).collect();
 /// // `ms` has [1,2,2,3,2,2,3,2,1,2,3,1,1,1,2,3,1,2]
 /// # assert_eq!(ms, vec![1,2,2,3,2,2,3,2,1,2,3,1,1,1,2,3,1,2]);
 /// ```
@@ -253,7 +255,7 @@ pub fn query_sbwt(
     query: &[u8],
     sbwt: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
-) -> Vec<usize> {
+) -> Vec<(usize, Range<usize>)> {
     assert!(!query.is_empty());
     let ms = match sbwt {
         SbwtIndexVariant::SubsetMatrix(index) => {
@@ -261,7 +263,7 @@ pub fn query_sbwt(
 	    streaming_index.matching_statistics(query)
 	},
     };
-    ms.iter().map(|x| x.0).collect()
+    ms
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -277,7 +279,7 @@ mod tests {
 	let (sbwt, lcs) = super::build_sbwt_from_vecs(&reference, &Some(super::BuildOpts{ k: 3, ..Default::default() }));
 
 	let expected = vec![1,2,2,3,2,2,3,2,1,2,3,1,1,1,2,3,1,2];
-	let got = super::query_sbwt(&query, &sbwt, &lcs);
+	let got: Vec<usize> = super::query_sbwt(&query, &sbwt, &lcs).iter().map(|x| x.0).collect();
 
 	assert_eq!(got, expected);
     }
