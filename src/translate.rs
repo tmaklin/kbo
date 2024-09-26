@@ -291,13 +291,20 @@ pub fn translate_ms_vec(
     res
 }
 
-/// Refines the translated character representation by resolving SNPs.
+/// Refines a translated alignment by resolving SNPs.
 ///
 /// Resolves all 'X's in the translation `translation` by using the
-/// colexicographic interval stored in the second component of
-/// `noisy_ms` tuples to extract the first character of the _k_-mer
-/// starting from the position of 'X' from the SBWT index
-/// `query_sbwt`.
+/// colexicographic intervals stored in the second component of
+/// `noisy_ms` tuples to extract the _k_-mers that overlap the 'X's
+/// from the SBWT index `query_sbwt`.
+///
+/// The 'X's are resolved by checking whether the _k_-mer whose first
+/// character overlaps the 'X' has a matching statistic of _k_ - 1
+/// and, if it does, replacing the character of 'X' with a character
+/// from the _k_-mer that has 'X' as its middle base (a '[split
+/// _k_-mer](https://docs.rs/ska). If the matching statistic is less
+/// than _k_ - 1, the character is checked from the _k_-mer that is
+/// (`threshold` + 1)/2 characters away from the 'X'.
 ///
 /// The SBWT index must have [select
 /// support](https://docs.rs/sbwt/latest/sbwt/struct.SbwtIndexBuilder.html)
@@ -368,6 +375,7 @@ pub fn refine_translation(
     };
 
     // Could prove midpoint is the best guess using conditional probabilities?
+    // This is (coincidentally?) similar to split k-mers
 
     let mut refined = translation.to_vec().clone();
     match query_sbwt {
