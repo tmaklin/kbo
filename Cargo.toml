@@ -1,6 +1,6 @@
 [package]
 name = "sablast"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.77.0"
 authors = ["Tommi Mäklin <tommi@maklin.fi>"]
@@ -30,3 +30,8 @@ stderrlog = "0.6.0"
 [dev-dependencies]
 ## tests
 assert_approx_eq = "1"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1

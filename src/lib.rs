@@ -102,7 +102,7 @@ pub fn matches(
 	},
     };
 
-    let noisy_ms = index::query_sbwt(query_seq, sbwt, lcs);
+    let noisy_ms: Vec<usize> = index::query_sbwt(query_seq, sbwt, lcs).iter().map(|x| x.0).collect();
     let derand_ms = derandomize::derandomize_ms_vec(&noisy_ms, k, threshold);
 
     translate::translate_ms_vec(&derand_ms, k, threshold)
@@ -124,7 +124,7 @@ pub fn matches(
 /// use sablast::index::BuildOpts;
 ///
 /// let query: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
-/// let (sbwt_query, lcs_query) = build(&query, BuildOpts{ k: 3, ..Default::default() });
+/// let (sbwt_query, lcs_query) = build(&query, BuildOpts{ k: 3, build_select: true, ..Default::default() });
 ///
 /// let reference = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
@@ -138,8 +138,19 @@ pub fn map(
     query_sbwt: &sbwt::SbwtIndexVariant,
     query_lcs: &sbwt::LcsArray,
 ) -> Vec<u8> {
-    let aln = matches(ref_seq, &query_sbwt, &query_lcs);
-    format::relative_to_ref(ref_seq, &aln)
+    let (k, threshold) = match query_sbwt {
+	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, 0.0000001_f64))
+	},
+    };
+
+    let noisy_ms = index::query_sbwt(ref_seq, query_sbwt, query_lcs);
+    let derand_ms = derandomize::derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
+
+    let translation = translate::translate_ms_vec(&derand_ms, k, threshold);
+    let refined = translate::refine_translation(&translation, &noisy_ms, query_sbwt, threshold);
+
+    format::relative_to_ref(ref_seq, &refined)
 }
 
 /// Finds the _k_-mers from an SBWT index in a query fasta or fastq file.

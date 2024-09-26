@@ -73,7 +73,7 @@ pub enum Commands {
     Map {
 	// Input fasta or fastq query file(s)
         #[arg(group = "input", required = true)]
-        query_file: String,
+        query_files: Vec<String>,
 
 	// Reference fasta
         #[arg(short = 'r', long = "reference", required = true, help_heading = "Input")]

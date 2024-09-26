@@ -12,6 +12,7 @@
 // at your option.
 //
 //! Converting alignment representations into various output formats.
+
 pub fn run_lengths(
     aln: &[char],
 ) -> Vec<(usize, usize, usize, usize)> {
@@ -40,37 +41,21 @@ pub fn run_lengths(
 
 pub fn relative_to_ref(
     ref_seq: &[u8],
-    alignment: &Vec<char>,
+    alignment: &[char],
 ) -> Vec<u8> {
-    ref_seq.iter().zip(alignment.iter()).map(|x| if *x.1 == 'M' || *x.1 == 'R' { *x.0 } else { b'-' }).collect()
-}
-
-pub fn run_lengths2(
-    aln: &[char],
-) -> Vec<(usize, usize, usize, usize)> {
-    // Store run lengths as Vec<(start, end, matches, mismatches)>
-    let mut encodings: Vec<(usize, usize, usize, usize)> = Vec::new();
-
-    let mut i = 0;
-    let mut match_start: bool = false;
-    while i < aln.len() {
-	match_start = (aln[i] != '-' && aln[i] != ' ') && !match_start;
-	let mut discont: bool = false;
-	if match_start {
-	    let start = i;
-	    let mut matches: usize = 0;
-	    while i < aln.len() && (aln[i] != '-' && aln[i] != ' ' && !discont) {
-		matches += (aln[i] == 'M' || aln[i] == 'R') as usize;
-		i += 1;
-		discont = aln[i - 1] == 'R';
-	    }
-	    encodings.push((start + 1, i, matches, i - start - matches));
-	    match_start = false;
+    ref_seq.iter().zip(alignment.iter()).map(|x| {
+	if *x.1 == 'M' || *x.1 == 'R' {
+	    *x.0
+	} else if *x.1 == 'X' {
+	    // 'X' is an unresolved SNP
+	    b'-'
+	} else if *x.1 != '-' {
+	    // Other possible values are resolved SNPs (A,C,G,T)
+	    *x.1 as u8
 	} else {
-	    i += 1;
+	    b'-'
 	}
-    }
-    encodings
+	}).collect()
 }
 
 ////////////////////////////////////////////////////////////////////////////////

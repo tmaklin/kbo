@@ -23,6 +23,10 @@
 //!           'R'. This implies either a deletion of unknown length in the query,
 //!           or insertion of _k_-mers from elsewhere in the reference into the query.
 //!
+use std::ops::Range;
+
+use sbwt::SbwtIndexVariant;
+use sbwt::SubsetSeq;
 
 /// Translates a single derandomized _k_-bounded matching statistic.
 ///
@@ -287,13 +291,105 @@ pub fn translate_ms_vec(
     res
 }
 
-// TODO Implement refining the translated MS vectors
-// 1. Search for Xs
-// 2. Extract 2*k+1 region centered on the X.
-// 3. Map region to query.
-// 4. Resolve SNP vs insertion.
-// 5. If SNP get the base.
-pub fn refine_translation() { todo!() }
+/// Refines a translated alignment by resolving SNPs.
+///
+/// Resolves all 'X's in the translation `translation` by using the
+/// colexicographic intervals stored in the second component of
+/// `noisy_ms` tuples to extract the _k_-mers that overlap the 'X's
+/// from the SBWT index `query_sbwt`.
+///
+/// The 'X's are resolved by checking whether the _k_-mer whose first
+/// character overlaps the 'X' has a matching statistic of _k_ - 1
+/// and, if it does, replacing the character of 'X' with a character
+/// from the _k_-mer that has 'X' as its middle base (a '[split
+/// _k_-mer](https://docs.rs/ska). If the matching statistic is less
+/// than _k_ - 1, the character is checked from the _k_-mer that is
+/// (`threshold` + 1)/2 characters away from the 'X'.
+///
+/// The SBWT index must have [select
+/// support](https://docs.rs/sbwt/latest/sbwt/struct.SbwtIndexBuilder.html)
+/// enabled.
+///
+/// Returns a refined translation where the 'X's have been replaced
+/// with the substituted character.
+///
+/// # Examples
+/// ```rust
+/// use sablast::build;
+/// use sablast::index::BuildOpts;
+/// use sablast::index::query_sbwt;
+/// use sablast::derandomize::derandomize_ms_vec;
+/// use sablast::derandomize::random_match_threshold;
+/// use sablast::translate::translate_ms_vec;
+/// use sablast::translate::refine_translation;
+/// use sbwt::SbwtIndexVariant;
+///
+/// // Parameters       : k = 4, threshold = 3
+/// //
+/// // Ref sequence     : T,T,G,A, T,T,G,G,C,T,G,G,G,C,A,G,A,G,C,T,G
+/// // Query sequence   : T,T,G,A,     G,G,C,T,G,G,G,G,A,G,A,G,C,T,G
+/// //
+/// // Result MS vector : 1,2,3,4, 1,2,3,3,3,4,4,4,4,3,1,2,3,4,4,4,4
+/// // Derandomized MS  : 1,2,3,4,-1,0,1,2,3,4,4,4,4,0,1,2,3,4,4,4,4
+/// // Translation      : M,M,M,M, -,-,M,M,M,M,M,M,M,X,M,M,M,M,M,M,M
+/// // Refined          : M,M,M,M, -,-,M,M,M,M,M,M,M,G,M,M,M,M,M,M,M
+/// // Changed this pos :                            |
+///
+/// let query: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+/// let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+///
+/// let (sbwt, lcs) = build(&[query], BuildOpts{ k: 4, build_select: true, ..Default::default() });
+///
+/// let k = match sbwt {
+///     SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+///         sbwt.k()
+///     },
+/// };
+/// let threshold = 3;
+///
+/// let noisy_ms = query_sbwt(&reference, &sbwt, &lcs);
+/// let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
+/// let translated = translate_ms_vec(&derand_ms, k, threshold);
+///
+/// let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+///
+/// # let expected = vec!['M','M','M','M','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
+/// # assert_eq!(refined, expected);
+/// ```
+///
+pub fn refine_translation(
+    translation: &[char],
+    noisy_ms: &[(usize, Range<usize>)],
+    query_sbwt: &sbwt::SbwtIndexVariant,
+    threshold: usize,
+) -> Vec<char> {
+    let n_elements = translation.len();
+    assert!(!translation.is_empty());
+    assert!(translation.len() == noisy_ms.len());
+    let k = match query_sbwt {
+	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+	    assert!(sbwt.sbwt().has_select_support());
+	    assert!(sbwt.k() > 0);
+	    sbwt.k()
+	},
+    };
+
+    // Could prove midpoint is the best guess using conditional probabilities?
+    // This is (coincidentally?) similar to split k-mers
+
+    let mut refined = translation.to_vec().clone();
+    match query_sbwt {
+	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+	    for i in 1..(refined.len() - threshold) {
+		if refined[i - 1] == 'X' {
+		    let midpoint = if i + k - 2 < n_elements && noisy_ms[i + k - 2].0 == k - 1 { k/2 } else { (threshold + 1)/2 };
+		    refined[i - 1] = sbwt.access_kmer(noisy_ms[i + k - 2 - midpoint].1.start)[midpoint] as char;
+		}
+	    }
+	},
+    };
+    refined
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Tests
@@ -439,5 +535,49 @@ mod tests {
 	let got = super::translate_ms_vec(&input, 3, 2);
 
 	assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn refine_translation() {
+	use crate::build;
+	use crate::index::BuildOpts;
+	use crate::index::query_sbwt;
+	use crate::derandomize::derandomize_ms_vec;
+	use crate::derandomize::random_match_threshold;
+	use super::translate_ms_vec;
+	use super::refine_translation;
+	use sbwt::SbwtIndexVariant;
+
+	// Parameters       : k = 4, threshold = 3
+	//
+	// Ref sequence     : T,T,G,A, T,T,G,G,C,T,G,G,G,C,A,G,A,G,C,T,G
+	// Query sequence   : T,T,G,A,     G,G,C,T,G,G,G,G,A,G,A,G,C,T,G
+	//
+	// Result MS vector : 1,2,3,4, 1,2,3,3,3,4,4,4,4,3,1,2,3,4,4,4,4
+	// Derandomized MS  : 1,2,3,4,-1,0,1,2,3,4,4,4,4,0,1,2,3,4,4,4,4
+	// Translation      : M,M,M,M, -,-,M,M,M,M,M,M,M,X,M,M,M,M,M,M,M
+	// Refined          : M,M,M,M, -,-,M,M,M,M,M,M,M,G,M,M,M,M,M,M,M
+	// Changed this pos :                            |
+
+	let query: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+	let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+
+	let (sbwt, lcs) = build(&[query], BuildOpts{ k: 4, build_select: true, ..Default::default() });
+
+	let k = match sbwt {
+	    SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+		sbwt.k()
+	    },
+	};
+	let threshold = 3;
+
+	let noisy_ms = query_sbwt(&reference, &sbwt, &lcs);
+	let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
+	let translated = translate_ms_vec(&derand_ms, k, threshold);
+
+	let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+
+	let expected = vec!['M','M','M','M','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
+	assert_eq!(refined, expected);
     }
 }

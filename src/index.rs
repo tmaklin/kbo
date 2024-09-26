@@ -14,6 +14,7 @@
 //! Wrapper for using the [sbwt](https://docs.rs/sbwt) API to build and query SBWT indexes.
 use std::ffi::OsString;
 use std::io::Write;
+use std::ops::Range;
 use std::path::PathBuf;
 
 use sbwt::BitPackedKmerSorting;
@@ -36,8 +37,9 @@ use sbwt::SbwtIndexVariant;
 ///     k: 31,
 ///     add_revcomp: false,
 ///     num_threads: 1,
-///     mem_gb: 4,
 ///     prefix_precalc: 8,
+///     build_select: false,
+///     mem_gb: 4,
 ///     temp_dir: None,
 /// };
 /// ```
@@ -47,9 +49,10 @@ pub struct BuildOpts {
     pub k: usize,
     pub add_revcomp: bool,
     pub num_threads: usize,
+    pub prefix_precalc: usize,
+    pub build_select: bool,
     pub mem_gb: usize,
     pub temp_dir: Option<String>,
-    pub prefix_precalc: usize,
 }
 // Defaults
 impl Default for BuildOpts {
@@ -58,8 +61,9 @@ impl Default for BuildOpts {
 	    k: 31,
 	    add_revcomp: false,
 	    num_threads: 1,
-	    mem_gb: 4,
 	    prefix_precalc: 8,
+	    build_select: false,
+	    mem_gb: 4,
 	    temp_dir: None,
         }
     }
@@ -111,6 +115,7 @@ pub fn build_sbwt_from_vecs(
 	.add_rev_comp(build_opts.add_revcomp)
 	.algorithm(algorithm)
 	.build_lcs(true)
+	.build_select_support(build_opts.build_select)
 	.precalc_length(build_opts.prefix_precalc)
 	.run_from_vecs(slices);
 
@@ -229,8 +234,9 @@ pub fn load_sbwt(
 /// Matches the _k_-mers in `query` against the SBWT index `index` and
 /// its longest common suffix array `lcs`.
 ///
-/// Returns a vector containing the _k_-bounded matching statistic at
-/// the position of each element in the query.
+/// Returns a vector containing tuples with the _k_-bounded matching
+/// statistic at the position of each element in the query and the
+/// [colex interval](https://docs.rs/sbwt/latest/sbwt/) of the match.
 ///
 /// # Examples
 /// ```rust
@@ -244,7 +250,7 @@ pub fn load_sbwt(
 /// let (sbwt, lcs) = build_sbwt_from_vecs(&reference, &Some(BuildOpts{ k: 3, ..Default::default() }));
 ///
 /// // Run query
-/// let ms = query_sbwt(&query, &sbwt, &lcs);
+/// let ms: Vec<usize> = query_sbwt(&query, &sbwt, &lcs).iter().map(|x| x.0).collect();
 /// // `ms` has [1,2,2,3,2,2,3,2,1,2,3,1,1,1,2,3,1,2]
 /// # assert_eq!(ms, vec![1,2,2,3,2,2,3,2,1,2,3,1,1,1,2,3,1,2]);
 /// ```
@@ -253,7 +259,7 @@ pub fn query_sbwt(
     query: &[u8],
     sbwt: &sbwt::SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
-) -> Vec<usize> {
+) -> Vec<(usize, Range<usize>)> {
     assert!(!query.is_empty());
     let ms = match sbwt {
         SbwtIndexVariant::SubsetMatrix(index) => {
@@ -261,7 +267,7 @@ pub fn query_sbwt(
 	    streaming_index.matching_statistics(query)
 	},
     };
-    ms.iter().map(|x| x.0).collect()
+    ms
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -277,7 +283,7 @@ mod tests {
 	let (sbwt, lcs) = super::build_sbwt_from_vecs(&reference, &Some(super::BuildOpts{ k: 3, ..Default::default() }));
 
 	let expected = vec![1,2,2,3,2,2,3,2,1,2,3,1,1,1,2,3,1,2];
-	let got = super::query_sbwt(&query, &sbwt, &lcs);
+	let got: Vec<usize> = super::query_sbwt(&query, &sbwt, &lcs).iter().map(|x| x.0).collect();
 
 	assert_eq!(got, expected);
     }

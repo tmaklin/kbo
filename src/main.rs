@@ -120,6 +120,7 @@ fn main() {
 
 	    info!("Querying SBWT index...");
 	    println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches\tin.contig");
+	    let stdout = std::io::stdout();
 	    seq_files.par_iter().for_each(|file| {
 
 		let mut reader = needletail::parse_fastx_file(file).expect("valid path/file");
@@ -139,7 +140,6 @@ fn main() {
 
 		    // Print results with query and ref name added
 		    run_lengths.iter().for_each(|x| {
-			let stdout = std::io::stdout();
 			let _ = writeln!(&mut stdout.lock(),
 					 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
 					 file, index_prefix.as_ref().unwrap(), x.0, x.1, x.2, x.3, x.4, std::str::from_utf8(contig).expect("UTF-8"));
@@ -148,26 +148,34 @@ fn main() {
 	    });
 	},
         Some(cli::Commands::Map {
-	    query_file ,
+	    query_files,
 	    ref_file,
 	    num_threads,
 	    verbose,
         }) => {
 	    init_log(if *verbose { 2 } else { 1 });
+	    rayon::ThreadPoolBuilder::new()
+		.num_threads(*num_threads)
+		.thread_name(|i| format!("rayon-thread-{}", i))
+		.build_global()
+		.unwrap();
 
 	    let ref_data = read_fastx_file(ref_file);
-	    let query_data = read_fastx_file(query_file);
+	    let opts = sablast::index::BuildOpts { add_revcomp: true, build_select: true, ..Default::default() };
 
-	    let opts = sablast::index::BuildOpts { add_revcomp: true, ..Default::default() };
-	    let (sbwt, lcs) = sablast::index::build_sbwt_from_vecs(&query_data, &Some(opts));
+	    let stdout = std::io::stdout();
+	    query_files.par_iter().for_each(|query_file| {
+		let query_data = read_fastx_file(query_file);
+		let (sbwt, lcs) = sablast::index::build_sbwt_from_vecs(&query_data, &Some(opts.clone()));
 
-	    let mut res: Vec<u8> = Vec::new();
-	    ref_data.iter().for_each(|ref_contig| {
-		res.append(&mut sablast::map(&ref_contig, &sbwt, &lcs));
+		let mut res: Vec<u8> = Vec::new();
+		ref_data.iter().for_each(|ref_contig| {
+		    res.append(&mut sablast::map(ref_contig, &sbwt, &lcs));
+		});
+
+		let _ = writeln!(&mut stdout.lock(),
+				 ">{}\n{}", query_file, std::str::from_utf8(&res).expect("UTF-8"));
 	    });
-
-	    println!(">{}", query_file);
-	    println!("{}", std::str::from_utf8(&res).expect("UTF-8"));
 	},
 	None => {}
     }
