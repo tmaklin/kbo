@@ -37,8 +37,9 @@ use sbwt::SbwtIndexVariant;
 ///     k: 31,
 ///     add_revcomp: false,
 ///     num_threads: 1,
-///     mem_gb: 4,
 ///     prefix_precalc: 8,
+///     build_select: false,
+///     mem_gb: 4,
 ///     temp_dir: None,
 /// };
 /// ```
@@ -48,9 +49,10 @@ pub struct BuildOpts {
     pub k: usize,
     pub add_revcomp: bool,
     pub num_threads: usize,
+    pub prefix_precalc: usize,
+    pub build_select: bool,
     pub mem_gb: usize,
     pub temp_dir: Option<String>,
-    pub prefix_precalc: usize,
 }
 // Defaults
 impl Default for BuildOpts {
@@ -59,8 +61,9 @@ impl Default for BuildOpts {
 	    k: 31,
 	    add_revcomp: false,
 	    num_threads: 1,
-	    mem_gb: 4,
 	    prefix_precalc: 8,
+	    build_select: false,
+	    mem_gb: 4,
 	    temp_dir: None,
         }
     }
@@ -112,6 +115,7 @@ pub fn build_sbwt_from_vecs(
 	.add_rev_comp(build_opts.add_revcomp)
 	.algorithm(algorithm)
 	.build_lcs(true)
+	.build_select_support(build_opts.build_select)
 	.precalc_length(build_opts.prefix_precalc)
 	.run_from_vecs(slices);
 
