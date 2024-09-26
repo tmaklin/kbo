@@ -374,8 +374,8 @@ pub fn refine_translation(
 	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
 	    for i in 1..(refined.len() - threshold) {
 		if refined[i - 1] == 'X' {
-		    let midpoint = if i + k - 1 < n_elements && noisy_ms[i + k - 1].0 == k { k/2 } else { (threshold + 1)/2 };
-		    refined[i - 1] = sbwt.access_kmer(noisy_ms[i + k - (midpoint + 1)].1.start)[midpoint - 1] as char;
+		    let midpoint = if i + k - 2 < n_elements && noisy_ms[i + k - 2].0 == k - 1 { k/2 } else { (threshold + 1)/2 };
+		    refined[i - 1] = sbwt.access_kmer(noisy_ms[i + k - 2 - midpoint].1.start)[midpoint] as char;
 		}
 	    }
 	},
