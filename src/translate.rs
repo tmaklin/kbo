@@ -356,6 +356,7 @@ pub fn refine_translation(
     query_sbwt: &sbwt::SbwtIndexVariant,
     threshold: usize,
 ) -> Vec<char> {
+    let n_elements = translation.len();
     assert!(!translation.is_empty());
     assert!(translation.len() == noisy_ms.len());
     let k = match query_sbwt {
@@ -371,9 +372,9 @@ pub fn refine_translation(
     let mut refined = translation.to_vec().clone();
     match query_sbwt {
 	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-	    for i in 1..(refined.len()) {
+	    for i in 1..(refined.len() - threshold) {
 		if refined[i - 1] == 'X' {
-		    let midpoint = if noisy_ms[i + k - 1].0 == k { k/2 } else { (threshold + 1)/2 };
+		    let midpoint = if i + k - 1 < n_elements && noisy_ms[i + k - 1].0 == k { k/2 } else { (threshold + 1)/2 };
 		    refined[i - 1] = sbwt.access_kmer(noisy_ms[i + k - (midpoint + 1)].1.start)[midpoint - 1] as char;
 		}
 	    }
