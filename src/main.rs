@@ -158,12 +158,12 @@ fn main() {
 	    let ref_data = read_fastx_file(ref_file);
 	    let query_data = read_fastx_file(query_file);
 
-	    let opts = sablast::index::BuildOpts { add_revcomp: true, ..Default::default() };
+	    let opts = sablast::index::BuildOpts { add_revcomp: true, build_select: true, ..Default::default() };
 	    let (sbwt, lcs) = sablast::index::build_sbwt_from_vecs(&query_data, &Some(opts));
 
 	    let mut res: Vec<u8> = Vec::new();
 	    ref_data.iter().for_each(|ref_contig| {
-		res.append(&mut sablast::map(&ref_contig, &sbwt, &lcs));
+		res.append(&mut sablast::map(ref_contig, &sbwt, &lcs));
 	    });
 
 	    println!(">{}", query_file);

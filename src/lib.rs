@@ -138,8 +138,19 @@ pub fn map(
     query_sbwt: &sbwt::SbwtIndexVariant,
     query_lcs: &sbwt::LcsArray,
 ) -> Vec<u8> {
-    let aln = matches(ref_seq, &query_sbwt, &query_lcs);
-    format::relative_to_ref(ref_seq, &aln)
+    let (k, threshold) = match query_sbwt {
+	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, 0.0000001_f64))
+	},
+    };
+
+    let noisy_ms = index::query_sbwt(ref_seq, query_sbwt, query_lcs);
+    let derand_ms = derandomize::derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
+
+    let translation = translate::translate_ms_vec(&derand_ms, k, threshold);
+    let refined = translate::refine_translation(&translation, &noisy_ms, query_sbwt);
+
+    format::relative_to_ref(ref_seq, &refined)
 }
 
 /// Finds the _k_-mers from an SBWT index in a query fasta or fastq file.
