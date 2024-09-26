@@ -102,7 +102,7 @@ pub fn matches(
 	},
     };
 
-    let noisy_ms = index::query_sbwt(query_seq, sbwt, lcs);
+    let noisy_ms: Vec<usize> = index::query_sbwt(query_seq, sbwt, lcs).iter().map(|x| x.0).collect();
     let derand_ms = derandomize::derandomize_ms_vec(&noisy_ms, k, threshold);
 
     translate::translate_ms_vec(&derand_ms, k, threshold)
@@ -124,7 +124,7 @@ pub fn matches(
 /// use sablast::index::BuildOpts;
 ///
 /// let query: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
-/// let (sbwt_query, lcs_query) = build(&query, BuildOpts{ k: 3, ..Default::default() });
+/// let (sbwt_query, lcs_query) = build(&query, BuildOpts{ k: 3, build_select: true, ..Default::default() });
 ///
 /// let reference = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
