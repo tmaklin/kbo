@@ -365,44 +365,21 @@ pub fn refine_translation(
 	},
     };
 
-    // this is kinda spaghetti
+    // Could prove midpoint is the best guess using conditional probabilities?
+    let midpoint = k/2;
+
+    // TODO Handle fragmented regions in refine_translation.
+    // This function needs to consider cases where the ms drops before reaching k when extending right.
     let mut refined = translation.to_vec().clone();
-    for i in 1..(refined.len()) {
-	if refined[i - 1] == 'X' {
-	    // Resolve SNP
-	    refined[i - 1] = match query_sbwt {
-		SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-		    let mut counts = [0,0,0,0];
-		    for j in 1..(k - 1) {
-			if sbwt.access_kmer(noisy_ms[i + j].1.start)[k - 2 - j] == b'A' {
-			    counts[0] += 1;
-			} else if sbwt.access_kmer(noisy_ms[i + j].1.start)[k - 2 - j] == b'C' {
-			    counts[1] += 1;
-			} else if sbwt.access_kmer(noisy_ms[i + j].1.start)[k - 2 - j] == b'G' {
-			    counts[2] += 1;
-			} else if sbwt.access_kmer(noisy_ms[i + j].1.start)[k - 2 - j] == b'T' {
-			    counts[3] += 1;
-			}
-		    }
-		    let mut max = 0;
-		    let mut which_max = 0;
-		    for j in 0..4 {
-			which_max = if counts[j] > max { j } else { which_max };
-			max = counts[which_max];
-		    }
-		    if which_max == 0 {
-			'A'
-		    } else if which_max == 1 {
-			'C'
-		    } else if which_max == 2 {
-			'G'
-		    } else {
-			'T'
-		    }
-		},
+    match query_sbwt {
+	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+	    for i in 1..(refined.len()) {
+		if refined[i - 1] == 'X' {
+		    refined[i - 1] = sbwt.access_kmer(noisy_ms[i + k - (midpoint + 1)].1.start)[midpoint - 1] as char;
+		}
 	    }
-	}
-    }
+	},
+    };
     refined
 }
 
