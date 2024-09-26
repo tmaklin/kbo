@@ -536,4 +536,48 @@ mod tests {
 
 	assert_eq!(got, expected);
     }
+
+    #[test]
+    fn refine_translation() {
+	use crate::build;
+	use crate::index::BuildOpts;
+	use crate::index::query_sbwt;
+	use crate::derandomize::derandomize_ms_vec;
+	use crate::derandomize::random_match_threshold;
+	use super::translate_ms_vec;
+	use super::refine_translation;
+	use sbwt::SbwtIndexVariant;
+
+	// Parameters       : k = 4, threshold = 3
+	//
+	// Ref sequence     : T,T,G,A, T,T,G,G,C,T,G,G,G,C,A,G,A,G,C,T,G
+	// Query sequence   : T,T,G,A,     G,G,C,T,G,G,G,G,A,G,A,G,C,T,G
+	//
+	// Result MS vector : 1,2,3,4, 1,2,3,3,3,4,4,4,4,3,1,2,3,4,4,4,4
+	// Derandomized MS  : 1,2,3,4,-1,0,1,2,3,4,4,4,4,0,1,2,3,4,4,4,4
+	// Translation      : M,M,M,M, -,-,M,M,M,M,M,M,M,X,M,M,M,M,M,M,M
+	// Refined          : M,M,M,M, -,-,M,M,M,M,M,M,M,G,M,M,M,M,M,M,M
+	// Changed this pos :                            |
+
+	let query: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+	let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+
+	let (sbwt, lcs) = build(&[query], BuildOpts{ k: 4, build_select: true, ..Default::default() });
+
+	let k = match sbwt {
+	    SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+		sbwt.k()
+	    },
+	};
+	let threshold = 3;
+
+	let noisy_ms = query_sbwt(&reference, &sbwt, &lcs);
+	let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
+	let translated = translate_ms_vec(&derand_ms, k, threshold);
+
+	let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+
+	let expected = vec!['M','M','M','M','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
+	assert_eq!(refined, expected);
+    }
 }
