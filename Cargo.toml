@@ -23,6 +23,9 @@ sbwt = "0.3.1"
 ## cli
 clap = { version = "4", features = ["derive"] }
 
+## docs
+embed-doc-image="0.1.4"
+
 ## logging
 log = "0.4.20"
 stderrlog = "0.6.0"
