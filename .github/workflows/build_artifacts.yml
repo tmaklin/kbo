@@ -17,7 +17,7 @@ jobs:
           ARCHIVE_TYPES: tar.gz
           ARCHIVE_NAME: sablast-candidate-x86_64-unknown-linux-musl
           RUSTTARGET: x86_64-unknown-linux-musl
-	  EXTRA_FEATURES: "cli"
+          EXTRA_FEATURES: "cli"
           EXTRA_FILES: "COPYRIGHT LICENSE-APACHE LICENSE-MIT README.md"
           TOOLCHAIN_VERSION: stable-2024-09-05
           UPLOAD_MODE: none
