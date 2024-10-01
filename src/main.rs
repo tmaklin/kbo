@@ -103,7 +103,7 @@ fn main() {
 
 	},
         Some(cli::Commands::Find {
-	    seq_files,
+	    query_files,
 	    index_prefix,
 	    num_threads,
 	    verbose,
@@ -121,7 +121,7 @@ fn main() {
 	    info!("Querying SBWT index...");
 	    println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches\tin.contig");
 	    let stdout = std::io::stdout();
-	    seq_files.par_iter().for_each(|file| {
+	    query_files.par_iter().for_each(|file| {
 
 		let mut reader = needletail::parse_fastx_file(file).expect("valid path/file");
 		while let Some(rec) = reader.next() {

@@ -53,7 +53,7 @@ pub enum Commands {
     Find {
 	// Input fasta or fastq query file(s)
         #[arg(group = "input", required = true)]
-        seq_files: Vec<String>,
+        query_files: Vec<String>,
 
 	// Index name
         #[arg(short = 'i', long = "index", required = true, help_heading = "Index")]
