@@ -24,13 +24,13 @@ pub mod translate;
 /// with the parameters and resources specified in `build_opts` (see
 /// [index::BuildOpts] for details).
 ///
+/// Prebuilt indexes can currently only be used with sablast find.
+///
 /// All files and sequence data in `seq_files` are merged into the
 /// same index. It is not possible extract the individual sequences
-/// from the index after it has been built; use [matches] with the TODO
-/// options instead if you need to know which reference sequences the
-/// alignments are for.
-///
-/// TODO Describe map syntax in lib.rs documentation.
+/// from the index after it has been built; run `sablast map -r
+/// <query_file> <seq_files>` if you need to know which reference
+/// sequences the alignments are for.
 ///
 /// Returns a tuple containing the built
 /// [sbwt::SbwtIndexVariant](https://docs.rs/sbwt/latest/sbwt/enum.SbwtIndexVariant.html)
