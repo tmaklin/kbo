@@ -67,6 +67,7 @@ fn init_log(log_max_level: usize) {
 /// files) can be enabled using the needletail features field in
 /// sablast Cargo.toml if compiling from source.
 ///
+#[allow(clippy::needless_update)]
 fn main() {
     let cli = cli::Cli::parse();
 
@@ -75,6 +76,9 @@ fn main() {
         Some(cli::Commands::Build {
 	    seq_files,
 	    output_prefix,
+            kmer_size,
+	    prefix_precalc,
+	    dedup_batches,
 	    num_threads,
 	    mem_gb,
 	    temp_dir,
@@ -83,7 +87,10 @@ fn main() {
 	    init_log(if *verbose { 2 } else { 1 });
 
             let sbwt_build_options = sablast::index::BuildOpts {
+		k: *kmer_size,
 		num_threads: *num_threads,
+		prefix_precalc: *prefix_precalc,
+		dedup_batches: *dedup_batches,
 		mem_gb: *mem_gb,
 		temp_dir: temp_dir.clone(),
                 ..Default::default()
@@ -107,14 +114,23 @@ fn main() {
 	    ref_file,
 	    index_prefix,
 	    num_threads,
+            kmer_size,
+	    prefix_precalc,
+	    dedup_batches,
+	    mem_gb,
+	    temp_dir,
 	    verbose,
         }) => {
 	    init_log(if *verbose { 2 } else { 1 });
-	    rayon::ThreadPoolBuilder::new()
-		.num_threads(*num_threads)
-		.thread_name(|i| format!("rayon-thread-{}", i))
-		.build_global()
-		.unwrap();
+            let sbwt_build_options = sablast::index::BuildOpts {
+		k: *kmer_size,
+		num_threads: *num_threads,
+		prefix_precalc: *prefix_precalc,
+		dedup_batches: *dedup_batches,
+		mem_gb: *mem_gb,
+		temp_dir: temp_dir.clone(),
+                ..Default::default()
+            };
 
 	    let ((sbwt, lcs), ref_name) = if index_prefix.is_some() && !ref_file.is_some() {
 		info!("Loading SBWT index...");
@@ -122,11 +138,16 @@ fn main() {
 	    } else if !index_prefix.is_some() && ref_file.is_some() {
 		info!("Building SBWT from file {}...", ref_file.as_ref().unwrap());
 		let ref_data = read_fastx_file(ref_file.as_ref() .unwrap());
-		let opts = sablast::index::BuildOpts { ..Default::default() };
-		(sablast::index::build_sbwt_from_vecs(&ref_data, &Some(opts.clone())), ref_file.as_ref().unwrap())
+		(sablast::index::build_sbwt_from_vecs(&ref_data, &Some(sbwt_build_options)), ref_file.as_ref().unwrap())
 	    } else {
 		panic!("Ambiguous reference, supply only one of `-r/--reference` and `-i/--index`");
 	    };
+
+	    rayon::ThreadPoolBuilder::new()
+		.num_threads(*num_threads)
+		.thread_name(|i| format!("rayon-thread-{}", i))
+		.build_global()
+		.unwrap();
 
 	    info!("Querying SBWT index...");
 	    println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches\tin.contig");
@@ -161,9 +182,28 @@ fn main() {
 	    query_files,
 	    ref_file,
 	    num_threads,
+            kmer_size,
+	    prefix_precalc,
+	    dedup_batches,
+	    mem_gb,
+	    temp_dir,
 	    verbose,
         }) => {
 	    init_log(if *verbose { 2 } else { 1 });
+            let sbwt_build_options = sablast::index::BuildOpts {
+		// These are required for the subcommand to work correctly
+		add_revcomp: true,
+		build_select: true,
+		// These can be adjusted
+		k: *kmer_size,
+		num_threads: *num_threads,
+		prefix_precalc: *prefix_precalc,
+		dedup_batches: *dedup_batches,
+		mem_gb: *mem_gb,
+		temp_dir: temp_dir.clone(),
+                ..Default::default()
+            };
+
 	    rayon::ThreadPoolBuilder::new()
 		.num_threads(*num_threads)
 		.thread_name(|i| format!("rayon-thread-{}", i))
@@ -171,12 +211,11 @@ fn main() {
 		.unwrap();
 
 	    let ref_data = read_fastx_file(ref_file);
-	    let opts = sablast::index::BuildOpts { add_revcomp: true, build_select: true, ..Default::default() };
 
 	    let stdout = std::io::stdout();
 	    query_files.par_iter().for_each(|query_file| {
 		let query_data = read_fastx_file(query_file);
-		let (sbwt, lcs) = sablast::index::build_sbwt_from_vecs(&query_data, &Some(opts.clone()));
+		let (sbwt, lcs) = sablast::index::build_sbwt_from_vecs(&query_data, &Some(sbwt_build_options.clone()));
 
 		let mut res: Vec<u8> = Vec::new();
 		ref_data.iter().for_each(|ref_contig| {
