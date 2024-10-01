@@ -24,13 +24,13 @@ pub mod translate;
 /// with the parameters and resources specified in `build_opts` (see
 /// [index::BuildOpts] for details).
 ///
+/// Prebuilt indexes can currently only be used with sablast find.
+///
 /// All files and sequence data in `seq_files` are merged into the
 /// same index. It is not possible extract the individual sequences
-/// from the index after it has been built; use [matches] with the TODO
-/// options instead if you need to know which reference sequences the
-/// alignments are for.
-///
-/// TODO Describe map syntax in lib.rs documentation.
+/// from the index after it has been built; run `sablast map -r
+/// <query_file> <seq_files>` if you need to know which reference
+/// sequences the alignments are for.
 ///
 /// Returns a tuple containing the built
 /// [sbwt::SbwtIndexVariant](https://docs.rs/sbwt/latest/sbwt/enum.SbwtIndexVariant.html)
@@ -47,7 +47,8 @@ pub mod translate;
 ///
 /// let inputs: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
 ///
-/// let (sbwt_index, lcs_array) = build(&inputs, BuildOpts::default());
+/// let opts = BuildOpts::default();
+/// let (sbwt_index, lcs_array) = build(&inputs, opts);
 /// ```
 ///
 pub fn build(
@@ -82,7 +83,9 @@ pub fn build(
 /// use sablast::index::BuildOpts;
 ///
 /// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
-/// let (sbwt, lcs) = build(&reference, BuildOpts{ k: 3, ..Default::default() });
+/// let mut opts = BuildOpts::default();
+/// opts.k = 3;
+/// let (sbwt, lcs) = build(&reference, opts);
 ///
 /// let query = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
@@ -124,7 +127,10 @@ pub fn matches(
 /// use sablast::index::BuildOpts;
 ///
 /// let query: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
-/// let (sbwt_query, lcs_query) = build(&query, BuildOpts{ k: 3, build_select: true, ..Default::default() });
+/// let mut opts = BuildOpts::default();
+/// opts.k = 3;
+/// opts.build_select = true;
+/// let (sbwt_query, lcs_query) = build(&query, opts);
 ///
 /// let reference = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
@@ -174,7 +180,9 @@ pub fn map(
 /// use sablast::index::BuildOpts;
 ///
 /// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
-/// let (sbwt, lcs) = build(&reference, BuildOpts{ k: 3, ..Default::default() });
+/// let mut opts = BuildOpts::default();
+/// opts.k = 3;
+/// let (sbwt, lcs) = build(&reference, opts);
 ///
 /// let query = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///

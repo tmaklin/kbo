@@ -1,6 +1,6 @@
 [package]
 name = "sablast"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.77.0"
 authors = ["Tommi Mäklin <tommi@maklin.fi>"]
@@ -22,6 +22,9 @@ sbwt = "0.3.1"
 
 ## cli
 clap = { version = "4", features = ["derive"] }
+
+## docs
+embed-doc-image="0.1.4"
 
 ## logging
 log = "0.4.20"

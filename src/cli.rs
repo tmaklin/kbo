@@ -30,18 +30,29 @@ pub enum Commands {
         seq_files: Vec<String>,
 
 	// Outputs
-        #[arg(short = 'o', long = "out-prefix", required = false, help_heading = "Output")]
+        #[arg(short = 'o', long = "output-prefix", required = false, help_heading = "Output")]
         output_prefix: Option<String>,
+
+	// Build parameters
+	// // k-mer size
+        #[arg(short = 'k', default_value_t = 31, help_heading = "Build options")]
+        kmer_size: usize,
+	// // prefix precalc
+	#[arg(short = 'p', long = "prefix-precalc", default_value_t = 8, help_heading = "Build options")]
+        prefix_precalc: usize,
+	// // deduplicate k-mer batches
+	#[arg(short = 'd', long = "dedup-batches", default_value_t = false, help_heading = "Build options")]
+        dedup_batches: bool,
 
         // Resources
 	// // Threads
         #[arg(short = 't', long = "threads", default_value_t = 1)]
         num_threads: usize,
 	// // Memory in GB
-        #[arg(short = 'm', long = "memory", default_value_t = 4)]
+        #[arg(short = 'm', long = "mem-gb", default_value_t = 4, help_heading = "Build options")]
         mem_gb: usize,
 	// // Temporary directory
-        #[arg(long = "tmp-dir", required = false)]
+        #[arg(long = "temp-dir", required = false, help_heading = "Build options")]
         temp_dir: Option<String>,
 
 	// Verbosity
@@ -53,16 +64,38 @@ pub enum Commands {
     Find {
 	// Input fasta or fastq query file(s)
         #[arg(group = "input", required = true)]
-        seq_files: Vec<String>,
+        query_files: Vec<String>,
 
-	// Index name
-        #[arg(short = 'i', long = "index", required = true, help_heading = "Index")]
+	// Reference
+	// // Sequence file
+        #[arg(short = 'r', long = "reference", group = "reference", help_heading = "Input")]
+        ref_file: Option<String>,
+	// // ... or a prebuilt index
+        #[arg(short = 'i', long = "index", group = "reference", help_heading = "Input")]
         index_prefix: Option<String>,
 
 	// Resources
 	// // Threads
         #[arg(short = 't', long = "threads", default_value_t = 1)]
         num_threads: usize,
+
+	// Build parameters
+	// // k-mer size
+        #[arg(short = 'k', default_value_t = 31, help_heading = "Build options")]
+        kmer_size: usize,
+	// // prefix precalc
+	#[arg(short = 'p', long = "prefix-precalc", default_value_t = 8, help_heading = "Build options")]
+        prefix_precalc: usize,
+	// // deduplicate k-mer batches
+	#[arg(short = 'd', long = "dedup-batches", default_value_t = false, help_heading = "Build options")]
+        dedup_batches: bool,
+	// // Memory in GB
+        #[arg(short = 'm', long = "mem-gb", default_value_t = 4, help_heading = "Build options")]
+        mem_gb: usize,
+	// // Temporary directory
+        #[arg(long = "temp-dir", required = false, help_heading = "Build options")]
+        temp_dir: Option<String>,
+
 
 	// Verbosity
         #[arg(long = "verbose", default_value_t = false)]
@@ -83,6 +116,23 @@ pub enum Commands {
 	// // Threads
         #[arg(short = 't', long = "threads", default_value_t = 1)]
         num_threads: usize,
+
+	// Build parameters
+	// // k-mer size
+        #[arg(short = 'k', default_value_t = 31, help_heading = "Build options")]
+        kmer_size: usize,
+	// // prefix precalc
+	#[arg(short = 'p', long = "prefix-precalc", default_value_t = 8, help_heading = "Build options")]
+        prefix_precalc: usize,
+	// // deduplicate k-mer batches
+	#[arg(short = 'd', long = "dedup-batches", default_value_t = false, help_heading = "Build options")]
+        dedup_batches: bool,
+	// // Memory in GB
+        #[arg(short = 'm', long = "mem-gb", default_value_t = 4, help_heading = "Build options")]
+        mem_gb: usize,
+	// // Temporary directory
+        #[arg(long = "temp-dir", required = false, help_heading = "Build options")]
+        temp_dir: Option<String>,
 
 	// Verbosity
         #[arg(long = "verbose", default_value_t = false)]
