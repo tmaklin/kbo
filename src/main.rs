@@ -104,6 +104,7 @@ fn main() {
 	},
         Some(cli::Commands::Find {
 	    query_files,
+	    ref_file,
 	    index_prefix,
 	    num_threads,
 	    verbose,
@@ -115,8 +116,17 @@ fn main() {
 		.build_global()
 		.unwrap();
 
-	    info!("Loading SBWT index...");
-	    let (sbwt, lcs) = sablast::index::load_sbwt(index_prefix.as_ref().unwrap());
+	    let ((sbwt, lcs), ref_name) = if index_prefix.is_some() && !ref_file.is_some() {
+		info!("Loading SBWT index...");
+		(sablast::index::load_sbwt(index_prefix.as_ref().unwrap()), index_prefix.as_ref().unwrap())
+	    } else if !index_prefix.is_some() && ref_file.is_some() {
+		info!("Building SBWT from file {}...", ref_file.as_ref().unwrap());
+		let ref_data = read_fastx_file(ref_file.as_ref() .unwrap());
+		let opts = sablast::index::BuildOpts { ..Default::default() };
+		(sablast::index::build_sbwt_from_vecs(&ref_data, &Some(opts.clone())), ref_file.as_ref().unwrap())
+	    } else {
+		panic!("Ambiguous reference, supply only one of `-r/--reference` and `-i/--index`");
+	    };
 
 	    info!("Querying SBWT index...");
 	    println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches\tin.contig");
@@ -142,7 +152,7 @@ fn main() {
 		    run_lengths.iter().for_each(|x| {
 			let _ = writeln!(&mut stdout.lock(),
 					 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-					 file, index_prefix.as_ref().unwrap(), x.0, x.1, x.2, x.3, x.4, std::str::from_utf8(contig).expect("UTF-8"));
+					 file, ref_name, x.0, x.1, x.2, x.3, x.4, std::str::from_utf8(contig).expect("UTF-8"));
 		    });
 		}
 	    });

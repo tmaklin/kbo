@@ -55,8 +55,12 @@ pub enum Commands {
         #[arg(group = "input", required = true)]
         query_files: Vec<String>,
 
-	// Index name
-        #[arg(short = 'i', long = "index", required = true, help_heading = "Index")]
+	// Reference
+	// // Sequence file
+        #[arg(short = 'r', long = "reference", group = "reference", help_heading = "Input")]
+        ref_file: Option<String>,
+	// // ... or a prebuilt index
+        #[arg(short = 'i', long = "index", group = "reference", help_heading = "Input")]
         index_prefix: Option<String>,
 
 	// Resources
