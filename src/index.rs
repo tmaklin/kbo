@@ -48,6 +48,7 @@ use sbwt::SbwtIndexVariant;
 /// ```
 ///
 #[derive(Clone)]
+#[non_exhaustive]
 pub struct BuildOpts {
     pub k: usize,
     pub add_revcomp: bool,
