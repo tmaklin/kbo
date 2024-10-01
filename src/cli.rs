@@ -16,12 +16,14 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(version)]
 #[command(propagate_version = true)]
+#[cfg(feature = "cli")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
+#[cfg(feature = "cli")]
 pub enum Commands {
     // Build SBWT index
     Build {
