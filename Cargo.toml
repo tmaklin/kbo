@@ -17,7 +17,7 @@ cli = ["dep:needletail", "dep:clap", "dep:rayon", "dep:log", "dep:stderrlog"]
 
 [[bin]]
 name = "sablast"
-path = "src/main.rs"
+path = "src/cli/main.rs"
 required-features = ["cli"]
 
 [dependencies]
