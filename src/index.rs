@@ -25,11 +25,13 @@ use sbwt::SbwtIndexVariant;
 ///
 /// Used to specify values for:
 /// - _k_-mer size `k`.
-/// - Whether to reverse complement inputs or not `add_revcomp`.
+/// - Reverse complement input sequences `add_revcomp`.
 /// - Number of threads `num_threads` to use.
-/// - Amount of RAM available (in GB) before resorting to temporary disk space `mem_gb`.
+/// - Size of the precalculated lookup table `prefix_precalc`.
+/// - Build select support `build_select` (required for [map]).
+/// - RAM available (in GB) to construction algorithm `mem_gb`.
+/// - Deduplicate _k_-mer batches in construction algorithm `dedup_batches`.
 /// - Temporary directory path `temp_dir`.
-/// - Size of the precalculated lookup table stored in the index `prefix_precalc`.
 ///
 /// Implements [BuildOpts::default] with these values:
 /// ```rust
@@ -40,6 +42,7 @@ use sbwt::SbwtIndexVariant;
 ///     prefix_precalc: 8,
 ///     build_select: false,
 ///     mem_gb: 4,
+///     dedup_batches: false,
 ///     temp_dir: None,
 /// };
 /// ```
@@ -52,6 +55,7 @@ pub struct BuildOpts {
     pub prefix_precalc: usize,
     pub build_select: bool,
     pub mem_gb: usize,
+    pub dedup_batches: bool,
     pub temp_dir: Option<String>,
 }
 // Defaults
@@ -64,6 +68,7 @@ impl Default for BuildOpts {
 	    prefix_precalc: 8,
 	    build_select: false,
 	    mem_gb: 4,
+	    dedup_batches: false,
 	    temp_dir: None,
         }
     }
@@ -106,7 +111,7 @@ pub fn build_sbwt_from_vecs(
 
     let algorithm = BitPackedKmerSorting::new()
 	.mem_gb(build_opts.mem_gb)
-	.dedup_batches(false)
+	.dedup_batches(build_opts.dedup_batches)
 	.temp_dir(PathBuf::from(OsString::from(temp_dir)).as_path());
 
     let (sbwt, lcs) = SbwtIndexBuilder::new()
