@@ -322,7 +322,7 @@ pub fn translate_ms_vec(
 /// use sablast::derandomize::random_match_threshold;
 /// use sablast::translate::translate_ms_vec;
 /// use sablast::translate::refine_translation;
-/// use SbwtIndexVariant;
+/// use sbwt::SbwtIndexVariant;
 ///
 /// // Parameters       : k = 4, threshold = 3
 /// //
@@ -549,7 +549,7 @@ mod tests {
 	use crate::derandomize::random_match_threshold;
 	use super::translate_ms_vec;
 	use super::refine_translation;
-	use SbwtIndexVariant;
+	use sbwt::SbwtIndexVariant;
 
 	// Parameters       : k = 4, threshold = 3
 	//

@@ -218,9 +218,9 @@ pub fn serialize_sbwt(
 /// let (sbwt_loaded, lcs_loaded) = load_sbwt(&index_prefix);
 /// # assert_eq!(lcs, lcs_loaded);
 /// # match sbwt_loaded {
-/// #     SbwtIndexVariant::SubsetMatrix(ref loaded) => {
+/// #     sbwt::SbwtIndexVariant::SubsetMatrix(ref loaded) => {
 /// #         match sbwt_loaded {
-/// #             SbwtIndexVariant::SubsetMatrix(ref built) => {
+/// #             sbwt::SbwtIndexVariant::SubsetMatrix(ref built) => {
 /// #                 assert_eq!(built, loaded);
 /// #             },
 /// #         };
