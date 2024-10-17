@@ -322,7 +322,7 @@ pub fn translate_ms_vec(
 /// use sablast::derandomize::random_match_threshold;
 /// use sablast::translate::translate_ms_vec;
 /// use sablast::translate::refine_translation;
-/// use sbwt::SbwtIndexVariant;
+/// use SbwtIndexVariant;
 ///
 /// // Parameters       : k = 4, threshold = 3
 /// //
@@ -363,7 +363,7 @@ pub fn translate_ms_vec(
 pub fn refine_translation(
     translation: &[char],
     noisy_ms: &[(usize, Range<usize>)],
-    query_sbwt: &sbwt::SbwtIndexVariant,
+    query_sbwt: &SbwtIndexVariant,
     threshold: usize,
 ) -> Vec<char> {
     let n_elements = translation.len();
@@ -549,7 +549,7 @@ mod tests {
 	use crate::derandomize::random_match_threshold;
 	use super::translate_ms_vec;
 	use super::refine_translation;
-	use sbwt::SbwtIndexVariant;
+	use SbwtIndexVariant;
 
 	// Parameters       : k = 4, threshold = 3
 	//

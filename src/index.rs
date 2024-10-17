@@ -112,7 +112,7 @@ impl Default for BuildOpts {
 pub fn build_sbwt_from_vecs(
     slices: &[Vec<u8>],
     build_options: &Option<BuildOpts>,
-) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
+) -> (SbwtIndexVariant, sbwt::LcsArray) {
     assert!(!slices.is_empty());
 
     let build_opts = if build_options.is_some() { build_options.clone().unwrap() } else { BuildOpts::default() };
@@ -164,7 +164,7 @@ pub fn build_sbwt_from_vecs(
 ///
 pub fn serialize_sbwt(
     outfile_prefix: &str,
-    sbwt: &sbwt::SbwtIndexVariant,
+    sbwt: &SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
 ) {
     let sbwt_outfile = format!("{}.sbwt", outfile_prefix);
@@ -218,9 +218,9 @@ pub fn serialize_sbwt(
 /// let (sbwt_loaded, lcs_loaded) = load_sbwt(&index_prefix);
 /// # assert_eq!(lcs, lcs_loaded);
 /// # match sbwt_loaded {
-/// #     sbwt::SbwtIndexVariant::SubsetMatrix(ref loaded) => {
+/// #     SbwtIndexVariant::SubsetMatrix(ref loaded) => {
 /// #         match sbwt_loaded {
-/// #             sbwt::SbwtIndexVariant::SubsetMatrix(ref built) => {
+/// #             SbwtIndexVariant::SubsetMatrix(ref built) => {
 /// #                 assert_eq!(built, loaded);
 /// #             },
 /// #         };
@@ -230,7 +230,7 @@ pub fn serialize_sbwt(
 ///
 pub fn load_sbwt(
     index_prefix: &str,
-) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
+) -> (SbwtIndexVariant, sbwt::LcsArray) {
     let indexfile = format!("{}.sbwt", index_prefix);
     let lcsfile = format!("{}.lcs", index_prefix);
 
@@ -277,7 +277,7 @@ pub fn load_sbwt(
 ///
 pub fn query_sbwt(
     query: &[u8],
-    sbwt: &sbwt::SbwtIndexVariant,
+    sbwt: &SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
 ) -> Vec<(usize, Range<usize>)> {
     assert!(!query.is_empty());

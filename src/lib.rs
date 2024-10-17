@@ -40,7 +40,7 @@ pub mod translate;
 /// sequences the alignments are for.
 ///
 /// Returns a tuple containing the built
-/// [sbwt::SbwtIndexVariant](https://docs.rs/sbwt/latest/sbwt/enum.SbwtIndexVariant.html)
+/// [SbwtIndexVariant](https://docs.rs/sbwt/latest/sbwt/enum.SbwtIndexVariant.html)
 /// and
 /// [sbwt::LcsArray](https://docs.rs/sbwt/latest/sbwt/struct.LcsArray.html).
 ///
@@ -61,7 +61,7 @@ pub mod translate;
 pub fn build(
     seq_data: &[Vec<u8>],
     build_opts: index::BuildOpts,
-) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
+) -> (SbwtIndexVariant, sbwt::LcsArray) {
     index::build_sbwt_from_vecs(seq_data, &Some(build_opts))
 }
 
@@ -103,7 +103,7 @@ pub fn build(
 ///
 pub fn matches(
     query_seq: &[u8],
-    sbwt: &sbwt::SbwtIndexVariant,
+    sbwt: &SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
 ) -> Vec<char> {
     let (k, threshold) = match sbwt {
@@ -148,7 +148,7 @@ pub fn matches(
 ///
 pub fn map(
     ref_seq: &[u8],
-    query_sbwt: &sbwt::SbwtIndexVariant,
+    query_sbwt: &SbwtIndexVariant,
     query_lcs: &sbwt::LcsArray,
 ) -> Vec<u8> {
     let (k, threshold) = match query_sbwt {
@@ -200,7 +200,7 @@ pub fn map(
 ///
 pub fn find(
     query_seq: &[u8],
-    sbwt: &sbwt::SbwtIndexVariant,
+    sbwt: &SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
 ) -> Vec<(usize, usize, usize, usize)> {
     let aln = matches(query_seq, sbwt, lcs);
