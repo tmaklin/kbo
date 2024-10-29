@@ -34,7 +34,7 @@ pub struct BuildOpts {
     pub num_threads: usize,
     /// - Size of the precalculated lookup table `prefix_precalc`.
     pub prefix_precalc: usize,
-    /// - Build select support `build_select` (required for [map]).
+    /// - Build select support `build_select` (required for [map](super::map)).
     pub build_select: bool,
     /// - RAM available (in GB) to construction algorithm `mem_gb`.
     pub mem_gb: usize,

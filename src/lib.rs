@@ -169,7 +169,7 @@ pub fn map(
 /// Finds the _k_-mers from an SBWT index in a query fasta or fastq file.
 ///
 /// Aligns the sequence data in `query_seq` against the SBWT index
-/// `sbwt` and its LCS array `lcs` using [matches]. Then uses
+/// `sbwt` and its LCS array `lcs` using [matches][matches()]. Then uses
 /// [format::run_lengths] to extract the local alignments from the
 /// matching statistics.
 ///
