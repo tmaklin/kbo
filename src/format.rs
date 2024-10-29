@@ -76,6 +76,36 @@ pub fn run_lengths(
     encodings
 }
 
+/// Format a refined translation relative to the reference sequence.
+///
+/// Jointly reads nucleotides from the reference sequence `ref_seq` and the
+/// character representation of an alignment `alignment` to determine the
+/// nucleotide sequence of the alignment relative to the reference.
+///
+/// Only works with refined translations as the input (TODO verify).
+///
+/// Returns a vector containing alignment of the query against `ref_seq` in a
+/// gapped alignment format.
+///
+/// Valid characters in the return format are:
+/// - 'A', 'C', 'G', 'T': the nucleotide in the query sequence.
+/// - '-': gap in the query.
+///
+/// If `alignment` is a refined translation, the nucleotides ACGT in the return
+/// value may differ from the reference sequence and the gaps '-' represent
+/// sections absent from the query.
+///
+/// If `alignment` is an unrefined translation, the nucleotides ACGT are always
+/// the same as in the reference sequence. Gaps '-' may represent either
+/// unresolved SNPs, insertions, or absent sections.
+///
+/// # Examples
+/// ## Format a refined translation
+///
+/// TODO Add test to relative_to_ref documentation.
+///
+/// ```
+///
 pub fn relative_to_ref(
     ref_seq: &[u8],
     alignment: &[char],
