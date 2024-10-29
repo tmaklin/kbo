@@ -13,6 +13,43 @@
 //
 //! Converting alignment representations into various output formats.
 
+/// Extracts run length encodings from a translated alignment.
+///
+/// Traverses the character representation of the alignment stored in `aln` and
+/// counts the consecutive run lengths of sections that align to the reference.
+/// A base is counted as aligned if its character representation is not '-' or ' '.
+///
+/// This function can be used for both plain and refined translations.
+///
+/// Returns a vector where each element contains 4 elements with the contents:
+/// - Start position of a run of consecutive characters (indexing starts from 1).
+/// - End position of a run of consecutive characters (indexing starts from 1).
+/// - Number matching bases in the run (character representation is 'M' or 'R').
+/// - Number mismatching bases in the run (character representation is not 'M', '-', or ' ').
+///
+/// The run length is the sum of the matching and mismatching bases.
+///
+/// # Examples
+/// ## Extract run lengths from a character representation
+/// ```rust
+/// use sablast::format::run_lengths;
+///
+/// // Parameters       : k = 3, threshold = 2
+/// //
+/// // Ref sequence     : A,A,A,G,A,A,C,C,A,-,T,C,A, -,-,G,G,G, C,G
+/// // Query sequence   : C,A,A,G,-,-,C,C,A,C,T,C,A, T,T,G,G,G, T,C
+/// // Input MS         : 0,1,2,3,    1,2,3,0,1,2,3,-1,0,1,2,3,-1,0
+/// // Translation      : X,M,M,R, , ,R,M,M,X,M,M,M,  , ,M,M,M,  ,
+///
+/// // Expected output: [(1,  11, 9, 2),
+/// //                   (14, 16, 3, 0)]
+///
+/// let input: Vec<char> = vec!['X','M','M','R','R','M','M','X','M','M','M','-','-','M','M','M','-','-'];
+/// let run_lengths = run_lengths(&input);
+/// # let expected = vec![(1,11,9,2),(14,16,3,0)];
+/// # assert_eq!(run_lengths, expected);
+/// ```
+///
 pub fn run_lengths(
     aln: &[char],
 ) -> Vec<(usize, usize, usize, usize)> {
