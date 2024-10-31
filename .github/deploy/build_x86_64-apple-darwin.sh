@@ -45,7 +45,7 @@ cp LICENSE-APACHE $path/
 cp LICENSE-MIT $path/
 cd /io/tmp
 tar -zcvf $target.tar.gz $target
-sha256sum $target.tar.gz > $target".sha256sum"
+sha256sum $target.tar.gz > $target".tar.gz.sha256sum"
 mv $target.tar.gz /io/
-mv $target".sha256sum" /io/
+mv $target".tar.gz.sha256sum" /io/
 cd /io/
