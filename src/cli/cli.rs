@@ -76,6 +76,11 @@ pub enum Commands {
         #[arg(short = 'i', long = "index", group = "reference", help_heading = "Input")]
         index_prefix: Option<String>,
 
+        // Parameters
+        // // Upper bound for random match probability
+        #[arg(long = "max-error-prob", default_value_t = 0.0000001, help_heading = "Algorithm")]
+        max_error_prob: f64,
+
         // Resources
         // // Threads
         #[arg(short = 't', long = "threads", default_value_t = 1)]
@@ -113,6 +118,11 @@ pub enum Commands {
         // Reference fasta
         #[arg(short = 'r', long = "reference", required = true, help_heading = "Input")]
         ref_file: String,
+
+        // Parameters
+        // // Upper bound for random match probability
+        #[arg(long = "max-error-prob", default_value_t = 0.0000001, help_heading = "Algorithm")]
+        max_error_prob: f64,
 
         // Resources
         // // Threads

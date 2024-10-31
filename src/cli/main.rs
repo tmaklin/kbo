@@ -111,6 +111,7 @@ fn main() {
 			query_files,
 			ref_file,
 			index_prefix,
+			max_error_prob,
 			num_threads,
             kmer_size,
 			prefix_precalc,
@@ -127,6 +128,9 @@ fn main() {
 			sbwt_build_options.dedup_batches = *dedup_batches;
 			sbwt_build_options.mem_gb = *mem_gb;
 			sbwt_build_options.temp_dir = temp_dir.clone();
+
+			let mut derand_opts = sablast::derandomize::DerandomizeOpts::default();
+			derand_opts.max_error_prob = *max_error_prob;
 
 			let ((sbwt, lcs), ref_name) = if index_prefix.is_some() && !ref_file.is_some() {
 				info!("Loading SBWT index...");
@@ -157,10 +161,10 @@ fn main() {
 					let seq = seqrec.normalize(true);
 
 					// Get local alignments for forward strand
-					let mut run_lengths: Vec<(usize, usize, char, usize, usize)> = sablast::find(&seq, &sbwt, &lcs).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect();
+					let mut run_lengths: Vec<(usize, usize, char, usize, usize)> = sablast::find(&seq, &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect();
 
 					// Add local alignments for reverse _complement
-					run_lengths.append(&mut sablast::find(&seq.reverse_complement(), &sbwt, &lcs).iter().map(|x| (x.0, x.1, '-', x.2 + x.3, x.3)).collect());
+					run_lengths.append(&mut sablast::find(&seq.reverse_complement(), &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '-', x.2 + x.3, x.3)).collect());
 
 					// Sort by q.start
 					run_lengths.sort_by_key(|x| x.0);
@@ -177,6 +181,7 @@ fn main() {
         Some(cli::Commands::Map {
 			query_files,
 			ref_file,
+			max_error_prob,
 			num_threads,
             kmer_size,
 			prefix_precalc,
@@ -198,6 +203,9 @@ fn main() {
 			sbwt_build_options.mem_gb = *mem_gb;
 			sbwt_build_options.temp_dir = temp_dir.clone();
 
+			let mut derand_opts = sablast::derandomize::DerandomizeOpts::default();
+			derand_opts.max_error_prob = *max_error_prob;
+
 			rayon::ThreadPoolBuilder::new()
 				.num_threads(*num_threads)
 				.thread_name(|i| format!("rayon-thread-{}", i))
@@ -213,7 +221,7 @@ fn main() {
 
 				let mut res: Vec<u8> = Vec::new();
 				ref_data.iter().for_each(|ref_contig| {
-					res.append(&mut sablast::map(ref_contig, &sbwt, &lcs));
+					res.append(&mut sablast::map(ref_contig, &sbwt, &lcs, derand_opts.clone()));
 				});
 
 				let _ = writeln!(&mut stdout.lock(),
