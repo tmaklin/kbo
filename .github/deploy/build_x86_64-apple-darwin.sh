@@ -32,7 +32,7 @@ echo "linker = \"x86_64-apple-darwin22-gcc\"" >> .cargo/config.toml
 export CC="x86_64-apple-darwin22-gcc"
 export CXX="x86_64-apple-darwin22-g++"
 
-RUSTFLAGS='-L /osxcross/SDK/MacOSX13.0.sdk/usr/lib' cargo build --release --target x86_64-apple-darwin
+RUSTFLAGS='-L /osxcross/SDK/MacOSX13.0.sdk/usr/lib' cargo build --all-features --release --target x86_64-apple-darwin
 
 ## gather the stuff to distribute
 target=sablast-candidate-x86_64-apple-darwin
