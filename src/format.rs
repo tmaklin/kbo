@@ -1,4 +1,4 @@
-// sablast: Spectral Burrows-Wheeler transform accelerated local alignment search
+// kbo: Spectral Burrows-Wheeler transform accelerated local alignment search
 //
 // Copyright 2024 Tommi Mäklin [tommi@maklin.fi].
 
@@ -32,7 +32,7 @@
 /// # Examples
 /// ## Extract run lengths from a character representation
 /// ```rust
-/// use sablast::format::run_lengths;
+/// use kbo::format::run_lengths;
 ///
 /// // Parameters       : k = 3, threshold = 2
 /// //

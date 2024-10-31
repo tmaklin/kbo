@@ -1,4 +1,4 @@
-// sablast: Spectral Burrows-Wheeler transform accelerated local alignment search
+// kbo: Spectral Burrows-Wheeler transform accelerated local alignment search
 //
 // Copyright 2024 Tommi Mäklin [tommi@maklin.fi].
 
@@ -33,11 +33,11 @@ pub mod translate;
 /// with the parameters and resources specified in `build_opts` (see
 /// [index::BuildOpts] for details).
 ///
-/// Prebuilt indexes can currently only be used with sablast find.
+/// Prebuilt indexes can currently only be used with kbo find.
 ///
 /// All files and sequence data in `seq_files` are merged into the
 /// same index. It is not possible extract the individual sequences
-/// from the index after it has been built; run `sablast map -r
+/// from the index after it has been built; run `kbo map -r
 /// <query_file> <seq_files>` if you need to know which reference
 /// sequences the alignments are for.
 ///
@@ -51,8 +51,8 @@ pub mod translate;
 ///
 /// # Examples
 /// ```rust
-/// use sablast::build;
-/// use sablast::index::BuildOpts;
+/// use kbo::build;
+/// use kbo::index::BuildOpts;
 ///
 /// let inputs: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
 ///
@@ -87,10 +87,10 @@ pub fn build(
 ///
 /// # Example
 /// ```rust
-/// use sablast::build;
-/// use sablast::matches;
-/// use sablast::index::BuildOpts;
-/// use sablast::derandomize::DerandomizeOpts;
+/// use kbo::build;
+/// use kbo::matches;
+/// use kbo::index::BuildOpts;
+/// use kbo::derandomize::DerandomizeOpts;
 ///
 /// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
 /// let mut opts = BuildOpts::default();
@@ -133,10 +133,10 @@ pub fn matches(
 ///
 /// # Examples
 /// ```rust
-/// use sablast::build;
-/// use sablast::map;
-/// use sablast::index::BuildOpts;
-/// use sablast::derandomize::DerandomizeOpts;
+/// use kbo::build;
+/// use kbo::map;
+/// use kbo::index::BuildOpts;
+/// use kbo::derandomize::DerandomizeOpts;
 ///
 /// let query: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
 /// let mut opts = BuildOpts::default();
@@ -188,10 +188,10 @@ pub fn map(
 ///
 /// # Examples
 /// ```rust
-/// use sablast::build;
-/// use sablast::find;
-/// use sablast::index::BuildOpts;
-/// use sablast::derandomize::DerandomizeOpts;
+/// use kbo::build;
+/// use kbo::find;
+/// use kbo::index::BuildOpts;
+/// use kbo::derandomize::DerandomizeOpts;
 ///
 /// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
 /// let mut opts = BuildOpts::default();

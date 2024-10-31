@@ -1,4 +1,4 @@
-// sablast: Spectral Burrows-Wheeler transform accelerated local alignment search
+// kbo: Spectral Burrows-Wheeler transform accelerated local alignment search
 //
 // Copyright 2024 Tommi Mäklin [tommi@maklin.fi].
 
@@ -47,7 +47,7 @@ pub struct BuildOpts {
 impl Default for BuildOpts {
     /// Default to these values:
     /// ```rust
-    /// let mut opts = sablast::index::BuildOpts::default();
+    /// let mut opts = kbo::index::BuildOpts::default();
     /// opts.k = 31;
     /// opts.add_revcomp = false;
     /// opts.num_threads = 1;
@@ -56,7 +56,7 @@ impl Default for BuildOpts {
     /// opts.mem_gb = 4;
     /// opts.dedup_batches = false;
     /// opts.temp_dir = None;
-    /// # let expected = sablast::index::BuildOpts::default();
+    /// # let expected = kbo::index::BuildOpts::default();
     /// # assert_eq!(opts.k, expected.k);
     /// # assert_eq!(opts.add_revcomp, expected.add_revcomp);
     /// # assert_eq!(opts.num_threads, expected.num_threads);
@@ -98,7 +98,7 @@ impl Default for BuildOpts {
 ///
 /// # Examples
 /// ```rust
-/// use sablast::index::*;
+/// use kbo::index::*;
 ///
 /// // Inputs
 /// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
@@ -147,7 +147,7 @@ pub fn build_sbwt_from_vecs(
 ///
 /// # Examples
 /// ```rust
-/// use sablast::index::*;
+/// use kbo::index::*;
 ///
 /// // Inputs
 /// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
@@ -200,7 +200,7 @@ pub fn serialize_sbwt(
 ///
 /// # Examples
 /// ```rust
-/// use sablast::index::*;
+/// use kbo::index::*;
 ///
 /// // Inputs
 /// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
@@ -258,7 +258,7 @@ pub fn load_sbwt(
 ///
 /// # Examples
 /// ```rust
-/// use sablast::index::*;
+/// use kbo::index::*;
 ///
 /// // Inputs
 /// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];

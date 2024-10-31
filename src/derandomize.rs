@@ -1,4 +1,4 @@
-// sablast: Spectral Burrows-Wheeler transform accelerated local alignment search
+// kbo: Spectral Burrows-Wheeler transform accelerated local alignment search
 //
 // Copyright 2024 Tommi Mäklin [tommi@maklin.fi].
 
@@ -28,9 +28,9 @@ pub struct DerandomizeOpts {
 impl Default for DerandomizeOpts {
     /// Default to these values:
     /// ```rust
-    /// let mut opts = sablast::derandomize::DerandomizeOpts::default();
+    /// let mut opts = kbo::derandomize::DerandomizeOpts::default();
     /// opts.max_error_prob = 0.0000001;
-    /// # let expected = sablast::derandomize::DerandomizeOpts::default();
+    /// # let expected = kbo::derandomize::DerandomizeOpts::default();
     /// # assert_eq!(opts.max_error_prob, expected.max_error_prob);
     /// ```
     ///
@@ -95,7 +95,7 @@ impl Default for DerandomizeOpts {
 /// # Examples
 /// ```rust
 /// # use assert_approx_eq::assert_approx_eq;
-/// use sablast::derandomize::log_rm_max_cdf;
+/// use kbo::derandomize::log_rm_max_cdf;
 ///
 /// let alphabet_size = 4;
 /// let n_kmers = 20240921;
@@ -139,7 +139,7 @@ pub fn log_rm_max_cdf(
 ///
 /// # Examples
 /// ```rust
-/// use sablast::derandomize::random_match_threshold;
+/// use kbo::derandomize::random_match_threshold;
 ///
 /// let k = 31;
 /// let n_kmers = 20240921;
@@ -186,7 +186,7 @@ pub fn random_match_threshold(
 /// # Examples
 /// ## Noisy MS has only matches
 /// ```rust
-/// use sablast::derandomize::derandomize_ms_val;
+/// use kbo::derandomize::derandomize_ms_val;
 ///
 /// // Parameters       : k = 3, threshold = 2
 /// //
@@ -201,7 +201,7 @@ pub fn random_match_threshold(
 ///
 /// ## Noisy MS has only noise
 /// ```rust
-/// use sablast::derandomize::derandomize_ms_val;
+/// use kbo::derandomize::derandomize_ms_val;
 ///
 /// // Parameters       : k = 3, threshold = 2
 /// //
@@ -216,7 +216,7 @@ pub fn random_match_threshold(
 ///
 /// ## Noisy MS is at beginning of a full _k_-mer match
 /// ```rust
-/// use sablast::derandomize::derandomize_ms_val;
+/// use kbo::derandomize::derandomize_ms_val;
 ///
 /// // Parameters       : k = 3, threshold = 2
 /// //
@@ -231,7 +231,7 @@ pub fn random_match_threshold(
 ///
 /// ## Noisy MS is at beginning of a partial _k_-mer match
 /// ```rust
-/// use sablast::derandomize::derandomize_ms_val;
+/// use kbo::derandomize::derandomize_ms_val;
 ///
 /// // Parameters       : k = 4, threshold = 2
 /// //
@@ -281,7 +281,7 @@ pub fn derandomize_ms_val(
 ///
 /// # Examples
 /// ```rust
-/// use sablast::derandomize::derandomize_ms_vec;
+/// use kbo::derandomize::derandomize_ms_vec;
 ///
 /// let k = 3;
 /// let threshold = 2;

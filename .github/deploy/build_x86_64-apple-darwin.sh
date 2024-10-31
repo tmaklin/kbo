@@ -1,5 +1,5 @@
 #!/bin/bash
-## Build script for cross-compiling sablast for aarch64-apple-darwin.
+## Build script for cross-compiling kbo for aarch64-apple-darwin.
 ## Run this inside https://github.com/shepherdjerred/macos-cross-compiler
 
 set -exo pipefail
@@ -35,10 +35,10 @@ export CXX="x86_64-apple-darwin22-g++"
 RUSTFLAGS='-L /osxcross/SDK/MacOSX13.0.sdk/usr/lib' cargo build --all-features --release --target x86_64-apple-darwin
 
 ## gather the stuff to distribute
-target=sablast-candidate-x86_64-apple-darwin
+target=kbo-candidate-x86_64-apple-darwin
 path=/io/tmp/$target
 mkdir $path
-cp target/x86_64-apple-darwin/release/sablast $path/
+cp target/x86_64-apple-darwin/release/kbo $path/
 cp README.md $path/
 cp COPYRIGHT $path/
 cp LICENSE-APACHE $path/

@@ -1,4 +1,4 @@
-// sablast: Spectral Burrows-Wheeler transform accelerated local alignment search
+// kbo: Spectral Burrows-Wheeler transform accelerated local alignment search
 //
 // Copyright 2024 Tommi Mäklin [tommi@maklin.fi].
 

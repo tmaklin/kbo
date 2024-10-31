@@ -1,4 +1,4 @@
-// sablast: Spectral Burrows-Wheeler transform accelerated local alignment search
+// kbo: Spectral Burrows-Wheeler transform accelerated local alignment search
 //
 // Copyright 2024 Tommi Mäklin [tommi@maklin.fi].
 
@@ -51,7 +51,7 @@ fn init_log(log_max_level: usize) {
 	.unwrap();
 }
 
-/// Use `sablast` to list the available commands or `sablast <command>` to run.
+/// Use `kbo` to list the available commands or `kbo <command>` to run.
 ///
 /// # Input format detection
 /// The sequence data is read using
@@ -65,7 +65,7 @@ fn init_log(log_max_level: usize) {
 /// [Bzip2](https://sourceware.org/bzip2/) and
 /// [liblzma](https://tukaani.org/xz/) compression (.bz2 and .xz
 /// files) can be enabled using the needletail features field in
-/// sablast Cargo.toml if compiling from source.
+/// kbo Cargo.toml if compiling from source.
 ///
 #[allow(clippy::needless_update)]
 fn main() {
@@ -86,7 +86,7 @@ fn main() {
         }) => {
 			init_log(if *verbose { 2 } else { 1 });
 
-            let mut sbwt_build_options = sablast::index::BuildOpts::default();
+            let mut sbwt_build_options = kbo::index::BuildOpts::default();
 			sbwt_build_options.k = *kmer_size;
 			sbwt_build_options.num_threads = *num_threads;
 			sbwt_build_options.prefix_precalc = *prefix_precalc;
@@ -100,11 +100,11 @@ fn main() {
 				seq_data.append(&mut read_fastx_file(file));
 			});
 
-			let (sbwt, lcs) = sablast::build(&seq_data, sbwt_build_options);
+			let (sbwt, lcs) = kbo::build(&seq_data, sbwt_build_options);
 
 			info!("Serializing SBWT index to {}.sbwt ...", output_prefix.as_ref().unwrap());
 			info!("Serializing LCS array to {}.lcs ...", output_prefix.as_ref().unwrap());
-			sablast::index::serialize_sbwt(output_prefix.as_ref().unwrap(), &sbwt, &lcs);
+			kbo::index::serialize_sbwt(output_prefix.as_ref().unwrap(), &sbwt, &lcs);
 
 		},
         Some(cli::Commands::Find {
@@ -121,7 +121,7 @@ fn main() {
 			verbose,
         }) => {
 			init_log(if *verbose { 2 } else { 1 });
-            let mut sbwt_build_options = sablast::index::BuildOpts::default();
+            let mut sbwt_build_options = kbo::index::BuildOpts::default();
 			sbwt_build_options.k = *kmer_size;
 			sbwt_build_options.num_threads = *num_threads;
 			sbwt_build_options.prefix_precalc = *prefix_precalc;
@@ -129,16 +129,16 @@ fn main() {
 			sbwt_build_options.mem_gb = *mem_gb;
 			sbwt_build_options.temp_dir = temp_dir.clone();
 
-			let mut derand_opts = sablast::derandomize::DerandomizeOpts::default();
+			let mut derand_opts = kbo::derandomize::DerandomizeOpts::default();
 			derand_opts.max_error_prob = *max_error_prob;
 
 			let ((sbwt, lcs), ref_name) = if index_prefix.is_some() && !ref_file.is_some() {
 				info!("Loading SBWT index...");
-				(sablast::index::load_sbwt(index_prefix.as_ref().unwrap()), index_prefix.as_ref().unwrap())
+				(kbo::index::load_sbwt(index_prefix.as_ref().unwrap()), index_prefix.as_ref().unwrap())
 			} else if !index_prefix.is_some() && ref_file.is_some() {
 				info!("Building SBWT from file {}...", ref_file.as_ref().unwrap());
 				let ref_data = read_fastx_file(ref_file.as_ref() .unwrap());
-				(sablast::index::build_sbwt_from_vecs(&ref_data, &Some(sbwt_build_options)), ref_file.as_ref().unwrap())
+				(kbo::index::build_sbwt_from_vecs(&ref_data, &Some(sbwt_build_options)), ref_file.as_ref().unwrap())
 			} else {
 				panic!("Ambiguous reference, supply only one of `-r/--reference` and `-i/--index`");
 			};
@@ -161,10 +161,10 @@ fn main() {
 					let seq = seqrec.normalize(true);
 
 					// Get local alignments for forward strand
-					let mut run_lengths: Vec<(usize, usize, char, usize, usize)> = sablast::find(&seq, &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect();
+					let mut run_lengths: Vec<(usize, usize, char, usize, usize)> = kbo::find(&seq, &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect();
 
 					// Add local alignments for reverse _complement
-					run_lengths.append(&mut sablast::find(&seq.reverse_complement(), &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '-', x.2 + x.3, x.3)).collect());
+					run_lengths.append(&mut kbo::find(&seq.reverse_complement(), &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '-', x.2 + x.3, x.3)).collect());
 
 					// Sort by q.start
 					run_lengths.sort_by_key(|x| x.0);
@@ -191,7 +191,7 @@ fn main() {
 			verbose,
         }) => {
 			init_log(if *verbose { 2 } else { 1 });
-            let mut sbwt_build_options = sablast::index::BuildOpts::default();
+            let mut sbwt_build_options = kbo::index::BuildOpts::default();
 			// These are required for the subcommand to work correctly
 			sbwt_build_options.add_revcomp = true;
 			sbwt_build_options.build_select = true;
@@ -203,7 +203,7 @@ fn main() {
 			sbwt_build_options.mem_gb = *mem_gb;
 			sbwt_build_options.temp_dir = temp_dir.clone();
 
-			let mut derand_opts = sablast::derandomize::DerandomizeOpts::default();
+			let mut derand_opts = kbo::derandomize::DerandomizeOpts::default();
 			derand_opts.max_error_prob = *max_error_prob;
 
 			rayon::ThreadPoolBuilder::new()
@@ -217,11 +217,11 @@ fn main() {
 			let stdout = std::io::stdout();
 			query_files.par_iter().for_each(|query_file| {
 				let query_data = read_fastx_file(query_file);
-				let (sbwt, lcs) = sablast::index::build_sbwt_from_vecs(&query_data, &Some(sbwt_build_options.clone()));
+				let (sbwt, lcs) = kbo::index::build_sbwt_from_vecs(&query_data, &Some(sbwt_build_options.clone()));
 
 				let mut res: Vec<u8> = Vec::new();
 				ref_data.iter().for_each(|ref_contig| {
-					res.append(&mut sablast::map(ref_contig, &sbwt, &lcs, derand_opts.clone()));
+					res.append(&mut kbo::map(ref_contig, &sbwt, &lcs, derand_opts.clone()));
 				});
 
 				let _ = writeln!(&mut stdout.lock(),

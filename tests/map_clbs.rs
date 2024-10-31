@@ -1,4 +1,4 @@
-// sablast: Spectral Burrows-Wheeler transform accelerated local alignment search
+// kbo: Spectral Burrows-Wheeler transform accelerated local alignment search
 //
 // Copyright 2024 Tommi Mäklin [tommi@maklin.fi].
 
@@ -27,7 +27,7 @@
 // 	}
 //     }
 
-//     let (sbwt, lcs) = sablast::index::build_sbwt_from_vecs(&seq_data, &None);
+//     let (sbwt, lcs) = kbo::index::build_sbwt_from_vecs(&seq_data, &None);
 
 //     let expected = vec![(455, 967, 512, 1)];
 
@@ -36,7 +36,7 @@
 //     let seqrec = rec.expect("Valid fastX record");
 //     let seq = seqrec.normalize(true);
 
-//     let got = sablast::find(&seq, &sbwt, &lcs);
+//     let got = kbo::find(&seq, &sbwt, &lcs);
 
 //     assert_eq!(got, expected);
 // }

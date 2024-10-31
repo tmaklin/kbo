@@ -1,13 +1,13 @@
 [package]
-name = "sablast"
+name = "kbo"
 version = "0.3.0"
 edition = "2021"
 rust-version = "1.77.0"
 authors = ["Tommi Mäklin <tommi@maklin.fi>"]
 description = "Spectral Burrows-Wheeler transform accelerated local alignment search"
 readme = "README.md"
-homepage = "https://github.com/tmaklin/sablast"
-repository = "https://github.com/tmaklin/sablast"
+homepage = "https://github.com/tmaklin/kbo"
+repository = "https://github.com/tmaklin/kbo"
 license = "MIT OR Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -16,7 +16,7 @@ license = "MIT OR Apache-2.0"
 cli = ["dep:needletail", "dep:clap", "dep:rayon", "dep:log", "dep:stderrlog"]
 
 [[bin]]
-name = "sablast"
+name = "kbo"
 path = "src/cli/main.rs"
 required-features = ["cli"]
 
