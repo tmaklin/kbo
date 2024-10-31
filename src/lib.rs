@@ -88,6 +88,7 @@ pub fn build(
 /// use sablast::build;
 /// use sablast::matches;
 /// use sablast::index::BuildOpts;
+/// use sablast::derandomize::DerandomizeOpts;
 ///
 /// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
 /// let mut opts = BuildOpts::default();
@@ -96,7 +97,7 @@ pub fn build(
 ///
 /// let query = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
-/// let ms_vectors = matches(&query, &sbwt, &lcs);
+/// let ms_vectors = matches(&query, &sbwt, &lcs, DerandomizeOpts::default());
 /// // `ms_vectors` has ['-','-','-','-','-','-','-','-','-','M','M','M','-','-']
 /// # assert_eq!(ms_vectors, vec!['-','-','-','-','-','-','-','-','-','M','M','M','-','-']);
 /// ```
@@ -105,10 +106,11 @@ pub fn matches(
     query_seq: &[u8],
     sbwt: &SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
+    derand_opts: derandomize::DerandomizeOpts,
 ) -> Vec<char> {
     let (k, threshold) = match sbwt {
 	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, 0.0000001_f64))
+	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, derand_opts.max_error_prob))
 	},
     };
 
@@ -132,6 +134,7 @@ pub fn matches(
 /// use sablast::build;
 /// use sablast::map;
 /// use sablast::index::BuildOpts;
+/// use sablast::derandomize::DerandomizeOpts;
 ///
 /// let query: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
 /// let mut opts = BuildOpts::default();
@@ -141,7 +144,7 @@ pub fn matches(
 ///
 /// let reference = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
-/// let alignment = map(&reference, &sbwt_query, &lcs_query);
+/// let alignment = map(&reference, &sbwt_query, &lcs_query, DerandomizeOpts::default());
 /// // `ms_vectors` has [45,45,45,45,45,45,45,45,45,65,71,71,45,45]
 /// # assert_eq!(alignment, vec![45,45,45,45,45,45,45,45,45,65,71,71,45,45]);
 /// ```
@@ -150,10 +153,11 @@ pub fn map(
     ref_seq: &[u8],
     query_sbwt: &SbwtIndexVariant,
     query_lcs: &sbwt::LcsArray,
+    derand_opts: derandomize::DerandomizeOpts,
 ) -> Vec<u8> {
     let (k, threshold) = match query_sbwt {
 	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, 0.0000001_f64))
+	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, derand_opts.max_error_prob))
 	},
     };
 
@@ -185,6 +189,7 @@ pub fn map(
 /// use sablast::build;
 /// use sablast::find;
 /// use sablast::index::BuildOpts;
+/// use sablast::derandomize::DerandomizeOpts;
 ///
 /// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
 /// let mut opts = BuildOpts::default();
@@ -193,7 +198,7 @@ pub fn map(
 ///
 /// let query = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
-/// let local_alignments = find(&query, &sbwt, &lcs);
+/// let local_alignments = find(&query, &sbwt, &lcs, DerandomizeOpts::default());
 /// // `local_alignments` has [(10, 12, 3, 0)]
 /// # assert_eq!(local_alignments, vec![(10, 12, 3, 0)]);
 /// ```
@@ -202,7 +207,8 @@ pub fn find(
     query_seq: &[u8],
     sbwt: &SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
+    derand_opts: derandomize::DerandomizeOpts,
 ) -> Vec<(usize, usize, usize, usize)> {
-    let aln = matches(query_seq, sbwt, lcs);
+    let aln = matches(query_seq, sbwt, lcs, derand_opts);
     format::run_lengths(&aln)
 }
