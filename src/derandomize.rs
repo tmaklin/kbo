@@ -20,7 +20,7 @@ use embed_doc_image::embed_doc_image;
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub struct DerandomizeOpts {
-    /// Prefix match lengths with probability less than `max_error_prob` to
+    /// Prefix match lengths with probability higher than `max_error_prob` to
     /// happen at random are considered noise.
     pub max_error_prob: f64,
 }
