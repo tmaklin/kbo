@@ -23,56 +23,50 @@ use sbwt::SbwtIndexVariant;
 
 /// Controls the parameters and resources available to the SBWT construction algorithm.
 ///
-/// Used to specify values for:
-/// - _k_-mer size `k`.
-/// - Reverse complement input sequences `add_revcomp`.
-/// - Number of threads `num_threads` to use.
-/// - Size of the precalculated lookup table `prefix_precalc`.
-/// - Build select support `build_select` (required for [map]).
-/// - RAM available (in GB) to construction algorithm `mem_gb`.
-/// - Deduplicate _k_-mer batches in construction algorithm `dedup_batches`.
-/// - Temporary directory path `temp_dir`.
-///
-/// Note that this struct is marked non_exhaustive, meaning that new
-/// public fields may be added in the future.
-///
-/// Same as initializing manually with these values:
-/// ```rust
-/// let mut opts = sablast::index::BuildOpts::default();
-/// opts.k = 31;
-/// opts.add_revcomp = false;
-/// opts.num_threads = 1;
-/// opts.prefix_precalc = 8;
-/// opts.build_select = false;
-/// opts.mem_gb = 4;
-/// opts.dedup_batches = false;
-/// opts.temp_dir = None;
-///
-/// # let expected = sablast::index::BuildOpts::default();
-/// # assert_eq!(opts.k, expected.k);
-/// # assert_eq!(opts.add_revcomp, expected.add_revcomp);
-/// # assert_eq!(opts.num_threads, expected.num_threads);
-/// # assert_eq!(opts.prefix_precalc, expected.prefix_precalc);
-/// # assert_eq!(opts.build_select, expected.build_select);
-/// # assert_eq!(opts.mem_gb, expected.mem_gb);
-/// # assert_eq!(opts.dedup_batches, expected.dedup_batches);
-/// # assert_eq!(opts.temp_dir, expected.temp_dir);
-/// ```
-///
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[non_exhaustive]
 pub struct BuildOpts {
+    /// - _k_-mer size `k`.
     pub k: usize,
+    /// - Reverse complement input sequences `add_revcomp`.
     pub add_revcomp: bool,
+    /// - Number of threads `num_threads` to use.
     pub num_threads: usize,
+    /// - Size of the precalculated lookup table `prefix_precalc`.
     pub prefix_precalc: usize,
+    /// - Build select support `build_select` (required for [map](super::map)).
     pub build_select: bool,
+    /// - RAM available (in GB) to construction algorithm `mem_gb`.
     pub mem_gb: usize,
+    /// - Deduplicate _k_-mer batches in construction algorithm `dedup_batches`.
     pub dedup_batches: bool,
+    /// - Temporary directory path `temp_dir`.
     pub temp_dir: Option<String>,
 }
-// Defaults
+
 impl Default for BuildOpts {
+    /// Default to these values:
+    /// ```rust
+    /// let mut opts = sablast::index::BuildOpts::default();
+    /// opts.k = 31;
+    /// opts.add_revcomp = false;
+    /// opts.num_threads = 1;
+    /// opts.prefix_precalc = 8;
+    /// opts.build_select = false;
+    /// opts.mem_gb = 4;
+    /// opts.dedup_batches = false;
+    /// opts.temp_dir = None;
+    /// # let expected = sablast::index::BuildOpts::default();
+    /// # assert_eq!(opts.k, expected.k);
+    /// # assert_eq!(opts.add_revcomp, expected.add_revcomp);
+    /// # assert_eq!(opts.num_threads, expected.num_threads);
+    /// # assert_eq!(opts.prefix_precalc, expected.prefix_precalc);
+    /// # assert_eq!(opts.build_select, expected.build_select);
+    /// # assert_eq!(opts.mem_gb, expected.mem_gb);
+    /// # assert_eq!(opts.dedup_batches, expected.dedup_batches);
+    /// # assert_eq!(opts.temp_dir, expected.temp_dir);
+    /// ```
+    ///
     fn default() -> BuildOpts {
         BuildOpts {
 	    k: 31,
@@ -118,7 +112,7 @@ impl Default for BuildOpts {
 pub fn build_sbwt_from_vecs(
     slices: &[Vec<u8>],
     build_options: &Option<BuildOpts>,
-) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
+) -> (SbwtIndexVariant, sbwt::LcsArray) {
     assert!(!slices.is_empty());
 
     let build_opts = if build_options.is_some() { build_options.clone().unwrap() } else { BuildOpts::default() };
@@ -170,7 +164,7 @@ pub fn build_sbwt_from_vecs(
 ///
 pub fn serialize_sbwt(
     outfile_prefix: &str,
-    sbwt: &sbwt::SbwtIndexVariant,
+    sbwt: &SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
 ) {
     let sbwt_outfile = format!("{}.sbwt", outfile_prefix);
@@ -236,7 +230,7 @@ pub fn serialize_sbwt(
 ///
 pub fn load_sbwt(
     index_prefix: &str,
-) -> (sbwt::SbwtIndexVariant, sbwt::LcsArray) {
+) -> (SbwtIndexVariant, sbwt::LcsArray) {
     let indexfile = format!("{}.sbwt", index_prefix);
     let lcsfile = format!("{}.lcs", index_prefix);
 
@@ -283,7 +277,7 @@ pub fn load_sbwt(
 ///
 pub fn query_sbwt(
     query: &[u8],
-    sbwt: &sbwt::SbwtIndexVariant,
+    sbwt: &SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
 ) -> Vec<(usize, Range<usize>)> {
     assert!(!query.is_empty());

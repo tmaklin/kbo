@@ -15,6 +15,32 @@
 
 use embed_doc_image::embed_doc_image;
 
+/// Controls parameters of the derandomization algorithm.
+///
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub struct DerandomizeOpts {
+    /// Prefix match lengths with probability higher than `max_error_prob` to
+    /// happen at random are considered noise.
+    pub max_error_prob: f64,
+}
+
+impl Default for DerandomizeOpts {
+    /// Default to these values:
+    /// ```rust
+    /// let mut opts = sablast::derandomize::DerandomizeOpts::default();
+    /// opts.max_error_prob = 0.0000001;
+    /// # let expected = sablast::derandomize::DerandomizeOpts::default();
+    /// # assert_eq!(opts.max_error_prob, expected.max_error_prob);
+    /// ```
+    ///
+    fn default() -> DerandomizeOpts {
+        DerandomizeOpts {
+            max_error_prob: 0.0000001,
+        }
+    }
+}
+
 /// Evaluates the CDF of _k_-bounded matching statistics random match distribution.
 ///
 /// Computes the log-probability that a matching statistic with value

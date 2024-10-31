@@ -363,7 +363,7 @@ pub fn translate_ms_vec(
 pub fn refine_translation(
     translation: &[char],
     noisy_ms: &[(usize, Range<usize>)],
-    query_sbwt: &sbwt::SbwtIndexVariant,
+    query_sbwt: &SbwtIndexVariant,
     threshold: usize,
 ) -> Vec<char> {
     let n_elements = translation.len();

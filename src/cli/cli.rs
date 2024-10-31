@@ -16,12 +16,14 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(version)]
 #[command(propagate_version = true)]
+#[cfg(feature = "cli")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
+#[cfg(feature = "cli")]
 pub enum Commands {
     // Build SBWT index
     Build {
@@ -29,112 +31,122 @@ pub enum Commands {
         #[arg(group = "input", required = true)]
         seq_files: Vec<String>,
 
-	// Outputs
+        // Outputs
         #[arg(short = 'o', long = "output-prefix", required = false, help_heading = "Output")]
         output_prefix: Option<String>,
 
-	// Build parameters
-	// // k-mer size
+        // Build parameters
+        // // k-mer size
         #[arg(short = 'k', default_value_t = 31, help_heading = "Build options")]
         kmer_size: usize,
-	// // prefix precalc
-	#[arg(short = 'p', long = "prefix-precalc", default_value_t = 8, help_heading = "Build options")]
+        // // prefix precalc
+        #[arg(short = 'p', long = "prefix-precalc", default_value_t = 8, help_heading = "Build options")]
         prefix_precalc: usize,
-	// // deduplicate k-mer batches
-	#[arg(short = 'd', long = "dedup-batches", default_value_t = false, help_heading = "Build options")]
+        // // deduplicate k-mer batches
+        #[arg(short = 'd', long = "dedup-batches", default_value_t = false, help_heading = "Build options")]
         dedup_batches: bool,
 
         // Resources
-	// // Threads
+        // // Threads
         #[arg(short = 't', long = "threads", default_value_t = 1)]
         num_threads: usize,
-	// // Memory in GB
+        // // Memory in GB
         #[arg(short = 'm', long = "mem-gb", default_value_t = 4, help_heading = "Build options")]
         mem_gb: usize,
-	// // Temporary directory
+        // // Temporary directory
         #[arg(long = "temp-dir", required = false, help_heading = "Build options")]
         temp_dir: Option<String>,
 
-	// Verbosity
+        // Verbosity
         #[arg(long = "verbose", default_value_t = false)]
         verbose: bool,
     },
 
     // Find indexed k-mers in a query
     Find {
-	// Input fasta or fastq query file(s)
+        // Input fasta or fastq query file(s)
         #[arg(group = "input", required = true)]
         query_files: Vec<String>,
 
-	// Reference
-	// // Sequence file
+        // Reference
+        // // Sequence file
         #[arg(short = 'r', long = "reference", group = "reference", help_heading = "Input")]
         ref_file: Option<String>,
-	// // ... or a prebuilt index
+        // // ... or a prebuilt index
         #[arg(short = 'i', long = "index", group = "reference", help_heading = "Input")]
         index_prefix: Option<String>,
 
-	// Resources
-	// // Threads
+        // Parameters
+        // // Upper bound for random match probability
+        #[arg(long = "max-error-prob", default_value_t = 0.0000001, help_heading = "Algorithm")]
+        max_error_prob: f64,
+
+        // Resources
+        // // Threads
         #[arg(short = 't', long = "threads", default_value_t = 1)]
         num_threads: usize,
 
-	// Build parameters
-	// // k-mer size
+        // Build parameters
+        // // k-mer size
         #[arg(short = 'k', default_value_t = 31, help_heading = "Build options")]
         kmer_size: usize,
-	// // prefix precalc
-	#[arg(short = 'p', long = "prefix-precalc", default_value_t = 8, help_heading = "Build options")]
+        // // prefix precalc
+        #[arg(short = 'p', long = "prefix-precalc", default_value_t = 8, help_heading = "Build options")]
         prefix_precalc: usize,
-	// // deduplicate k-mer batches
-	#[arg(short = 'd', long = "dedup-batches", default_value_t = false, help_heading = "Build options")]
+        // // deduplicate k-mer batches
+        #[arg(short = 'd', long = "dedup-batches", default_value_t = false, help_heading = "Build options")]
         dedup_batches: bool,
-	// // Memory in GB
+        // // Memory in GB
         #[arg(short = 'm', long = "mem-gb", default_value_t = 4, help_heading = "Build options")]
         mem_gb: usize,
-	// // Temporary directory
+        // // Temporary directory
         #[arg(long = "temp-dir", required = false, help_heading = "Build options")]
         temp_dir: Option<String>,
 
 
-	// Verbosity
+        // Verbosity
         #[arg(long = "verbose", default_value_t = false)]
         verbose: bool,
     },
 
     // Map a query or queries to a reference and return the alignment
     Map {
-	// Input fasta or fastq query file(s)
+        // Input fasta or fastq query file(s)
         #[arg(group = "input", required = true)]
         query_files: Vec<String>,
 
-	// Reference fasta
+        // Reference fasta
         #[arg(short = 'r', long = "reference", required = true, help_heading = "Input")]
         ref_file: String,
 
-	// Resources
-	// // Threads
+        // Parameters
+        // // Upper bound for random match probability
+        #[arg(long = "max-error-prob", default_value_t = 0.0000001, help_heading = "Algorithm")]
+        max_error_prob: f64,
+
+        // Resources
+        // // Threads
         #[arg(short = 't', long = "threads", default_value_t = 1)]
         num_threads: usize,
 
-	// Build parameters
-	// // k-mer size
+        // Build parameters
+        // // k-mer size
         #[arg(short = 'k', default_value_t = 31, help_heading = "Build options")]
         kmer_size: usize,
-	// // prefix precalc
-	#[arg(short = 'p', long = "prefix-precalc", default_value_t = 8, help_heading = "Build options")]
+        // // prefix precalc
+        #[arg(short = 'p', long = "prefix-precalc", default_value_t = 8, help_heading = "Build options")]
         prefix_precalc: usize,
-	// // deduplicate k-mer batches
-	#[arg(short = 'd', long = "dedup-batches", default_value_t = false, help_heading = "Build options")]
+        // // deduplicate k-mer batches
+        #[arg(short = 'd', long = "dedup-batches", default_value_t = false, help_heading = "Build options")]
         dedup_batches: bool,
-	// // Memory in GB
+        // // Memory in GB
         #[arg(short = 'm', long = "mem-gb", default_value_t = 4, help_heading = "Build options")]
         mem_gb: usize,
-	// // Temporary directory
+        // // Temporary directory
         #[arg(long = "temp-dir", required = false, help_heading = "Build options")]
         temp_dir: Option<String>,
 
-	// Verbosity
+        // Verbosity
         #[arg(long = "verbose", default_value_t = false)]
         verbose: bool,
     },

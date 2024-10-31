@@ -32,7 +32,7 @@ echo "linker = \"aarch64-apple-darwin22-gcc\"" >> .cargo/config.toml
 export CC="aarch64-apple-darwin22-gcc"
 export CXX="aarch64-apple-darwin22-g++"
 
-RUSTFLAGS='-L /osxcross/SDK/MacOSX13.0.sdk/usr/lib' cargo build --release --target aarch64-apple-darwin
+RUSTFLAGS='-L /osxcross/SDK/MacOSX13.0.sdk/usr/lib' cargo build --all-features --release --target aarch64-apple-darwin
 
 ## gather the stuff to distribute
 target=sablast-candidate-aarch64-apple-darwin
@@ -45,7 +45,7 @@ cp LICENSE-APACHE $path/
 cp LICENSE-MIT $path/
 cd /io/tmp
 tar -zcvf $target.tar.gz $target
-sha256sum $target.tar.gz > $target".sha256sum"
+sha256sum $target.tar.gz > $target".tar.gz.sha256sum"
 mv $target.tar.gz /io/
-mv $target".sha256sum" /io/
+mv $target".tar.gz.sha256sum" /io/
 cd /io/
