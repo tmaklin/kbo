@@ -11,8 +11,75 @@
 // the MIT license, <LICENSE-MIT> or <http://opensource.org/licenses/MIT>,
 // at your option.
 //
-//! Crate documentation
+
+//! kbo is an approximate local aligner based on converting [_k_-bounded matching
+//! statistics](https://www.biorxiv.org/content/10.1101/2024.02.19.580943v1)
+//! into a character representation of the underlying alignment sequence.
 //!
+//! Currently, kbo supports two main operations:
+//!
+//! - `kbo find` [matches](matches()) the _k_-mers in a query sequence with the
+//! reference and reports the local alignment segments found within the
+//! reference. Find is useful for problems that can be solved with
+//! [blast](https://blast.ncbi.nlm.nih.gov/Blast.cgi).
+//! - `kbo map` [maps](map()) the query sequence against a reference
+//! sequence, and reports the nucleotide sequence of the alignment relative to
+//! the reference. Map solves the same problem as
+//! [snippy](https://github.com/tseemann/snippy) and [ska
+//! map](https://docs.rs/ska/latest/ska/#ska-map).
+//!
+//! kbo uses the [Spectral Burrows-Wheeler
+//! Transform](https://docs.rs/sbwt/latest/sbwt/) data structure that allows
+//! efficient _k_-mer matching between a target and a query sequence and
+//! fast retrieval of the _k_-bounded matching statistic for each _k_-mer match.
+//!
+//! # Installing the kbo executable
+//! Run `cargo build --features cli --release`.
+//!
+//! # Usage
+//!
+//! kbo can be run directly on fasta files without an initial indexing step.
+//! Prebuilt indexes are supported via `kbo build` but are only
+//! relevant in `kbo find` analyses where the reference _k_-mers can be
+//! concatenated into a single contig.
+//!
+//! ## kbo find
+//!
+//! To set up the example, download the fasta sequence of the [_Escherichia
+//! coli_ Nissle
+//! 1917](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000714595.1/) genome
+//! from the NCBI and the [pks
+//! island](https://raw.githubusercontent.com/tmaklin/clbtype/refs/heads/main/db/db.fasta)
+//! gene sequences from GitHub. Example output was generated with versions
+//! ASM71459v1 and rev 43bbd36.
+//!
+//! ### Find gene sequence locations
+//! In the directory containing the input files, run
+//! ```text
+//! kbo find --reference db.fasta GCF_000714595.1_ASM71459v1_genomic.fna
+//! ```
+//! This will produce the output
+//! 
+//! ```text
+//! TODO add output
+//! ```
+//!
+//! ### Find presence/absence of gene sequences
+//! Alternatively, if you are only interested in containment of the `db.fasta` genes in the assembly, run
+//! ```text
+//! kbo find --reference GCF_000714595.1_ASM71459v1_genomic.fna db.fasta
+//! ```
+//! which will return
+//! ```text
+//! TODO add output
+//! ```text
+//! ## kbo map
+//! TODO write
+//! ```
+//!
+//! ```
+//!
+
 #![warn(missing_docs,
         missing_debug_implementations, missing_copy_implementations,
         trivial_casts, trivial_numeric_casts,
