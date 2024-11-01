@@ -100,10 +100,43 @@ pub fn run_lengths(
 /// unresolved SNPs, insertions, or absent sections.
 ///
 /// # Examples
+/// ## Format an unrefined translation
+/// Unrefined translations do not resolve SNPs or insertions in query, instead
+/// replacing them with gaps '-'.
+/// ```rust
+/// use kbo::translate::translate_ms_vec;
+/// use kbo::format::relative_to_ref;
+///
+/// // Parameters       : k = 4, threshold = 3
+/// //
+/// // Ref sequence     : T,T,G,A, T,T,G,G,C,T,G,G,G,C,A,G,A,G,C,T,G
+/// // Query sequence   : T,T,G,A,     G,G,C,T,G,G,G,G,A,G,A,G,C,T,G
+/// //
+/// // Result MS vector : 1,2,3,4, 1,2,3,3,3,4,4,4,4,3,1,2,3,4,4,4,4
+/// // Derandomized MS  : 1,2,3,4,-1,0,1,2,3,4,4,4,4,0,1,2,3,4,4,4,4
+/// // Translation      : M,M,M,M, -,-,M,M,M,M,M,M,M,X,M,M,M,M,M,M,M
+/// // Formatted        : T,T,G,A, -,-,G,G,C,T,G,G,G,-,A,G,A,G,C,T,G
+///
+/// let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+/// let derand_ms: Vec<i64> = vec![1,2,3,4,-1,0,1,2,3,4,4,4,4,0,1,2,3,4,4,4,4];
+/// let translated = translate_ms_vec(&derand_ms, 4, 3);
+///
+/// let relative = relative_to_ref(&reference, &translated);
+/// // `relative` has [T,T,G,A,-,-,G,G,C,T,G,G,G,-,A,G,A,G,C,T,G]
+/// # let expected = vec![b'T',b'T',b'G',b'A',b'-',b'-',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'-',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+/// # assert_eq!(relative, expected);
+/// ```
+///
 /// ## Format a refined translation
+/// ```rust
+/// use kbo::format::relative_to_ref;
+/// let reference: Vec<u8> = vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G'];
+/// let refined: Vec<char> = vec!['C','M','M','R','-','-','R','M','M','C','M','M','M','M','M','M','-','-'];
 ///
-/// TODO Add test to relative_to_ref documentation.
-///
+/// let relative = relative_to_ref(&reference, &refined);
+/// # let expected = vec![b'C',b'A',b'A',b'G',b'-',b'-',b'C',b'C',b'A',b'T',b'C',b'A',b'G',b'G',b'G',b'-',b'-'];
+/// // relative.iter().zip(reference.iter()).zip(expected.iter()).for_each(|((x1,x2),x3)| eprintln!("{}\t{}\t{}", *x1 as char, *x2 as char, *x3 as char));
+/// # assert_eq!(relative, expected);
 /// ```
 ///
 pub fn relative_to_ref(
