@@ -80,6 +80,10 @@ pub enum Commands {
         detailed: bool,
 
         // Parameters
+        // // Minimum length to report an alignment
+        #[arg(long = "min-len", default_value_t = 100, help_heading = "Algorithm")]
+        min_len: u64,
+
         // // Upper bound for random match probability
         #[arg(long = "max-error-prob", default_value_t = 0.0000001, help_heading = "Algorithm")]
         max_error_prob: f64,

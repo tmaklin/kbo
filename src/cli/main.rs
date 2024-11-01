@@ -122,6 +122,7 @@ fn main() {
 			ref_file,
 			index_prefix,
 			detailed,
+			min_len,
 			max_error_prob,
 			num_threads,
             kmer_size,
@@ -198,7 +199,7 @@ fn main() {
 				run_lengths.sort_by_key(|x| x.0);
 
 				// Print results with query and ref name added
-				run_lengths.iter().for_each(|x| {
+				run_lengths.iter().filter(|x| x.1 - x.0 + 1 >= *min_len as usize).for_each(|x| {
 					let _ = writeln!(&mut stdout.lock(),
 									 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
 									 file, ref_file.clone().unwrap(), x.0, x.1, x.2, x.3, x.4, x.5, x.6);
