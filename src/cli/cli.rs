@@ -75,6 +75,9 @@ pub enum Commands {
         // // ... or a prebuilt index
         #[arg(short = 'i', long = "index", group = "reference", help_heading = "Input")]
         index_prefix: Option<String>,
+        // // Concatenate contigs in reference
+        #[arg(long = "detailed", help_heading = "Input", default_value_t = false)]
+        detailed: bool,
 
         // Parameters
         // // Upper bound for random match probability

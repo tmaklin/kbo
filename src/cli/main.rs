@@ -121,6 +121,7 @@ fn main() {
 			query_files,
 			ref_file,
 			index_prefix,
+			detailed,
 			max_error_prob,
 			num_threads,
             kmer_size,
@@ -150,8 +151,18 @@ fn main() {
 			} else if !index_prefix.is_some() && ref_file.is_some() {
 				info!("Building SBWT from file {}...", ref_file.as_ref().unwrap());
 
-				let ref_data = read_fastx_file(ref_file.as_ref() .unwrap());
-				indexes.push((kbo::index::build_sbwt_from_vecs(&ref_data, &Some(sbwt_build_options)), ref_file.clone().unwrap()));
+				if !*detailed {
+					let ref_data = read_fastx_file(ref_file.as_ref().unwrap());
+					indexes.push((kbo::index::build_sbwt_from_vecs(&ref_data, &Some(sbwt_build_options)), ref_file.clone().unwrap()));
+				} else {
+					let mut reader = needletail::parse_fastx_file(ref_file.as_ref().unwrap()).expect("valid path/file");
+					while let Some(seqrec) = read_from_fastx_parser(&mut *reader) {
+						let contig = seqrec.id();
+						let contig_name = std::str::from_utf8(contig).expect("UTF-8");
+						let seq = seqrec.normalize(true);
+						indexes.push((kbo::index::build_sbwt_from_vecs(&[seq.to_vec()], &Some(sbwt_build_options.clone())), contig_name.to_string()));
+					}
+				}
 
 			} else {
 				panic!("Ambiguous reference, supply only one of `-r/--reference` and `-i/--index`");
@@ -164,13 +175,13 @@ fn main() {
 				.unwrap();
 
 			info!("Querying SBWT index...");
-			println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches\tin.contig");
+			println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches\tquery.contig\tref.contig");
 			let stdout = std::io::stdout();
-			query_files.par_iter().for_each(|file| {
-				indexes.iter().for_each(|((sbwt, lcs), ref_name)| {
+			query_files.iter().for_each(|file| {
+				indexes.par_iter().for_each(|((sbwt, lcs), ref_contig)| {
 					let mut reader = needletail::parse_fastx_file(file).expect("valid path/file");
 					while let Some(seqrec) = read_from_fastx_parser(&mut *reader) {
-						let contig = seqrec.id();
+						let query_contig = seqrec.id();
 						let seq = seqrec.normalize(true);
 
 						// Get local alignments for forward strand
@@ -185,8 +196,8 @@ fn main() {
 						// Print results with query and ref name added
 						run_lengths.iter().for_each(|x| {
 							let _ = writeln!(&mut stdout.lock(),
-											 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-											 file, ref_name, x.0, x.1, x.2, x.3, x.4, std::str::from_utf8(contig).expect("UTF-8"));
+											 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+											 file, ref_file.clone().unwrap(), x.0, x.1, x.2, x.3, x.4, ref_contig, std::str::from_utf8(query_contig).expect("UTF-8"));
 						});
 					}
 				});
