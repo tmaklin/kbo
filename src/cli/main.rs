@@ -142,13 +142,17 @@ fn main() {
 			let mut derand_opts = kbo::derandomize::DerandomizeOpts::default();
 			derand_opts.max_error_prob = *max_error_prob;
 
-			let ((sbwt, lcs), ref_name) = if index_prefix.is_some() && !ref_file.is_some() {
+			let mut indexes: Vec<((sbwt::SbwtIndexVariant, sbwt::LcsArray), String)> = Vec::new();
+
+			if index_prefix.is_some() && !ref_file.is_some() {
 				info!("Loading SBWT index...");
-				(kbo::index::load_sbwt(index_prefix.as_ref().unwrap()), index_prefix.as_ref().unwrap())
+				indexes.push((kbo::index::load_sbwt(index_prefix.as_ref().unwrap()), index_prefix.clone().unwrap()));
 			} else if !index_prefix.is_some() && ref_file.is_some() {
 				info!("Building SBWT from file {}...", ref_file.as_ref().unwrap());
+
 				let ref_data = read_fastx_file(ref_file.as_ref() .unwrap());
-				(kbo::index::build_sbwt_from_vecs(&ref_data, &Some(sbwt_build_options)), ref_file.as_ref().unwrap())
+				indexes.push((kbo::index::build_sbwt_from_vecs(&ref_data, &Some(sbwt_build_options)), ref_file.clone().unwrap()));
+
 			} else {
 				panic!("Ambiguous reference, supply only one of `-r/--reference` and `-i/--index`");
 			};
@@ -163,30 +167,32 @@ fn main() {
 			println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches\tin.contig");
 			let stdout = std::io::stdout();
 			query_files.par_iter().for_each(|file| {
+				indexes.iter().for_each(|((sbwt, lcs), ref_name)| {
+					let mut reader = needletail::parse_fastx_file(file).expect("valid path/file");
+					while let Some(seqrec) = read_from_fastx_parser(&mut *reader) {
+						let contig = seqrec.id();
+						let seq = seqrec.normalize(true);
 
-				let mut reader = needletail::parse_fastx_file(file).expect("valid path/file");
-				while let Some(seqrec) = read_from_fastx_parser(&mut *reader) {
-					let contig = seqrec.id();
-					let seq = seqrec.normalize(true);
+						// Get local alignments for forward strand
+						let mut run_lengths: Vec<(usize, usize, char, usize, usize)> = kbo::find(&seq, &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect();
 
-					// Get local alignments for forward strand
-					let mut run_lengths: Vec<(usize, usize, char, usize, usize)> = kbo::find(&seq, &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect();
+						// Add local alignments for reverse _complement
+						run_lengths.append(&mut kbo::find(&seq.reverse_complement(), &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '-', x.2 + x.3, x.3)).collect());
 
-					// Add local alignments for reverse _complement
-					run_lengths.append(&mut kbo::find(&seq.reverse_complement(), &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '-', x.2 + x.3, x.3)).collect());
+						// Sort by q.start
+						run_lengths.sort_by_key(|x| x.0);
 
-					// Sort by q.start
-					run_lengths.sort_by_key(|x| x.0);
-
-					// Print results with query and ref name added
-					run_lengths.iter().for_each(|x| {
-						let _ = writeln!(&mut stdout.lock(),
-										 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-										 file, ref_name, x.0, x.1, x.2, x.3, x.4, std::str::from_utf8(contig).expect("UTF-8"));
-					});
-				}
+						// Print results with query and ref name added
+						run_lengths.iter().for_each(|x| {
+							let _ = writeln!(&mut stdout.lock(),
+											 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+											 file, ref_name, x.0, x.1, x.2, x.3, x.4, std::str::from_utf8(contig).expect("UTF-8"));
+						});
+					}
+				});
 			});
 		},
+
         Some(cli::Commands::Map {
 			query_files,
 			ref_file,
