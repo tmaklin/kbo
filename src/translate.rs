@@ -546,7 +546,6 @@ mod tests {
 	use crate::index::BuildOpts;
 	use crate::index::query_sbwt;
 	use crate::derandomize::derandomize_ms_vec;
-	use crate::derandomize::random_match_threshold;
 	use super::translate_ms_vec;
 	use super::refine_translation;
 	use sbwt::SbwtIndexVariant;
