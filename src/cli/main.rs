@@ -178,28 +178,30 @@ fn main() {
 			println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches\tquery.contig\tref.contig");
 			let stdout = std::io::stdout();
 			query_files.iter().for_each(|file| {
-				indexes.par_iter().for_each(|((sbwt, lcs), ref_contig)| {
+				let mut run_lengths: Vec<(usize, usize, char, usize, usize, String, String)> = indexes.par_iter().map(|((sbwt, lcs), ref_contig)| {
 					let mut reader = needletail::parse_fastx_file(file).expect("valid path/file");
+					let mut res: Vec<(usize, usize, char, usize, usize, String, String)> = Vec::new();
 					while let Some(seqrec) = read_from_fastx_parser(&mut *reader) {
-						let query_contig = seqrec.id();
+						let query_contig = std::str::from_utf8(seqrec.id()).expect("UTF-8");
 						let seq = seqrec.normalize(true);
 
 						// Get local alignments for forward strand
-						let mut run_lengths: Vec<(usize, usize, char, usize, usize)> = kbo::find(&seq, &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3)).collect();
+						res = kbo::find(&seq, &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3, ref_contig.clone(), query_contig.to_string().clone())).collect();
 
 						// Add local alignments for reverse _complement
-						run_lengths.append(&mut kbo::find(&seq.reverse_complement(), &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '-', x.2 + x.3, x.3)).collect());
-
-						// Sort by q.start
-						run_lengths.sort_by_key(|x| x.0);
-
-						// Print results with query and ref name added
-						run_lengths.iter().for_each(|x| {
-							let _ = writeln!(&mut stdout.lock(),
-											 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-											 file, ref_file.clone().unwrap(), x.0, x.1, x.2, x.3, x.4, ref_contig, std::str::from_utf8(query_contig).expect("UTF-8"));
-						});
+						res.append(&mut kbo::find(&seq.reverse_complement(), &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '-', x.2 + x.3, x.3, ref_contig.clone(), query_contig.to_string().clone())).collect());
 					}
+					res
+				}).flatten().collect();
+
+				// Sort by q.start
+				run_lengths.sort_by_key(|x| x.0);
+
+				// Print results with query and ref name added
+				run_lengths.iter().for_each(|x| {
+					let _ = writeln!(&mut stdout.lock(),
+									 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+									 file, ref_file.clone().unwrap(), x.0, x.1, x.2, x.3, x.4, x.5, x.6);
 				});
 			});
 		},
