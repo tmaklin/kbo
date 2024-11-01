@@ -16,11 +16,26 @@ use std::io::Write;
 use clap::Parser;
 use log::info;
 use needletail::Sequence;
+use needletail::parser::SequenceRecord;
 use rayon::iter::ParallelIterator;
 use rayon::iter::IntoParallelRefIterator;
 
 // Command-line interface
 mod cli;
+
+// Given a needletail parser, reads the next contig sequence
+fn read_from_fastx_parser(
+	reader: &mut dyn needletail::parser::FastxReader,
+) -> Option<SequenceRecord> {
+	let rec = reader.next();
+	match rec {
+	    Some(Ok(seqrec)) => {
+			Some(seqrec)
+	    },
+	    None => None,
+		Some(Err(_)) => todo!(),
+	}
+}
 
 // Reads all sequence data from a fastX file
 fn read_fastx_file(
@@ -28,15 +43,10 @@ fn read_fastx_file(
 ) -> Vec<Vec<u8>> {
     let mut seq_data: Vec<Vec<u8>> = Vec::new();
     let mut reader = needletail::parse_fastx_file(file).unwrap_or_else(|_| panic!("Expected valid fastX file at {}", file));
-    loop {
-	let rec = reader.next();
-	match rec {
-	    Some(Ok(seqrec)) => {
-		seq_data.push(seqrec.normalize(true).as_ref().to_vec());
-	    },
-	    _ => break
+	while let Some(rec) = read_from_fastx_parser(&mut *reader) {
+		let seqrec = rec.normalize(true);
+		seq_data.push(seqrec.to_vec());
 	}
-    }
     seq_data
 }
 
@@ -155,8 +165,7 @@ fn main() {
 			query_files.par_iter().for_each(|file| {
 
 				let mut reader = needletail::parse_fastx_file(file).expect("valid path/file");
-				while let Some(rec) = reader.next() {
-					let seqrec = rec.expect("Valid fastX record");
+				while let Some(seqrec) = read_from_fastx_parser(&mut *reader) {
 					let contig = seqrec.id();
 					let seq = seqrec.normalize(true);
 
