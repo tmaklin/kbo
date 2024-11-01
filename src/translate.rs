@@ -370,11 +370,11 @@ pub fn refine_translation(
     assert!(!translation.is_empty());
     assert!(translation.len() == noisy_ms.len());
     let k = match query_sbwt {
-	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-	    assert!(sbwt.sbwt().has_select_support());
-	    assert!(sbwt.k() > 0);
-	    sbwt.k()
-	},
+        SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+            assert!(sbwt.sbwt().has_select_support());
+            assert!(sbwt.k() > 0);
+            sbwt.k()
+        },
     };
 
     // Could prove midpoint is the best guess using conditional probabilities?
@@ -382,14 +382,14 @@ pub fn refine_translation(
 
     let mut refined = translation.to_vec().clone();
     match query_sbwt {
-	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-	    for i in 1..(refined.len() - threshold) {
-		if refined[i - 1] == 'X' {
-		    let midpoint = if i + k - 2 < n_elements && noisy_ms[i + k - 2].0 == k - 1 { k/2 } else { (threshold + 1)/2 };
-		    refined[i - 1] = sbwt.access_kmer(noisy_ms[i + k - 2 - midpoint].1.start)[midpoint] as char;
-		}
-	    }
-	},
+        SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+            for i in 1..(refined.len() - threshold) {
+                if refined[i - 1] == 'X' {
+                    let midpoint = if i + k - 2 < n_elements && noisy_ms[i + k - 2].0 == k - 1 { k/2 } else { (threshold + 1)/2 };
+                    refined[i - 1] = sbwt.access_kmer(noisy_ms[i + k - 2 - midpoint].1.start)[midpoint] as char;
+                }
+            }
+        },
     };
     refined
 }
