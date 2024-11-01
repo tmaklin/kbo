@@ -82,8 +82,6 @@ pub fn run_lengths(
 /// character representation of an alignment `alignment` to determine the
 /// nucleotide sequence of the alignment relative to the reference.
 ///
-/// Only works with refined translations as the input (TODO verify).
-///
 /// Returns a vector containing alignment of the query against `ref_seq` in a
 /// gapped alignment format.
 ///
