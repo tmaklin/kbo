@@ -28,9 +28,7 @@ sbwt = "0.3.1"
 clap = { version = "4", features = ["derive"], optional = true}
 
 ### io
-#### TODO Re-enable reading compressed sequences in needletail
-##### This requires resolving the libllzma linker issue in build_artifacts.yml
-needletail = { version = "0.5.1", default-features = false, optional = true }
+needletail = { version = "0.6.0", default-features = false, features = ["flate2"], optional = true }
 
 ### logging
 log = { version = "0.4.20", optional = true }
