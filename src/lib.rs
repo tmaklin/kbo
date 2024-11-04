@@ -259,6 +259,7 @@ pub fn map(
 /// use kbo::find;
 /// use kbo::index::BuildOpts;
 /// use kbo::derandomize::DerandomizeOpts;
+/// use kbo::format::RLE;
 ///
 /// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
 /// let mut opts = BuildOpts::default();
@@ -269,7 +270,7 @@ pub fn map(
 ///
 /// let local_alignments = find(&query, &sbwt, &lcs, DerandomizeOpts::default());
 /// // `local_alignments` has [(10, 12, 3, 0)]
-/// # assert_eq!(local_alignments, vec![(10, 12, 3, 0)]);
+/// # assert_eq!(local_alignments, vec![RLE{start: 10, end: 12, matches: 3, mismatches: 0, jumps: 0, gap_bases: 0, gap_opens: 0}]);
 /// ```
 ///
 pub fn find(
@@ -277,7 +278,7 @@ pub fn find(
     sbwt: &SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
     derand_opts: derandomize::DerandomizeOpts,
-) -> Vec<(usize, usize, usize, usize)> {
+) -> Vec<format::RLE> {
     let aln = matches(query_seq, sbwt, lcs, derand_opts);
     format::run_lengths(&aln)
 }

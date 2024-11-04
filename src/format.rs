@@ -13,6 +13,53 @@
 //
 //! Converting alignment representations into various output formats.
 
+/// Run length encoding for an alignment segment
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RLE {
+    /// Start position (1-based indexing)
+    pub start: usize,
+    /// End position (1-based indexing)
+    pub end: usize,
+    /// Number of matching bases ('M' or 'R')
+    pub matches: usize,
+    /// Number of mismatching bases (not 'M', 'R', or '-')
+    pub mismatches: usize,
+    /// Number of _k_-mer jumps (count of double 'R's)
+    pub jumps: usize,
+    /// Total number of missing bases ('-')
+    pub gap_bases: usize,
+    /// Number of consecutive '-' runs in segment regardless of length
+    pub gap_opens: usize,
+}
+
+impl Default for RLE {
+    /// Default to these values:
+    /// ```rust
+    /// let mut opts = kbo::format::RLE::default();
+    /// opts.start = 0;
+    /// opts.end = 0;
+    /// opts.matches = 0;
+    /// opts.mismatches = 0;
+    /// opts.jumps = 0;
+    /// opts.gap_bases = 0;
+    /// opts.gap_opens = 0;
+    /// # let expected = kbo::format::RLE::default();
+    /// # assert_eq!(opts, expected);
+    /// ```
+    ///
+    fn default() -> RLE {
+        RLE {
+            start: 0,
+            end: 0,
+            matches: 0,
+            mismatches: 0,
+            jumps: 0,
+            gap_bases: 0,
+            gap_opens: 0,
+        }
+    }
+}
+
 /// Extracts run length encodings from a translated alignment.
 ///
 /// Traverses the character representation of the alignment stored in `aln` and
@@ -33,6 +80,7 @@
 /// ## Extract run lengths from a character representation
 /// ```rust
 /// use kbo::format::run_lengths;
+/// use kbo::format::RLE;
 ///
 /// // Parameters       : k = 3, threshold = 2
 /// //
@@ -46,28 +94,39 @@
 ///
 /// let input: Vec<char> = vec!['X','M','M','R','R','M','M','X','M','M','M','-','-','M','M','M','-','-'];
 /// let run_lengths = run_lengths(&input);
-/// # let expected = vec![(1,11,9,2),(14,16,3,0)];
+/// # let expected = vec![RLE{start: 1, end: 11, matches: 9, mismatches: 2, jumps: 1, gap_bases: 0, gap_opens: 0},
+/// #                     RLE{start: 14, end: 16, matches: 3, mismatches : 0, jumps : 0, gap_bases : 0, gap_opens : 0}];
 /// # assert_eq!(run_lengths, expected);
 /// ```
 ///
 pub fn run_lengths(
     aln: &[char],
-) -> Vec<(usize, usize, usize, usize)> {
-    // Store run lengths as Vec<(start, end, matches, mismatches)>
-    let mut encodings: Vec<(usize, usize, usize, usize)> = Vec::new();
+) -> Vec<RLE> {
+    let mut encodings: Vec<RLE> = Vec::new();
 
     let mut i = 0;
     let mut match_start: bool = false;
     while i < aln.len() {
         match_start = (aln[i] != '-' && aln[i] != ' ') && !match_start;
+        let mut jumps = 0;
         if match_start {
             let start = i;
             let mut matches: usize = 0;
             while i < aln.len() && (aln[i] != '-' && aln[i] != ' ') {
                 matches += (aln[i] == 'M' || aln[i] == 'R') as usize;
+                jumps += (aln[i] == 'R') as usize;
                 i += 1;
             }
-            encodings.push((start + 1, i, matches, i - start - matches));
+            let rle: RLE = RLE{
+                start: start + 1,
+                end: i,
+                matches,
+                mismatches: i - start - matches,
+                jumps: jumps / 2,
+                gap_bases: 0,
+                gap_opens: 0,
+            };
+            encodings.push(rle);
             match_start = false;
         } else {
             i += 1;
@@ -168,7 +227,37 @@ pub fn relative_to_ref(
 mod tests {
     #[test]
     fn run_lengths() {
-        let expected: Vec<(usize, usize, usize, usize)> = vec![(6,33,28,0),(82,207,126,0),(373,423,51,0),(488,512,25,0)];
+        use crate::format::RLE;
+
+        let expected: Vec<RLE> = vec![
+            RLE{start: 6,
+                end: 33,
+                matches: 28,
+                mismatches : 0,
+                jumps : 0,
+                gap_bases: 0,
+                gap_opens: 0},
+            RLE{start: 82,
+                end: 207,
+                matches: 126,
+                mismatches: 0,
+                jumps: 0,
+                gap_bases: 0,
+                gap_opens: 0},
+            RLE{start: 373,
+                end: 423,
+                matches: 51,
+                mismatches: 0,
+                jumps: 0,
+                gap_bases: 0,
+                gap_opens: 0},
+            RLE{start: 488,
+                end: 512,
+                matches: 25,
+                mismatches: 0,
+                jumps: 0,
+                gap_bases: 0,
+                gap_opens: 0}];
         let input = vec!['-','-','-','-','-','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','-','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M'];
         let got = super::run_lengths(&input);
         assert_eq!(got, expected);
