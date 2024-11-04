@@ -94,6 +94,40 @@ pub mod format;
 pub mod index;
 pub mod translate;
 
+/// Options and parameters for [Find](find)
+#[non_exhaustive]
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct FindOpts {
+    /// Prefix match lengths with probability higher than `max_error_prob` to
+    /// happen at random are considered noise.
+    pub max_error_prob: f64,
+    /// Maximum number of gap segments (gap opens) allowed before splitting an
+    /// alignment.
+    pub max_gaps: usize,
+    /// Maximum length of a single gap segment before splitting an alignment.
+    pub max_gap_len: usize,
+}
+
+impl Default for FindOpts {
+    /// Default to these values:
+    /// ```rust
+    /// let mut opts = kbo::FindOpts::default();
+    /// opts.max_error_prob = 0.0000001;
+    /// opts.max_gaps = 0;
+    /// opts.max_gap_len = 0;
+    /// # let expected = kbo::FindOpts::default();
+    /// # assert_eq!(opts, expected);
+    /// ```
+    ///
+    fn default() -> FindOpts {
+        FindOpts {
+            max_error_prob: 0.0000001,
+            max_gaps: 0,
+            max_gap_len: 0,
+        }
+    }
+}
+
 /// Builds an SBWT index from some fasta or fastq files.
 ///
 /// Reads all sequence data in `seq_files` and builds an SBWT index
@@ -254,11 +288,14 @@ pub fn map(
 /// 4. Number of mismatches and 1-character insertions in the block.
 ///
 /// # Examples
+///
+/// TODO Add better examples to find()
+///
 /// ```rust
 /// use kbo::build;
 /// use kbo::find;
+/// use kbo::FindOpts;
 /// use kbo::index::BuildOpts;
-/// use kbo::derandomize::DerandomizeOpts;
 /// use kbo::format::RLE;
 ///
 /// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
@@ -268,7 +305,7 @@ pub fn map(
 ///
 /// let query = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
-/// let local_alignments = find(&query, &sbwt, &lcs, DerandomizeOpts::default());
+/// let local_alignments = find(&query, &sbwt, &lcs, FindOpts::default());
 /// // `local_alignments` has [(10, 12, 3, 0)]
 /// # assert_eq!(local_alignments, vec![RLE{start: 10, end: 12, matches: 3, mismatches: 0, jumps: 0, gap_bases: 0, gap_opens: 0}]);
 /// ```
@@ -277,8 +314,14 @@ pub fn find(
     query_seq: &[u8],
     sbwt: &SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
-    derand_opts: derandomize::DerandomizeOpts,
+    find_opts: FindOpts,
 ) -> Vec<format::RLE> {
+    let mut derand_opts = derandomize::DerandomizeOpts::default();
+    derand_opts.max_error_prob = find_opts.max_error_prob.clone();
     let aln = matches(query_seq, sbwt, lcs, derand_opts);
-    format::run_lengths(&aln)
+    if find_opts.max_gaps > 0 || find_opts.max_gap_len > 0 {
+        format::run_lengths_gapped(&aln, find_opts.max_gaps, find_opts.max_gap_len)
+    } else {
+        format::run_lengths(&aln)
+    }
 }

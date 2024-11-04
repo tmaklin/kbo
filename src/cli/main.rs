@@ -141,8 +141,8 @@ fn main() {
 			sbwt_build_options.mem_gb = *mem_gb;
 			sbwt_build_options.temp_dir = temp_dir.clone();
 
-			let mut derand_opts = kbo::derandomize::DerandomizeOpts::default();
-			derand_opts.max_error_prob = *max_error_prob;
+			let mut find_opts = kbo::FindOpts::default();
+			find_opts.max_error_prob = *max_error_prob;
 
 			let mut indexes: Vec<((sbwt::SbwtIndexVariant, sbwt::LcsArray), String)> = Vec::new();
 
@@ -187,13 +187,13 @@ fn main() {
 						let seq = seqrec.normalize(true);
 
 						// Get local alignments for forward strand
-						res = kbo::find(&seq, &sbwt, &lcs, derand_opts.clone())
+						res = kbo::find(&seq, &sbwt, &lcs, find_opts.clone())
 							.iter()
 							.map(|x| (x.start, x.end, '+', x.matches + x.mismatches + x.jumps + x.gap_bases, x.mismatches,
 									  ref_contig.clone(), query_contig.to_string().clone())).collect();
 
 						// Add local alignments for reverse _complement
-						res.append(&mut kbo::find(&seq.reverse_complement(), &sbwt, &lcs, derand_opts.clone())
+						res.append(&mut kbo::find(&seq.reverse_complement(), &sbwt, &lcs, find_opts.clone())
 								   .iter()
 								   .map(|x| (x.start, x.end, '+', x.matches + x.mismatches + x.jumps + x.gap_bases, x.mismatches,
 											 ref_contig.clone(), query_contig.to_string().clone())).collect());
