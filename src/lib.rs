@@ -94,7 +94,7 @@ pub mod format;
 pub mod index;
 pub mod translate;
 
-/// Options and parameters for [Find](find)
+/// Options and parameters for [find]
 #[non_exhaustive]
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct FindOpts {
@@ -124,6 +124,56 @@ impl Default for FindOpts {
             max_error_prob: 0.0000001,
             max_gaps: 0,
             max_gap_len: 0,
+        }
+    }
+}
+
+/// Options and parameters for [matches](matches())
+#[non_exhaustive]
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct MatchOpts {
+    /// Prefix match lengths with probability higher than `max_error_prob` to
+    /// happen at random are considered noise.
+    pub max_error_prob: f64,
+}
+
+impl Default for MatchOpts {
+    /// Default to these values:
+    /// ```rust
+    /// let mut opts = kbo::MatchOpts::default();
+    /// opts.max_error_prob = 0.0000001;
+    /// # let expected = kbo::MatchOpts::default();
+    /// # assert_eq!(opts, expected);
+    /// ```
+    ///
+    fn default() -> MatchOpts {
+        MatchOpts {
+            max_error_prob: 0.0000001,
+        }
+    }
+}
+
+/// Options and parameters for [map]
+#[non_exhaustive]
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct MapOpts {
+    /// Prefix match lengths with probability higher than `max_error_prob` to
+    /// happen at random are considered noise.
+    pub max_error_prob: f64,
+}
+
+impl Default for MapOpts {
+    /// Default to these values:
+    /// ```rust
+    /// let mut opts = kbo::MapOpts::default();
+    /// opts.max_error_prob = 0.0000001;
+    /// # let expected = kbo::MapOpts::default();
+    /// # assert_eq!(opts, expected);
+    /// ```
+    ///
+    fn default() -> MapOpts {
+        MapOpts {
+            max_error_prob: 0.0000001,
         }
     }
 }
@@ -191,7 +241,7 @@ pub fn build(
 /// use kbo::build;
 /// use kbo::matches;
 /// use kbo::index::BuildOpts;
-/// use kbo::derandomize::DerandomizeOpts;
+/// use kbo::MatchOpts;
 ///
 /// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
 /// let mut opts = BuildOpts::default();
@@ -200,7 +250,7 @@ pub fn build(
 ///
 /// let query = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
-/// let ms_vectors = matches(&query, &sbwt, &lcs, DerandomizeOpts::default());
+/// let ms_vectors = matches(&query, &sbwt, &lcs, MatchOpts::default());
 /// // `ms_vectors` has ['-','-','-','-','-','-','-','-','-','M','M','M','-','-']
 /// # assert_eq!(ms_vectors, vec!['-','-','-','-','-','-','-','-','-','M','M','M','-','-']);
 /// ```
@@ -209,11 +259,11 @@ pub fn matches(
     query_seq: &[u8],
     sbwt: &SbwtIndexVariant,
     lcs: &sbwt::LcsArray,
-    derand_opts: derandomize::DerandomizeOpts,
+    match_opts: MatchOpts,
 ) -> Vec<char> {
     let (k, threshold) = match sbwt {
 	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, derand_opts.max_error_prob))
+	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, match_opts.max_error_prob))
 	},
     };
 
@@ -237,7 +287,7 @@ pub fn matches(
 /// use kbo::build;
 /// use kbo::map;
 /// use kbo::index::BuildOpts;
-/// use kbo::derandomize::DerandomizeOpts;
+/// use kbo::MapOpts;
 ///
 /// let query: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
 /// let mut opts = BuildOpts::default();
@@ -247,7 +297,7 @@ pub fn matches(
 ///
 /// let reference = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
-/// let alignment = map(&reference, &sbwt_query, &lcs_query, DerandomizeOpts::default());
+/// let alignment = map(&reference, &sbwt_query, &lcs_query, MapOpts::default());
 /// // `ms_vectors` has [45,45,45,45,45,45,45,45,45,65,71,71,45,45]
 /// # assert_eq!(alignment, vec![45,45,45,45,45,45,45,45,45,65,71,71,45,45]);
 /// ```
@@ -256,11 +306,11 @@ pub fn map(
     ref_seq: &[u8],
     query_sbwt: &SbwtIndexVariant,
     query_lcs: &sbwt::LcsArray,
-    derand_opts: derandomize::DerandomizeOpts,
+    map_opts: MapOpts,
 ) -> Vec<u8> {
     let (k, threshold) = match query_sbwt {
 	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, derand_opts.max_error_prob))
+	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, map_opts.max_error_prob))
 	},
     };
 
@@ -316,9 +366,9 @@ pub fn find(
     lcs: &sbwt::LcsArray,
     find_opts: FindOpts,
 ) -> Vec<format::RLE> {
-    let mut derand_opts = derandomize::DerandomizeOpts::default();
-    derand_opts.max_error_prob = find_opts.max_error_prob.clone();
-    let aln = matches(query_seq, sbwt, lcs, derand_opts);
+    let mut match_opts = MatchOpts::default();
+    match_opts.max_error_prob = find_opts.max_error_prob.clone();
+    let aln = matches(query_seq, sbwt, lcs, match_opts);
     if find_opts.max_gaps > 0 || find_opts.max_gap_len > 0 {
         format::run_lengths_gapped(&aln, find_opts.max_gaps, find_opts.max_gap_len)
     } else {

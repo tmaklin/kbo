@@ -238,8 +238,8 @@ fn main() {
 			sbwt_build_options.mem_gb = *mem_gb;
 			sbwt_build_options.temp_dir = temp_dir.clone();
 
-			let mut derand_opts = kbo::derandomize::DerandomizeOpts::default();
-			derand_opts.max_error_prob = *max_error_prob;
+			let mut map_opts = kbo::MapOpts::default();
+			map_opts.max_error_prob = *max_error_prob;
 
 			rayon::ThreadPoolBuilder::new()
 				.num_threads(*num_threads)
@@ -256,7 +256,7 @@ fn main() {
 
 				let mut res: Vec<u8> = Vec::new();
 				ref_data.iter().for_each(|ref_contig| {
-					res.append(&mut kbo::map(ref_contig, &sbwt, &lcs, derand_opts.clone()));
+					res.append(&mut kbo::map(ref_contig, &sbwt, &lcs, map_opts.clone()));
 				});
 
 				let _ = writeln!(&mut stdout.lock(),
