@@ -187,10 +187,16 @@ fn main() {
 						let seq = seqrec.normalize(true);
 
 						// Get local alignments for forward strand
-						res = kbo::find(&seq, &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '+', x.2 + x.3, x.3, ref_contig.clone(), query_contig.to_string().clone())).collect();
+						res = kbo::find(&seq, &sbwt, &lcs, derand_opts.clone())
+							.iter()
+							.map(|x| (x.start, x.end, '+', x.matches + x.mismatches + x.jumps + x.gap_bases, x.mismatches,
+									  ref_contig.clone(), query_contig.to_string().clone())).collect();
 
 						// Add local alignments for reverse _complement
-						res.append(&mut kbo::find(&seq.reverse_complement(), &sbwt, &lcs, derand_opts.clone()).iter().map(|x| (x.0, x.1, '-', x.2 + x.3, x.3, ref_contig.clone(), query_contig.to_string().clone())).collect());
+						res.append(&mut kbo::find(&seq.reverse_complement(), &sbwt, &lcs, derand_opts.clone())
+								   .iter()
+								   .map(|x| (x.start, x.end, '+', x.matches + x.mismatches + x.jumps + x.gap_bases, x.mismatches,
+											 ref_contig.clone(), query_contig.to_string().clone())).collect());
 					}
 					res
 				}).flatten().collect();
