@@ -128,8 +128,13 @@ pub fn run_lengths(
 /// ## Format a refined translation
 /// ```rust
 /// use kbo::format::relative_to_ref;
+///
+/// // Ref sequence     : A,A,A,G,A,A,C,C,A,  T,C,A,G,G,G,C,G
+/// // Query sequence   : C,A,A,G,-,-,C,C,A,C,T,C,A,G,G,G,-,-
+/// // Translation      : C,M,M,R,-,-,R,M,M, ,M,M,M,M,M,M,-,-
+///
 /// let reference: Vec<u8> = vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G'];
-/// let refined: Vec<char> = vec!['C','M','M','R','-','-','R','M','M','C','M','M','M','M','M','M','-','-'];
+/// let refined: Vec<char> = vec!['C','M','M','R','-','-','R','M','M','M','M','M','M','M','M','-','-'];
 ///
 /// let relative = relative_to_ref(&reference, &refined);
 /// # let expected = vec![b'C',b'A',b'A',b'G',b'-',b'-',b'C',b'C',b'A',b'T',b'C',b'A',b'G',b'G',b'G',b'-',b'-'];
