@@ -131,6 +131,102 @@ pub fn run_lengths(
     encodings
 }
 
+/// Extracts run length encodings while allowing some gaps.
+///
+/// Traverses the character representation of the alignment stored in `aln` and
+/// counts the consecutive run lengths of sections that align to the reference.
+/// A base is counted as aligned if its character representation is not '-' or ' '.
+///
+/// Compared to [run_lengths], gapped_run_lengths allows `max_gap_opens` gapped
+/// segments (consecutive '-'s) within an alignment block. The gapped segments
+/// can be at most `max_gap_len` bases long before the alignment is broken.
+///
+/// This function can be used for both plain and refined translations.
+///
+/// Returns a vector of [Run Length Encodings (RLE)](RLE) structs.
+///
+/// The run length is the sum of the matching and mismatching bases.
+///
+/// # Examples
+/// ## Extract run lengths from a character representation
+/// ```rust
+/// use kbo::format::run_lengths_gapped;
+/// use kbo::format::RLE;
+///
+/// // Parameters       : k = 3, threshold = 2
+/// // Parameters       : max_gaps = 3, max_gap_len = 3
+/// //
+/// // Ref sequence     : A,A,A,G,A,A,C,C,A,-,T,C,A, -,-,G,G,G, C,G
+/// // Query sequence   : C,A,A,G,-,-,C,C,A,C,T,C,A, T,T,G,G,G, T,C
+/// // Input MS         : 0,1,2,3,    1,2,3,0,1,2,3,-1,0,1,2,3,-1,0
+/// // Translation      : X,M,M,R, , ,R,M,M,X,M,M,M,  , ,M,M,M, -,-
+/// ///
+/// // Expected output: [(1,  11, 9, 2),
+/// //                   (14, 16, 3, 0)]
+///
+/// let input: Vec<char> = vec!['X','M','M','R','R','M','M','X','M','M','M','-','-','M','M','M','-','-'];
+/// let run_lengths = run_lengths_gapped(&input, 3, 3);
+/// # let expected = vec![RLE{start: 1, end: 18, matches: 12, mismatches: 2, jumps: 1, gap_bases: 4, gap_opens: 2}];
+/// # assert_eq!(run_lengths, expected);
+/// ```
+///
+pub fn run_lengths_gapped(
+    aln: &[char],
+    max_gaps: usize,
+    max_gap_len: usize,
+) -> Vec<RLE> {
+    let mut encodings: Vec<RLE> = Vec::new();
+
+    let mut i = 0;
+    let mut match_start: bool = false;
+    while i < aln.len() {
+        match_start = (aln[i] != '-' && aln[i] != ' ') && !match_start;
+        let mut jumps = 0;
+        if match_start {
+            let mut current_gap_bases = 0;
+            let mut total_gap_bases = 0;
+            let mut gap_opens = 0;
+            let mut gap_start = false;
+            let start = i;
+            let mut matches: usize = 0;
+            while i < aln.len() && (gap_opens <= max_gaps && aln[i] != ' ') {
+                if aln[i] == '-' && !gap_start {
+                    gap_start = true;
+                    gap_opens += 1;
+                    current_gap_bases = 0;
+                }
+                if aln[i] != '-' && gap_start {
+                    gap_start = false;
+                }
+                total_gap_bases += (aln[i] == '-') as usize;
+                current_gap_bases += (aln[i] == '-') as usize;
+                if current_gap_bases > max_gap_len {
+                    break
+                }
+                matches += (aln[i] == 'M' || aln[i] == 'R') as usize;
+                jumps += (aln[i] == 'R') as usize;
+                i += 1;
+            }
+            if current_gap_bases <= max_gap_len {
+                let rle: RLE = RLE{
+                    start: start + 1,
+                    end: i,
+                    matches,
+                    mismatches: i - start - matches - total_gap_bases,
+                    jumps: jumps / 2,
+                    gap_bases: total_gap_bases,
+                    gap_opens,
+                };
+                encodings.push(rle);
+            }
+            match_start = false;
+        } else {
+            i += 1;
+        }
+    }
+    encodings
+}
+
 /// Format a refined translation relative to the reference sequence.
 ///
 /// Jointly reads nucleotides from the reference sequence `ref_seq` and the
