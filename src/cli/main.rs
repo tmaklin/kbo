@@ -123,6 +123,8 @@ fn main() {
 			index_prefix,
 			detailed,
 			min_len,
+			max_gap_len,
+			max_gaps,
 			max_error_prob,
 			num_threads,
             kmer_size,
@@ -143,6 +145,8 @@ fn main() {
 
 			let mut find_opts = kbo::FindOpts::default();
 			find_opts.max_error_prob = *max_error_prob;
+			find_opts.max_gap_len = *max_gap_len as usize;
+			find_opts.max_gaps = *max_gaps as usize;
 
 			let mut indexes: Vec<((sbwt::SbwtIndexVariant, sbwt::LcsArray), String)> = Vec::new();
 
