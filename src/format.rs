@@ -68,11 +68,7 @@ impl Default for RLE {
 ///
 /// This function can be used for both plain and refined translations.
 ///
-/// Returns a vector where each element contains 4 elements with the contents:
-/// - Start position of a run of consecutive characters (indexing starts from 1).
-/// - End position of a run of consecutive characters (indexing starts from 1).
-/// - Number matching bases in the run (character representation is 'M' or 'R').
-/// - Number mismatching bases in the run (character representation is not 'M', '-', or ' ').
+/// Returns a vector of [Run Length Encodings (RLE)](RLE) structs.
 ///
 /// The run length is the sum of the matching and mismatching bases.
 ///
