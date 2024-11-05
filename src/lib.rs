@@ -150,15 +150,45 @@
 //! ```text
 //! kbo find --reference GCF_000714595.1_ASM71459v1_genomic.fna db.fasta
 //! ```
-//! which will return
-//! ```text
-//! TODO add output
-//! ```text
-//! ## kbo map
-//! TODO write
-//! ```
 //!
-//! ```
+//! <details>
+//! <summary>
+//! which will return (click to expand)
+//! </summary>
+//!
+//! |query|ref|q.start|q.end|strand|length|mismatches|query.contig|ref.contig|
+//! |-----|---|-------|-----|------|------|----------|------------|----------|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|513|+|513|1|GCF_000714595.1_ASM71459v1_genomic.fna|clbS\|locus_tag=ECOK1_RS11325\|product="colibactin self-protection protein ClbS"\|protein_id=WP_000290498.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|723|+|723|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbQ\|locus_tag=ECOK1_RS11330\|product="colibactin biosynthesis thioesterase ClbQ"\|protein_id=WP_000065646.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|1515|+|1515|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbP\|locus_tag=ECOK1_RS11335\|product="precolibactin peptidase ClbP"\|protein_id=WP_002430641.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|2460|+|2460|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbO\|locus_tag=ECOK1_RS11340\|product="colibactin polyketide synthase ClbO"\|protein_id=WP_001029878.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|4368|+|4369|1|GCF_000714595.1_ASM71459v1_genomic.fna|clbN\|locus_tag=ECOK1_RS11345\|product="colibactin non-ribosomal peptide synthetase ClbN"\|protein_id=WP_001327259.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|1208|+|1208|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbM\|locus_tag=ECOK1_RS11350\|product="precolibactin export MATE transporter ClbM"\|protein_id=WP_000217768.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|1440|+|1440|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbM\|locus_tag=ECOK1_RS11350\|product="precolibactin export MATE transporter ClbM"\|protein_id=WP_000217768.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|1464|+|1464|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbL\|locus_tag=ECOK1_RS11355\|product="colibactin biosynthesis amidase ClbL"\|protein_id=WP_001297937.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|6465|+|6465|2|GCF_000714595.1_ASM71459v1_genomic.fna|clbK\|locus_tag=ECOK1_RS11360\|product="colibactin hybrid non-ribosomal peptide synthetase/type I polyketide synthase ClbK"\|protein_id=WP_000222467.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|6501|+|6501|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbJ\|locus_tag=ECOK1_RS11365\|product="colibactin non-ribosomal peptide synthetase ClbJ"\|protein_id=WP_001468003.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|3033|+|3033|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbI\|locus_tag=ECOK1_RS11370\|product="colibactin polyketide synthase ClbI"\|protein_id=WP_000829570.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|4797|+|4797|2|GCF_000714595.1_ASM71459v1_genomic.fna|clbH\|locus_tag=ECOK1_RS11375\|product="colibactin non-ribosomal peptide synthetase ClbH"\|protein_id=WP_001304254.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|1269|+|1269|1|GCF_000714595.1_ASM71459v1_genomic.fna|clbG\|locus_tag=ECOK1_RS11380\|product="colibactin biosynthesis acyltransferase ClbG"\|protein_id=WP_000159201.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|1131|+|1131|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbF\|locus_tag=ECOK1_RS11385\|product="colibactin biosynthesis dehydrogenase ClbF"\|protein_id=WP_000337350.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|249|+|249|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbE\|locus_tag=ECOK1_RS11390\|product="colibactin biosynthesis aminomalonyl-acyl carrier protein ClbE"\|protein_id=WP_001297917.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|870|+|870|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbD\|locus_tag=ECOK1_RS11395\|product="colibactin biosynthesis dehydrogenase ClbD"\|protein_id=WP_000982270.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|2601|+|2601|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbC\|locus_tag=ECOK1_RS11400\|product="colibactin polyketide synthase ClbC"\|protein_id=WP_001297908.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|9621|+|9622|1|GCF_000714595.1_ASM71459v1_genomic.fna|clbB\|locus_tag=ECOK1_RS11405\|product="colibactin hybrid non-ribosomal peptide synthetase/type I polyketide synthase ClbB"\|protein_id=WP_001518711.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|213|+|213|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbR\|locus_tag=ECOK1_RS11410\|product="colibactin biosynthesis LuxR family transcriptional regulator ClbR"\|protein_id=WP_000357141.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|735|+|735|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbA\|locus_tag=ECOK1_RS11415\|product="colibactin biosynthesis phosphopantetheinyl transferase ClbA"\|protein_id=WP_001217110.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|519|+|519|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbS-like_4ce09a|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1|519|+|519|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbS-like_4ce09a|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|216|1464|+|1249|0|GCF_000714595.1_ASM71459v1_genomic.fna|clbL\|locus_tag=ECOK1_RS11355\|product="colibactin biosynthesis amidase ClbL"\|protein_id=WP_001297937.1|
+//! |db.fasta|GCF_000714595.1_ASM71459v1_genomic.fna|1156|4167|+|3013|1|GCF_000714595.1_ASM71459v1_genomic.fna|clbN\|locus_tag=ECOK1_RS11345\|product="colibactin non-ribosomal peptide synthetase ClbN"\|protein_id=WP_001327259.1|
+//!
+//! </details>
+//!
+//! ## kbo map
+//!
+//! TODO write
+//!
 //!
 
 #![warn(missing_docs,
