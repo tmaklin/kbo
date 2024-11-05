@@ -19,14 +19,14 @@
 //! Currently, kbo supports two main operations:
 //!
 //! - `kbo find` [matches](matches()) the _k_-mers in a query sequence with the
-//! reference and reports the local alignment segments found within the
-//! reference. Find is useful for problems that can be solved with
-//! [blast](https://blast.ncbi.nlm.nih.gov/Blast.cgi).
+//!   reference and reports the local alignment segments found within the
+//!   reference. Find is useful for problems that can be solved with
+//!   [blast](https://blast.ncbi.nlm.nih.gov/Blast.cgi).
 //! - `kbo map` [maps](map()) the query sequence against a reference
-//! sequence, and reports the nucleotide sequence of the alignment relative to
-//! the reference. Map solves the same problem as
-//! [snippy](https://github.com/tseemann/snippy) and [ska
-//! map](https://docs.rs/ska/latest/ska/#ska-map).
+//!   sequence, and reports the nucleotide sequence of the alignment relative to
+//!   the reference. Map solves the same problem as
+//!   [snippy](https://github.com/tseemann/snippy) and [ska
+//!   map](https://docs.rs/ska/latest/ska/#ska-map).
 //!
 //! kbo uses the [Spectral Burrows-Wheeler
 //! Transform](https://docs.rs/sbwt/latest/sbwt/) data structure that allows
@@ -43,6 +43,10 @@
 //! relevant in `kbo find` analyses where the reference _k_-mers can be
 //! concatenated into a single contig.
 //!
+//! kbo can read inputs compressed in the DEFLATE format (gzip, zlib, etc.).
+//! bzip2 and xz support can be enabled by adding the "bzip2" and "xz" feature
+//! flags to [needletail](https://docs.rs/needletail) in the kbo Cargo.toml.
+//!
 //! ## kbo find
 //!
 //! To set up the example, download the fasta sequence of the [_Escherichia
@@ -58,14 +62,91 @@
 //! ```text
 //! kbo find --reference db.fasta GCF_000714595.1_ASM71459v1_genomic.fna
 //! ```
-//! This will produce the output
-//! 
+//! <details>
+//! <summary>
+//! This will produce the output (click to expand)
+//! </summary>
+//!
+//! |query|ref|q.start|q.end|strand|length|mismatches|query.contig|ref.contig|
+//! |-----|---|-------|-----|------|------|----------|------------|----------|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|226708|227226|+|519|0|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|2289596|2290543|+|949|0|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3152039|3161660|+|9623|1|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3161701|3164301|+|2601|0|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3164311|3165180|+|870|0|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3165210|3165458|+|249|0|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3165462|3167857|+|2397|1|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3167905|3172701|+|4797|2|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3172751|3175783|+|3033|0|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3175827|3182327|+|6501|0|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3182338|3190258|+|7922|1|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3190320|3196124|+|5807|1|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3196155|3198614|+|2460|0|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3198627|3200856|+|2231|0|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3200891|3201403|+|513|1|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|4502887|4503405|+|519|0|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|5145962|5147210|+|1249|0|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|5147272|5149449|+|2179|0|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|5351015|5351533|+|519|0|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|5352280|5352503|+|224|0|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|5354674|5356713|+|2040|1|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|5381795|5381945|+|151|0|db.fasta|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//!
+//! </summary>
+//! </details>
+//!
+//! ### Find gene sequence locations with names
+//! If you need to know which gene in db.fasta the matches are for, add the `--detailed` toggle:
 //! ```text
-//! TODO add output
+//! kbo find --detailed --reference db.fasta GCF_000714595.1_ASM71459v1_genomic.fna
 //! ```
 //!
-//! ### Find presence/absence of gene sequences
-//! Alternatively, if you are only interested in containment of the `db.fasta` genes in the assembly, run
+//! <details>
+//! <summary>
+//! This replaces the query.contig column with the name of the contig (click to expand)
+//! </summary>
+//!
+//! |query|ref|q.start|q.end|strand|length|mismatches|query.contig|ref.contig|
+//! |-----|---|-------|-----|------|------|----------|------------|----------|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|226708|227226|+|519|0|clbS-like_4ce09a|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|2289596|2289808|+|213|0|clbR locus_tag=ECOK1_RS11410 product="colibactin biosynthesis LuxR family transcriptional regulator ClbR" protein_id=WP_000357141.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|2289809|2290543|+|735|0|clbA locus_tag=ECOK1_RS11415 product="colibactin biosynthesis phosphopantetheinyl transferase ClbA" protein_id=WP_001217110.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3152039|3161660|+|9623|1|clbB locus_tag=ECOK1_RS11405 product="colibactin hybrid non-ribosomal peptide synthetase/type I polyketide synthase ClbB" protein_id=WP_001518711.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3161701|3164301|+|2601|0|clbC locus_tag=ECOK1_RS11400 product="colibactin polyketide synthase ClbC" protein_id=WP_001297908.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3164311|3165180|+|870|0|clbD locus_tag=ECOK1_RS11395 product="colibactin biosynthesis dehydrogenase ClbD" protein_id=WP_000982270.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3165210|3165458|+|249|0|clbE locus_tag=ECOK1_RS11390 product="colibactin biosynthesis aminomalonyl-acyl carrier protein ClbE" protein_id=WP_001297917.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3165462|3166592|+|1131|0|clbF locus_tag=ECOK1_RS11385 product="colibactin biosynthesis dehydrogenase ClbF" protein_id=WP_000337350.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3166589|3167857|+|1269|1|clbG locus_tag=ECOK1_RS11380 product="colibactin biosynthesis acyltransferase ClbG" protein_id=WP_000159201.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3167905|3172701|+|4797|2|clbH locus_tag=ECOK1_RS11375 product="colibactin non-ribosomal peptide synthetase ClbH" protein_id=WP_001304254.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3172751|3175783|+|3033|0|clbI locus_tag=ECOK1_RS11370 product="colibactin polyketide synthase ClbI" protein_id=WP_000829570.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3175827|3182327|+|6501|0|clbJ locus_tag=ECOK1_RS11365 product="colibactin non-ribosomal peptide synthetase ClbJ" protein_id=WP_001468003.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3180417|3181703|+|1287|2|clbK locus_tag=ECOK1_RS11360 product="colibactin hybrid non-ribosomal peptide synthetase/type I polyketide synthase ClbK" protein_id=WP_000222467.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3182338|3188802|+|6465|2|clbK locus_tag=ECOK1_RS11360 product="colibactin hybrid non-ribosomal peptide synthetase/type I polyketide synthase ClbK" protein_id=WP_000222467.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3186070|3187356|+|1287|1|clbJ locus_tag=ECOK1_RS11365 product="colibactin non-ribosomal peptide synthetase ClbJ" protein_id=WP_001468003.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3188795|3190258|+|1464|0|clbL locus_tag=ECOK1_RS11355 product="colibactin biosynthesis amidase ClbL" protein_id=WP_001297937.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3190320|3191759|+|1440|0|clbM locus_tag=ECOK1_RS11350 product="precolibactin export MATE transporter ClbM" protein_id=WP_000217768.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3191756|3196124|+|4370|1|clbN locus_tag=ECOK1_RS11345 product="colibactin non-ribosomal peptide synthetase ClbN" protein_id=WP_001327259.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3196155|3198614|+|2460|0|clbO locus_tag=ECOK1_RS11340 product="colibactin polyketide synthase ClbO" protein_id=WP_001029878.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3198627|3200141|+|1515|0|clbP locus_tag=ECOK1_RS11335 product="precolibactin peptidase ClbP" protein_id=WP_002430641.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3200134|3200856|+|723|0|clbQ locus_tag=ECOK1_RS11330 product="colibactin biosynthesis thioesterase ClbQ" protein_id=WP_000065646.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|3200891|3201403|+|513|1|clbS locus_tag=ECOK1_RS11325 product="colibactin self-protection protein ClbS" protein_id=WP_000290498.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|4502887|4503405|+|519|0|clbS-like_4ce09a|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|5145962|5147210|+|1249|0|clbL locus_tag=ECOK1_RS11355 product="colibactin biosynthesis amidase ClbL" protein_id=WP_001297937.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|5147272|5148479|+|1208|0|clbM locus_tag=ECOK1_RS11350 product="precolibactin export MATE transporter ClbM" protein_id=WP_000217768.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|5148478|5149449|+|972|0|clbN locus_tag=ECOK1_RS11345 product="colibactin non-ribosomal peptide synthetase ClbN" protein_id=WP_001327259.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|5351015|5351533|+|519|0|clbS-like_4ce09a|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|5352280|5352503|+|224|0|clbS-like_4ce09a|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|5354674|5356713|+|2040|1|clbN locus_tag=ECOK1_RS11345 product="colibactin non-ribosomal peptide synthetase ClbN" protein_id=WP_001327259.1|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//! |GCF_000714595.1_ASM71459v1_genomic.fna|db.fasta|5381795|5381945|+|151|0|clbS-like_4ce09a|NZ_CP007799.1 Escherichia coli Nissle 1917 chromosome, complete genome|
+//!
+//! </details>
+//!
+//! Note that the current implementation `--detailed` significantly slows down
+//! the algorithm. Future versions of kbo may address this by incorporating
+//! colors in the index structure.
+//!
+//! ### Find containment of gene sequences in assembly
+//! Alternatively, if you are only interested in whether the contigs in `db.fasta` are present in the assembly, run
 //! ```text
 //! kbo find --reference GCF_000714595.1_ASM71459v1_genomic.fna db.fasta
 //! ```
