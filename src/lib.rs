@@ -187,8 +187,33 @@
 //!
 //! ## kbo map
 //!
-//! TODO write
+//! kbo map can be used to align a query sequence against a reference sequence.
+//! This is useful in for example generating a reference-based alignment of
+//! multiple related genomes against a good reference assembly.
 //!
+//! To run this example, download the genome sequence of the [_E. coli_
+//! UTI89](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000013265.1/) strain
+//! from the NCBI (ASM1326v1).
+//!
+//! ### Reference-based alignment
+//! Run
+//! ```text
+//! kbo map --reference GCF_000714595.1_ASM71459v1_genomic.fna GCF_000013265.1_ASM1326v1_genomic.fna > result.aln
+//! ```
+//!
+//! which will write the alignment sequence to `result.aln`. Note that kbo map
+//! always writes to stdout.
+//!
+//! If you have multiple sequences you need to align, either supply them as
+//! arguments to `kbo map` or process them using gnu parallel:
+//!
+//! ```text
+//! parallel -j 'kbo map --reference GCF_000714595.1_ASM71459v1_genomic.fna {}' < query_paths.txt > result.aln
+//! ```
+//!
+//! kbo map also accepts the `--threads` argument to parallelise either the
+//! index construction (in the case of a single query), or run in parallel over
+//! the input files (multiple queries).
 //!
 
 #![warn(missing_docs,
