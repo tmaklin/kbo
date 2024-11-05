@@ -189,12 +189,11 @@ fn main() {
 					while let Some(seqrec) = read_from_fastx_parser(&mut *reader) {
 						let query_contig = std::str::from_utf8(seqrec.id()).expect("UTF-8");
 						let seq = seqrec.normalize(true);
-
 						// Get local alignments for forward strand
-						res = kbo::find(&seq, &sbwt, &lcs, find_opts.clone())
-							.iter()
-							.map(|x| (x.start, x.end, '+', x.matches + x.mismatches + x.jumps + x.gap_bases, x.mismatches,
-									  ref_contig.clone(), query_contig.to_string().clone())).collect();
+						res.append(&mut kbo::find(&seq, &sbwt, &lcs, find_opts.clone())
+								   .iter()
+								   .map(|x| (x.start, x.end, '+', x.matches + x.mismatches + x.jumps + x.gap_bases, x.mismatches,
+											 ref_contig.clone(), query_contig.to_string().clone())).collect());
 
 						// Add local alignments for reverse _complement
 						res.append(&mut kbo::find(&seq.reverse_complement(), &sbwt, &lcs, find_opts.clone())
