@@ -262,9 +262,9 @@ pub fn matches(
     match_opts: MatchOpts,
 ) -> Vec<char> {
     let (k, threshold) = match sbwt {
-	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, match_opts.max_error_prob))
-	},
+        SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+            (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, match_opts.max_error_prob))
+        },
     };
 
     let noisy_ms: Vec<usize> = index::query_sbwt(query_seq, sbwt, lcs).iter().map(|x| x.0).collect();
@@ -309,9 +309,9 @@ pub fn map(
     map_opts: MapOpts,
 ) -> Vec<u8> {
     let (k, threshold) = match query_sbwt {
-	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-	    (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, map_opts.max_error_prob))
-	},
+        SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+            (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, map_opts.max_error_prob))
+        },
     };
 
     let noisy_ms = index::query_sbwt(ref_seq, query_sbwt, query_lcs);
