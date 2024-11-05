@@ -148,24 +148,31 @@ fn main() {
 			find_opts.max_gap_len = *max_gap_len as usize;
 			find_opts.max_gaps = *max_gaps as usize;
 
-			let mut indexes: Vec<((sbwt::SbwtIndexVariant, sbwt::LcsArray), String)> = Vec::new();
+			let mut indexes: Vec<((sbwt::SbwtIndexVariant, sbwt::LcsArray), String, usize)> = Vec::new();
 
 			if index_prefix.is_some() && !ref_file.is_some() {
 				info!("Loading SBWT index...");
-				indexes.push((kbo::index::load_sbwt(index_prefix.as_ref().unwrap()), index_prefix.clone().unwrap()));
+				let (sbwt, lcs) = kbo::index::load_sbwt(index_prefix.as_ref().unwrap());
+				let n_kmers = match sbwt {
+					sbwt::SbwtIndexVariant::SubsetMatrix(ref index) => {
+						index.n_kmers()
+					},
+				};
+				indexes.push(((sbwt, lcs), index_prefix.clone().unwrap(), n_kmers + *kmer_size - 1));
 			} else if !index_prefix.is_some() && ref_file.is_some() {
 				info!("Building SBWT from file {}...", ref_file.as_ref().unwrap());
 
 				if !*detailed {
 					let ref_data = read_fastx_file(ref_file.as_ref().unwrap());
-					indexes.push((kbo::index::build_sbwt_from_vecs(&ref_data, &Some(sbwt_build_options)), ref_file.clone().unwrap()));
+					let n_bases = ref_data.iter().map(|x| x.len()).reduce(|a, b| a + b).unwrap();
+					indexes.push((kbo::index::build_sbwt_from_vecs(&ref_data, &Some(sbwt_build_options)), ref_file.clone().unwrap(), n_bases));
 				} else {
 					let mut reader = needletail::parse_fastx_file(ref_file.as_ref().unwrap()).expect("valid path/file");
 					while let Some(seqrec) = read_from_fastx_parser(&mut *reader) {
 						let contig = seqrec.id();
 						let contig_name = std::str::from_utf8(contig).expect("UTF-8");
 						let seq = seqrec.normalize(true);
-						indexes.push((kbo::index::build_sbwt_from_vecs(&[seq.to_vec()], &Some(sbwt_build_options.clone())), contig_name.to_string()));
+						indexes.push((kbo::index::build_sbwt_from_vecs(&[seq.to_vec()], &Some(sbwt_build_options.clone())), contig_name.to_string(), seq.len()));
 					}
 				}
 
@@ -180,38 +187,55 @@ fn main() {
 				.unwrap();
 
 			info!("Querying SBWT index...");
-			println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches\tquery.contig\tref.contig");
+			println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches\tidentity\tcoverage\tquery.contig\tref.contig");
 			let stdout = std::io::stdout();
 			query_files.iter().for_each(|file| {
-				let mut run_lengths: Vec<(usize, usize, char, usize, usize, String, String)> = indexes.par_iter().map(|((sbwt, lcs), ref_contig)| {
+				let mut run_lengths: Vec<(kbo::format::RLE, char, String, String, usize)> = indexes.par_iter().map(|((sbwt, lcs), ref_contig, ref_bases)| {
 					let mut reader = needletail::parse_fastx_file(file).expect("valid path/file");
-					let mut res: Vec<(usize, usize, char, usize, usize, String, String)> = Vec::new();
+					let mut res: Vec<(kbo::format::RLE, char, String, String, usize)> = Vec::new();
 					while let Some(seqrec) = read_from_fastx_parser(&mut *reader) {
 						let query_contig = std::str::from_utf8(seqrec.id()).expect("UTF-8");
 						let seq = seqrec.normalize(true);
 						// Get local alignments for forward strand
 						res.append(&mut kbo::find(&seq, &sbwt, &lcs, find_opts.clone())
 								   .iter()
-								   .map(|x| (x.start, x.end, '+', x.matches + x.mismatches + x.jumps + x.gap_bases, x.mismatches,
-											 ref_contig.clone(), query_contig.to_string().clone())).collect());
+								   .map(|x| (*x, '+',
+											 ref_contig.clone(), query_contig.to_string().clone(),
+											 ref_bases.clone()
+								   )).collect());
 
 						// Add local alignments for reverse _complement
 						res.append(&mut kbo::find(&seq.reverse_complement(), &sbwt, &lcs, find_opts.clone())
 								   .iter()
-								   .map(|x| (x.start, x.end, '+', x.matches + x.mismatches + x.jumps + x.gap_bases, x.mismatches,
-											 ref_contig.clone(), query_contig.to_string().clone())).collect());
+								   .map(|x| (*x, '-',
+											 ref_contig.clone(), query_contig.to_string().clone(),
+											 ref_bases.clone()
+								   )).collect());
 					}
 					res
 				}).flatten().collect();
 
 				// Sort by q.start
-				run_lengths.sort_by_key(|x| x.0);
+				run_lengths.sort_by_key(|(aln, _, _, _, _)| aln.start);
 
 				// Print results with query and ref name added
-				run_lengths.iter().filter(|x| x.1 - x.0 + 1 >= *min_len as usize).for_each(|x| {
+				run_lengths.iter().filter(|x| x.0.end - x.0.start + 1 >= *min_len as usize)
+								  .for_each(|(aln, strand, ref_contig, query_contig, ref_bases)| {
+									  let aln_len = aln.end - aln.start + 1;
+									  let coverage = (aln_len as f64)/(*ref_bases as f64) * 100_f64;
+									  let identity = (aln.matches as f64)/(aln_len as f64) * 100_f64;
 					let _ = writeln!(&mut stdout.lock(),
-									 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-									 file, ref_file.clone().unwrap(), x.0, x.1, x.2, x.3, x.4, x.5, x.6);
+									 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{:.2}\t{:.2}\t{}\t{}",
+									 file, ref_file.clone().unwrap(),
+									 aln.start,
+									 aln.end,
+									 strand,
+									 aln.end - aln.start + 1,
+									 aln.mismatches,
+									 identity,
+									 coverage,
+									 query_contig,
+									 ref_contig);
 				});
 			});
 		},
