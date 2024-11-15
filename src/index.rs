@@ -18,6 +18,7 @@ use std::ops::Range;
 use std::path::PathBuf;
 
 use sbwt::BitPackedKmerSorting;
+use sbwt::BitPackedKmerSortingMem;
 use sbwt::SbwtIndexBuilder;
 use sbwt::SbwtIndexVariant;
 
@@ -116,22 +117,40 @@ pub fn build_sbwt_from_vecs(
     assert!(!slices.is_empty());
 
     let build_opts = if build_options.is_some() { build_options.clone().unwrap() } else { BuildOpts::default() };
-    let temp_dir = if build_opts.temp_dir.is_some() { build_opts.temp_dir.unwrap() } else { std::env::temp_dir().to_str().unwrap().to_string() };
 
-    let algorithm = BitPackedKmerSorting::new()
-	.mem_gb(build_opts.mem_gb)
-	.dedup_batches(build_opts.dedup_batches)
-	.temp_dir(PathBuf::from(OsString::from(temp_dir)).as_path());
+    // Use temporary disk space if temp_dir is given,
+    // otherwise build fully in memory.
+    let (sbwt, lcs) = if build_opts.temp_dir.is_some() {
+        let temp_dir = build_opts.temp_dir.unwrap();
+        let algorithm = BitPackedKmerSorting::new()
+            .mem_gb(build_opts.mem_gb)
+            .dedup_batches(build_opts.dedup_batches)
+            .temp_dir(PathBuf::from(OsString::from(temp_dir)).as_path());
 
-    let (sbwt, lcs) = SbwtIndexBuilder::new()
-	.k(build_opts.k)
-	.n_threads(build_opts.num_threads)
-	.add_rev_comp(build_opts.add_revcomp)
-	.algorithm(algorithm)
-	.build_lcs(true)
-	.build_select_support(build_opts.build_select)
-	.precalc_length(build_opts.prefix_precalc)
-	.run_from_vecs(slices);
+        SbwtIndexBuilder::new()
+            .k(build_opts.k)
+            .n_threads(build_opts.num_threads)
+            .add_rev_comp(build_opts.add_revcomp)
+            .algorithm(algorithm)
+            .build_lcs(true)
+            .build_select_support(build_opts.build_select)
+            .precalc_length(build_opts.prefix_precalc)
+            .run_from_vecs(slices)
+    } else {
+        let algorithm = BitPackedKmerSortingMem::new()
+            .dedup_batches(build_opts.dedup_batches);
+
+        SbwtIndexBuilder::new()
+            .k(build_opts.k)
+            .n_threads(build_opts.num_threads)
+            .add_rev_comp(build_opts.add_revcomp)
+            .algorithm(algorithm)
+            .build_lcs(true)
+            .build_select_support(build_opts.build_select)
+            .precalc_length(build_opts.prefix_precalc)
+            .run_from_vecs(slices)
+    };
+
 
     (SbwtIndexVariant::SubsetMatrix(sbwt), lcs.unwrap())
 }
