@@ -187,7 +187,7 @@ fn main() {
 				.unwrap();
 
 			info!("Querying SBWT index...");
-			println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches\tidentity\tcoverage\tquery.contig\tref.contig");
+			println!("query\tref\tq.start\tq.end\tstrand\tlength\tmismatches\tgap_opens\tidentity\tcoverage\tquery.contig\tref.contig");
 			let stdout = std::io::stdout();
 			query_files.iter().for_each(|file| {
 				let mut run_lengths: Vec<(kbo::format::RLE, char, String, String, usize)> = indexes.par_iter().map(|((sbwt, lcs), ref_contig, ref_bases)| {
@@ -225,13 +225,14 @@ fn main() {
 									  let coverage = (aln_len as f64)/(*ref_bases as f64) * 100_f64;
 									  let identity = (aln.matches as f64)/(aln_len as f64) * 100_f64;
 					let _ = writeln!(&mut stdout.lock(),
-									 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{:.2}\t{:.2}\t{}\t{}",
+									 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{:.2}\t{:.2}\t{}\t{}",
 									 file, ref_file.clone().unwrap(),
 									 aln.start,
 									 aln.end,
 									 strand,
 									 aln.end - aln.start + 1,
 									 aln.mismatches,
+									 aln.gap_opens,
 									 identity,
 									 coverage,
 									 query_contig,
