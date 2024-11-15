@@ -22,7 +22,7 @@ required-features = ["cli"]
 
 [dependencies]
 ## core
-sbwt = "0.3.4"
+sbwt = { version = "0.3.4", features = ["bpks-mem"] }
 
 ## cli
 clap = { version = "4", features = ["derive"], optional = true}
