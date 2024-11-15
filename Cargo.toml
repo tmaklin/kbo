@@ -22,7 +22,7 @@ required-features = ["cli"]
 
 [dependencies]
 ## core
-sbwt = "0.3.1"
+sbwt = "0.3.4"
 
 ## cli
 clap = { version = "4", features = ["derive"], optional = true}
