@@ -183,7 +183,7 @@ fn main() {
 			rayon::ThreadPoolBuilder::new()
 				.num_threads(*num_threads)
 				.thread_name(|i| format!("rayon-thread-{}", i))
-				.build_global()
+				.build()
 				.unwrap();
 
 			info!("Querying SBWT index...");
@@ -272,7 +272,7 @@ fn main() {
 			rayon::ThreadPoolBuilder::new()
 				.num_threads(*num_threads)
 				.thread_name(|i| format!("rayon-thread-{}", i))
-				.build_global()
+				.build()
 				.unwrap();
 
 			let ref_data = read_fastx_file(ref_file);
