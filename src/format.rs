@@ -172,7 +172,6 @@ pub fn run_lengths(
 ///
 pub fn run_lengths_gapped(
     aln: &[char],
-    max_gaps: usize,
     max_gap_len: usize,
 ) -> Vec<RLE> {
     let mut encodings: Vec<RLE> = Vec::new();
@@ -189,7 +188,7 @@ pub fn run_lengths_gapped(
             let mut gap_start = false;
             let start = i;
             let mut matches: usize = 0;
-            while i < aln.len() && (gap_opens <= max_gaps && aln[i] != ' ') {
+            while i < aln.len() && (aln[i] != ' ') {
                 if aln[i] == '-' && !gap_start {
                     gap_start = true;
                     gap_opens += 1;
@@ -207,18 +206,19 @@ pub fn run_lengths_gapped(
                 jumps += (aln[i] == 'R') as usize;
                 i += 1;
             }
-            if current_gap_bases <= max_gap_len {
-                let rle: RLE = RLE{
-                    start: start + 1,
-                    end: i,
-                    matches,
-                    mismatches: i - start - matches - total_gap_bases,
-                    jumps: jumps / 2,
-                    gap_bases: total_gap_bases,
-                    gap_opens,
-                };
-                encodings.push(rle);
-            }
+
+            // TODO If the match starts or ends with a gap, the gap should be removed.
+
+            let rle: RLE = RLE{
+                start: start + 1,
+                end: i,
+                matches,
+                mismatches: i - start - matches,
+                jumps: jumps / 2,
+                gap_bases: total_gap_bases,
+                gap_opens,
+            };
+            encodings.push(rle);
             match_start = false;
         } else {
             i += 1;

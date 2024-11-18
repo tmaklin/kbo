@@ -237,9 +237,6 @@ pub struct FindOpts {
     /// Prefix match lengths with probability higher than `max_error_prob` to
     /// happen at random are considered noise.
     pub max_error_prob: f64,
-    /// Maximum number of gap segments (gap opens) allowed before splitting an
-    /// alignment.
-    pub max_gaps: usize,
     /// Maximum length of a single gap segment before splitting an alignment.
     pub max_gap_len: usize,
 }
@@ -249,7 +246,6 @@ impl Default for FindOpts {
     /// ```rust
     /// let mut opts = kbo::FindOpts::default();
     /// opts.max_error_prob = 0.0000001;
-    /// opts.max_gaps = 0;
     /// opts.max_gap_len = 0;
     /// # let expected = kbo::FindOpts::default();
     /// # assert_eq!(opts, expected);
@@ -258,7 +254,6 @@ impl Default for FindOpts {
     fn default() -> FindOpts {
         FindOpts {
             max_error_prob: 0.0000001,
-            max_gaps: 0,
             max_gap_len: 0,
         }
     }
@@ -503,10 +498,10 @@ pub fn find(
     find_opts: FindOpts,
 ) -> Vec<format::RLE> {
     let mut match_opts = MatchOpts::default();
-    match_opts.max_error_prob = find_opts.max_error_prob.clone();
+    match_opts.max_error_prob = find_opts.max_error_prob;
     let aln = matches(query_seq, sbwt, lcs, match_opts);
-    if find_opts.max_gaps > 0 || find_opts.max_gap_len > 0 {
-        format::run_lengths_gapped(&aln, find_opts.max_gaps, find_opts.max_gap_len)
+    if find_opts.max_gap_len > 0 {
+        format::run_lengths_gapped(&aln, find_opts.max_gap_len)
     } else {
         format::run_lengths(&aln)
     }
