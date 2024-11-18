@@ -34,7 +34,7 @@
 //! fast retrieval of the _k_-bounded matching statistic for each _k_-mer match.
 //!
 //! # Installing the kbo executable
-//! Run `cargo build --features cli --release`.
+//! See installation instructions at [GitHub](https://github.com/tmaklin/kbo-cli).
 //!
 //! # Usage
 //!
