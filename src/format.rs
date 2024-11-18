@@ -209,15 +209,29 @@ pub fn run_lengths_gapped(
 
             // TODO If the match starts or ends with a gap, the gap should be removed.
 
-            let rle: RLE = RLE{
-                start: start + 1,
-                end: i,
-                matches,
-                mismatches: i - start - matches,
-                jumps: jumps / 2,
-                gap_bases: total_gap_bases,
-                gap_opens,
-            };
+            let rle: RLE =
+                if aln[i] == '-' {
+                    // Don't count gaps at the end of a a match
+                    RLE{
+                        start: start + 1,
+                        end: i - current_gap_bases,
+                        matches,
+                        mismatches: i - start - matches - current_gap_bases + 1,
+                        jumps: jumps / 2,
+                        gap_bases: total_gap_bases - current_gap_bases,
+                        gap_opens: gap_opens - 1,
+                    }
+                } else {
+                    RLE{
+                        start: start + 1,
+                        end: i,
+                        matches,
+                        mismatches: i - start - matches,
+                        jumps: jumps / 2,
+                        gap_bases: total_gap_bases,
+                        gap_opens,
+                    }
+                };
             encodings.push(rle);
             match_start = false;
         } else {
