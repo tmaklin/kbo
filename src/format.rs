@@ -209,8 +209,6 @@ pub fn run_lengths_gapped(
                 i += 1;
             }
 
-            // TODO If the match starts or ends with a gap, the gap should be removed.
-
             let rle: RLE =
                 if aln[std::cmp::min(i, aln.len() - 1)] == '-' {
                     // Don't count gaps at the end of a a match
