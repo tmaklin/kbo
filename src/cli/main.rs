@@ -195,7 +195,7 @@ fn main() {
 						let query_contig = std::str::from_utf8(seqrec.id()).expect("UTF-8");
 						let seq = seqrec.normalize(true);
 						// Get local alignments for forward strand
-						res.append(&mut kbo::find(&seq, &sbwt, &lcs, find_opts.clone())
+						res.append(&mut kbo::find(&seq, sbwt, lcs, find_opts.clone())
 								   .iter()
 								   .map(|x| (*x, '+',
 											 ref_contig.clone(), query_contig.to_string().clone(),
@@ -203,7 +203,7 @@ fn main() {
 								   )).collect());
 
 						// Add local alignments for reverse _complement
-						res.append(&mut kbo::find(&seq.reverse_complement(), &sbwt, &lcs, find_opts.clone())
+						res.append(&mut kbo::find(&seq.reverse_complement(), sbwt, lcs, find_opts.clone())
 								   .iter()
 								   .map(|x| (*x, '-',
 											 ref_contig.clone(), query_contig.to_string().clone(),
