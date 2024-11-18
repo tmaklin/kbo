@@ -25,7 +25,7 @@ jobs:
       run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
 
     - name: Build binary
-      run: cargo build --features cli --verbose
+      run: cargo build --all-features --verbose
 
     - name: Run unit and integration tests
-      run: cargo test --no-fail-fast --verbose
+      run: cargo test --all-features --no-fail-fast --verbose
