@@ -83,8 +83,6 @@ pub enum Commands {
         // // Minimum length to report an alignment
         #[arg(long = "min-len", default_value_t = 100, help_heading = "Algorithm")]
         min_len: u64,
-        #[arg(long = "max-gaps", default_value_t = 0, help_heading = "Algorithm")]
-        max_gaps: u64,
         #[arg(long = "max-gap-len", default_value_t = 0, help_heading = "Algorithm")]
         max_gap_len: u64,
 
