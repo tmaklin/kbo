@@ -1,4 +1,4 @@
-// sablast: Spectral Burrows-Wheeler transform accelerated local alignment search
+// kbo: Spectral Burrows-Wheeler transform accelerated local alignment search
 //
 // Copyright 2024 Tommi Mäklin [tommi@maklin.fi].
 
@@ -43,7 +43,7 @@ use sbwt::SubsetSeq;
 /// # Examples
 /// ## Query with only matches
 /// ```rust
-/// use sablast::translate::translate_ms_val;
+/// use kbo::translate::translate_ms_val;
 ///
 /// // Parameters       : k = 3, threshold = 2
 /// //
@@ -62,7 +62,7 @@ use sbwt::SubsetSeq;
 ///
 /// ## Query with a single mismatch
 /// ```rust
-/// use sablast::translate::translate_ms_val;
+/// use kbo::translate::translate_ms_val;
 ///
 /// // Parameters       : k = 3, threshold = 2
 /// //
@@ -81,7 +81,7 @@ use sbwt::SubsetSeq;
 ///
 /// ## Query with a single insertion:
 /// ```rust
-/// use sablast::translate::translate_ms_val;
+/// use kbo::translate::translate_ms_val;
 ///
 /// // Ref sequence     : A,C,G,-,C,A,G
 /// // Query sequence   : A,C,G,C,C,A,G
@@ -103,7 +103,7 @@ use sbwt::SubsetSeq;
 ///
 /// ## Query with multiple insertions:
 /// ```rust
-/// use sablast::translate::translate_ms_val;
+/// use kbo::translate::translate_ms_val;
 ///
 /// // Ref sequence     : A,C,G, -,-,C,A,G
 /// // Query sequence   : A,C,G, T,T,C,C,A,G
@@ -120,7 +120,7 @@ use sbwt::SubsetSeq;
 /// ```
 /// ## Query with a deletion
 /// ```rust
-/// use sablast::translate::translate_ms_val;
+/// use kbo::translate::translate_ms_val;
 ///
 ///
 /// // Parameters       : k = 3, threshold = 2
@@ -146,7 +146,7 @@ use sbwt::SubsetSeq;
 ///
 /// ## Query with recombination
 /// ```rust
-/// use sablast::translate::translate_ms_val;
+/// use kbo::translate::translate_ms_val;
 ///
 /// // Parameters       : k = 3, threshold = 2
 /// //
@@ -226,7 +226,7 @@ pub fn translate_ms_val(
 /// # Examples
 /// ## Translate a generic MS vector
 /// ```rust
-/// use sablast::translate::translate_ms_vec;
+/// use kbo::translate::translate_ms_vec;
 ///
 /// // Parameters       : k = 3, threshold = 2
 /// //
@@ -243,7 +243,7 @@ pub fn translate_ms_val(
 ///
 /// ## Translate a MS vector with recombination
 /// ```rust
-/// use sablast::translate::translate_ms_vec;
+/// use kbo::translate::translate_ms_vec;
 ///
 /// // Parameters       : k = 3, threshold = 2
 /// //
@@ -315,13 +315,13 @@ pub fn translate_ms_vec(
 ///
 /// # Examples
 /// ```rust
-/// use sablast::build;
-/// use sablast::index::BuildOpts;
-/// use sablast::index::query_sbwt;
-/// use sablast::derandomize::derandomize_ms_vec;
-/// use sablast::derandomize::random_match_threshold;
-/// use sablast::translate::translate_ms_vec;
-/// use sablast::translate::refine_translation;
+/// use kbo::build;
+/// use kbo::index::BuildOpts;
+/// use kbo::index::query_sbwt;
+/// use kbo::derandomize::derandomize_ms_vec;
+/// use kbo::derandomize::random_match_threshold;
+/// use kbo::translate::translate_ms_vec;
+/// use kbo::translate::refine_translation;
 /// use sbwt::SbwtIndexVariant;
 ///
 /// // Parameters       : k = 4, threshold = 3
@@ -370,11 +370,11 @@ pub fn refine_translation(
     assert!(!translation.is_empty());
     assert!(translation.len() == noisy_ms.len());
     let k = match query_sbwt {
-	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-	    assert!(sbwt.sbwt().has_select_support());
-	    assert!(sbwt.k() > 0);
-	    sbwt.k()
-	},
+        SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+            assert!(sbwt.sbwt().has_select_support());
+            assert!(sbwt.k() > 0);
+            sbwt.k()
+        },
     };
 
     // Could prove midpoint is the best guess using conditional probabilities?
@@ -382,14 +382,14 @@ pub fn refine_translation(
 
     let mut refined = translation.to_vec().clone();
     match query_sbwt {
-	SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-	    for i in 1..(refined.len() - threshold) {
-		if refined[i - 1] == 'X' {
-		    let midpoint = if i + k - 2 < n_elements && noisy_ms[i + k - 2].0 == k - 1 { k/2 } else { (threshold + 1)/2 };
-		    refined[i - 1] = sbwt.access_kmer(noisy_ms[i + k - 2 - midpoint].1.start)[midpoint] as char;
-		}
-	    }
-	},
+        SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+            for i in 1..(refined.len() - threshold) {
+                if refined[i - 1] == 'X' {
+                    let midpoint = if i + k - 2 < n_elements && noisy_ms[i + k - 2].0 == k - 1 { k/2 } else { (threshold + 1)/2 };
+                    refined[i - 1] = sbwt.access_kmer(noisy_ms[i + k - 2 - midpoint].1.start)[midpoint] as char;
+                }
+            }
+        },
     };
     refined
 }
@@ -546,7 +546,6 @@ mod tests {
 	use crate::index::BuildOpts;
 	use crate::index::query_sbwt;
 	use crate::derandomize::derandomize_ms_vec;
-	use crate::derandomize::random_match_threshold;
 	use super::translate_ms_vec;
 	use super::refine_translation;
 	use sbwt::SbwtIndexVariant;

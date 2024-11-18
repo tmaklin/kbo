@@ -1,43 +1,18 @@
 [package]
-name = "sablast"
-version = "0.3.0"
+name = "kbo"
+version = "0.4.0"
 edition = "2021"
 rust-version = "1.77.0"
 authors = ["Tommi Mäklin <tommi@maklin.fi>"]
 description = "Spectral Burrows-Wheeler transform accelerated local alignment search"
 readme = "README.md"
-homepage = "https://github.com/tmaklin/sablast"
-repository = "https://github.com/tmaklin/sablast"
+homepage = "https://github.com/tmaklin/kbo"
+repository = "https://github.com/tmaklin/kbo"
 license = "MIT OR Apache-2.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[features]
-cli = ["dep:needletail", "dep:clap", "dep:rayon", "dep:log", "dep:stderrlog"]
-
-[[bin]]
-name = "sablast"
-path = "src/cli/main.rs"
-required-features = ["cli"]
 
 [dependencies]
 ## core
-sbwt = "0.3.1"
-
-## cli
-clap = { version = "4", features = ["derive"], optional = true}
-
-### io
-#### TODO Re-enable reading compressed sequences in needletail
-##### This requires resolving the libllzma linker issue in build_artifacts.yml
-needletail = { version = "0.5.1", default-features = false, optional = true }
-
-### logging
-log = { version = "0.4.20", optional = true }
-stderrlog = { version = "0.6.0", optional = true }
-
-### threading
-rayon = { version = "1", optional = true }
+sbwt = { version = "0.3.4", features = ["bpks-mem"] }
 
 ## docs
 embed-doc-image="0.1.4"
