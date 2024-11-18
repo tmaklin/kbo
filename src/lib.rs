@@ -497,8 +497,7 @@ pub fn find(
     lcs: &sbwt::LcsArray,
     find_opts: FindOpts,
 ) -> Vec<format::RLE> {
-    let mut match_opts = MatchOpts::default();
-    match_opts.max_error_prob = find_opts.max_error_prob;
+    let match_opts = MatchOpts { max_error_prob: find_opts.max_error_prob };
     let aln = matches(query_seq, sbwt, lcs, match_opts);
     if find_opts.max_gap_len > 0 {
         format::run_lengths_gapped(&aln, find_opts.max_gap_len)
