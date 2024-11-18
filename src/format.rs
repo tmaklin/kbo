@@ -141,6 +141,8 @@ pub fn run_lengths(
 /// segments (consecutive '-'s) within an alignment block. The gapped segments
 /// can be at most `max_gap_len` bases long before the alignment is broken.
 ///
+/// Gaps '-' are counted as mismatches.
+///
 /// This function can be used for both plain and refined translations.
 ///
 /// Returns a vector of [Run Length Encodings (RLE)](RLE) structs.
@@ -154,7 +156,7 @@ pub fn run_lengths(
 /// use kbo::format::RLE;
 ///
 /// // Parameters       : k = 3, threshold = 2
-/// // Parameters       : max_gaps = 3, max_gap_len = 3
+/// // Parameters       : max_gap_len = 3
 /// //
 /// // Ref sequence     : A,A,A,G,A,A,C,C,A,-,T,C,A, -,-,G,G,G, C,G
 /// // Query sequence   : C,A,A,G,-,-,C,C,A,C,T,C,A, T,T,G,G,G, T,C
@@ -165,8 +167,8 @@ pub fn run_lengths(
 /// //                   (14, 16, 3, 0)]
 ///
 /// let input: Vec<char> = vec!['X','M','M','R','R','M','M','X','M','M','M','-','-','M','M','M','-','-'];
-/// let run_lengths = run_lengths_gapped(&input, 3, 3);
-/// # let expected = vec![RLE{start: 1, end: 18, matches: 12, mismatches: 2, jumps: 1, gap_bases: 4, gap_opens: 2}];
+/// let run_lengths = run_lengths_gapped(&input, 3);
+/// # let expected = vec![RLE{start: 1, end: 16, matches: 12, mismatches: 5, jumps: 1, gap_bases: 2, gap_opens: 1}];
 /// # assert_eq!(run_lengths, expected);
 /// ```
 ///
@@ -210,7 +212,7 @@ pub fn run_lengths_gapped(
             // TODO If the match starts or ends with a gap, the gap should be removed.
 
             let rle: RLE =
-                if aln[i] == '-' {
+                if aln[std::cmp::min(i, aln.len() - 1)] == '-' {
                     // Don't count gaps at the end of a a match
                     RLE{
                         start: start + 1,
