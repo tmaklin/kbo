@@ -11,7 +11,9 @@ Documentation is available at [https://docs.rs/kbo](https://docs.rs/kbo).
 kbo is distributed as three separate Rust packages:
 - [kbo](https://github.com/tmaklin/kbo) contains a Rust library implementing the core algorithm (this repository).
 - [kbo-cli](https://github.com/tmaklin/kbo-cli) provides a command-line interface for `kbo find` and `kbo map`.
-- [kbo-gui](https://github.com/tmaklin/kbo-cli) provides a WebAssembly graphical user interface for running kbo in the browser.
+- [kbo-gui](https://github.com/tmaklin/kbo-gui) is a work in progress WebAssembly graphical user interface for running kbo in the browser.
+
+Precompiled binaries for kbo-cli are available from the [Releases page](https://github.com/tmaklin/kbo-cli/releases).
 
 ## About
 kbo supports two main operations:
