@@ -588,4 +588,38 @@ mod tests {
 	let expected = vec!['M','M','M','M','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
 	assert_eq!(refined, expected);
     }
+
+    // Test for a case where the SBWT access_kmer() function outputs a dollar
+    // sign, these should be replaced by a gap '-' in kbo output because dollar
+    // signs from SBWT mean that the nucleotide is not present.
+    #[test]
+    fn refine_translation_extend_to_dummy_kmers() {
+        use crate::build;
+        use crate::index::BuildOpts;
+        use crate::index::query_sbwt;
+        use crate::derandomize::derandomize_ms_vec;
+        use super::translate_ms_vec;
+        use super::refine_translation;
+        use sbwt::SbwtIndexVariant;
+
+        let query: Vec<u8> = vec![b'G',b'A',b'A',b'T',b'T',b'C',b'T',b'T',b'A',b'A',b'T',b'T',b'T',b'T',b'T',b'G',b'T',b'C',b'C',b'G',b'T',b'T',b'T',b'A',b'A',b'A',b'A',b'A',b'T',b'C',b'T',b'G',b'G',b'C',b'T',b'A',b'G',b'T',b'A',b'A',b'C',b'G',b'A',b'A',b'C',b'T',b'A',b'T',b'T',b'T',b'T',b'T',b'A',b'C',b'T',b'T',b'A',b'A',b'C',b'A',b'T',b'T',b'T',b'A',b'A',b'T',b'A',b'C',b'T',b'A',b'A',b'G',b'C',b'A',b'A',b'C',b'A',b'G',b'T',b'T',b'T',b'T',b'T',b'G',b'A',b'A',b'C',b'G',b'A',b'A',b'G',b'T',b'G',b'A',b'G',b'T',b'T',b'T',b'A',b'G',b'C',b'G',b'A',b'A',b'T',b'T',b'T',b'G',b'C',b'A',b'G',b'C',b'G',b'A',b'A',b'T',b'T',b'C',b'T',b'T',b'A',b'A',b'T',b'T',b'T',b'T',b'T',b'A',b'T',b'C',b'T',b'G',b'T',b'T',b'A',b'A',b'G',b'A',b'A',b'A',b'T',b'C',b'T',b'G',b'G',b'C',b'T',b'A',b'G',b'T',b'A',b'A',b'C',b'G',b'A',b'A',b'C',b'T',b'A',b'T'];
+        let reference: Vec<u8> = vec![b'A',b'G',b'C',b'C',b'G',b'A',b'G',b'C',b'A',b'A',b'A',b'T',b'C',b'T',b'C',b'G',b'C',b'T',b'G',b'T',b'G',b'T',b'T',b'T',b'G',b'A',b'G',b'T',b'G',b'A',b'A',b'A',b'C',b'G',b'A',b'G',b'T',b'T',b'T',b'A',b'G',b'C',b'G',b'A',b'A',b'T',b'T',b'T',b'G',b'C',b'A',b'G',b'T',b'G',b'A',b'A',b'T',b'T',b'C',b'T',b'T',b'A',b'A',b'T',b'T',b'T',b'T',b'T',b'A',b'T',b'C',b'T',b'G',b'T',b'T',b'A',b'A',b'G',b'A',b'A',b'A',b'T',b'C',b'T',b'G',b'G',b'C',b'T',b'A',b'G',b'T',b'A',b'A',b'C',b'G',b'A',b'A',b'C',b'T',b'A',b'T',b'T',b'T',b'T',b'C',b'A',b'A',b'A',b'T',b'T',b'A',b'A',b'A',b'T',b'A',b'T',b'T',b'T',b'G',b'A',b'A',b'G',b'A',b'G',b'A',b'G',b'G',b'T',b'A',b'A',b'A',b'A',b'A',b'A',b'T',b'G',b'T',b'T',b'T',b'C',b'T',b'T',b'A',b'T',b'G',b'A',b'T',b'A',b'G',b'A',b'T',b'A',b'A',b'C',b'T',b'A',b'C',b'G',b'A',b'C'];
+
+        let (sbwt, lcs) = build(&[query], BuildOpts{ build_select: true, ..Default::default() });
+
+        let (k, threshold) = match sbwt {
+            SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+                (sbwt.k(), crate::derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, 0.0000001_f64))
+            },
+        };
+
+        let noisy_ms = query_sbwt(&reference, &sbwt, &lcs);
+        let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
+        let translated = translate_ms_vec(&derand_ms, k, threshold);
+
+        let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+
+        let expected = vec!['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', '-', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'];
+        assert_eq!(refined, expected);
+    }
 }
