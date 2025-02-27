@@ -273,7 +273,7 @@ pub fn translate_ms_vec(
 
     // Traverse the derandomized matching statistics
     for pos in 0..len {
-	let prev: i64 = if pos > 1 { derand_ms[pos - 1] } else { 31 };
+	let prev: i64 = if pos > 1 { derand_ms[pos - 1] } else { k as i64};
 	let curr: i64 = derand_ms[pos];
 	let next: i64 = if pos < len - 1 { derand_ms[pos + 1] } else { derand_ms[pos] };
 
@@ -385,7 +385,7 @@ pub fn refine_translation(
         SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
             for i in 1..(refined.len() - threshold) {
                 if refined[i - 1] == 'X' {
-                    let midpoint = if i + k - 2 < n_elements && noisy_ms[i + k - 2].0 == k - 1 { k/2 } else { (threshold + 1)/2 };
+                    let midpoint = if i + k - 2 < n_elements && noisy_ms[i + k - 2].0 == k - 1 { k/2 } else { threshold.div_ceil(2) };
                     let nucleotide = sbwt.access_kmer(noisy_ms[i + k - 2 - midpoint].1.start)[midpoint] as char;
                     refined[i - 1] = if nucleotide == '$' {
                         // SBWT does not contain this position
