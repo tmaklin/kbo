@@ -385,7 +385,7 @@ pub fn refine_translation(
         SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
             for i in 1..(refined.len() - threshold) {
                 if refined[i - 1] == 'X' {
-                    let midpoint = if i + k - 2 < n_elements && noisy_ms[i + k - 2].0 == k - 1 { k/2 } else { (threshold + 1)/2 };
+                    let midpoint = if i + k - 2 < n_elements && noisy_ms[i + k - 2].0 == k - 1 { k/2 } else { threshold.div_ceil(2) };
                     let nucleotide = sbwt.access_kmer(noisy_ms[i + k - 2 - midpoint].1.start)[midpoint] as char;
                     refined[i - 1] = if nucleotide == '$' {
                         // SBWT does not contain this position
