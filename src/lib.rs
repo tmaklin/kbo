@@ -291,6 +291,9 @@ pub struct MapOpts {
     /// Prefix match lengths with probability higher than `max_error_prob` to
     /// happen at random are considered noise.
     pub max_error_prob: f64,
+    /// Resolve single nucleotide polymorphisms in the translated alignment by
+    /// [refining it](translate::refine_translation).
+    pub refine_translation: bool,
 }
 
 impl Default for MapOpts {
@@ -298,6 +301,7 @@ impl Default for MapOpts {
     /// ```rust
     /// let mut opts = kbo::MapOpts::default();
     /// opts.max_error_prob = 0.0000001;
+    /// opts.refine_translation = true;
     /// # let expected = kbo::MapOpts::default();
     /// # assert_eq!(opts, expected);
     /// ```
@@ -305,6 +309,7 @@ impl Default for MapOpts {
     fn default() -> MapOpts {
         MapOpts {
             max_error_prob: 0.0000001,
+            refine_translation: true,
         }
     }
 }
@@ -414,6 +419,7 @@ pub fn matches(
 /// in the query masked with a '-'.
 ///
 /// # Examples
+/// Run the full algorithm
 /// ```rust
 /// use kbo::build;
 /// use kbo::map;
@@ -433,6 +439,28 @@ pub fn matches(
 /// # assert_eq!(alignment, vec![45,45,45,45,45,45,45,45,45,65,71,71,45,45]);
 /// ```
 ///
+/// Skip resolving the SNP, outputting a '-' instead
+/// ```rust
+/// use kbo::build;
+/// use kbo::map;
+/// use kbo::index::BuildOpts;
+/// use kbo::MapOpts;
+///
+/// let query: Vec<Vec<u8>> = vec![vec![b'T',b'T',b'G',b'A',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G']];
+/// let mut opts = BuildOpts::default();
+/// opts.k = 4;
+/// opts.build_select = true;
+/// let (sbwt_query, lcs_query) = build(&query, opts);
+///
+/// let reference = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+///
+/// let mut map_opts = MapOpts::default();
+/// map_opts.refine_translation = false;
+/// let alignment = map(&reference, &sbwt_query, &lcs_query, map_opts);
+/// // `ms_vectors` has [84,84,71,65,45,45,71,71,67,84,71,71,71,45,65,71,65,71,67,84,71]
+/// # assert_eq!(alignment, vec![84,84,71,65,45,45,71,71,67,84,71,71,71,45,65,71,65,71,67,84,71]);
+/// ```
+///
 pub fn map(
     ref_seq: &[u8],
     query_sbwt: &SbwtIndexVariant,
@@ -449,9 +477,13 @@ pub fn map(
     let derand_ms = derandomize::derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
 
     let translation = translate::translate_ms_vec(&derand_ms, k, threshold);
-    let refined = translate::refine_translation(&translation, &noisy_ms, query_sbwt, threshold);
 
-    format::relative_to_ref(ref_seq, &refined)
+    if map_opts.refine_translation {
+        let refined = translate::refine_translation(&translation, &noisy_ms, query_sbwt, threshold);
+        format::relative_to_ref(ref_seq, &refined)
+    } else {
+        format::relative_to_ref(ref_seq, &translation)
+    }
 }
 
 /// Finds the _k_-mers from an SBWT index in a query fasta or fastq file.
