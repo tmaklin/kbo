@@ -273,7 +273,7 @@ pub fn translate_ms_vec(
 
     // Traverse the derandomized matching statistics
     for pos in 0..len {
-	let prev: i64 = if pos > 1 { derand_ms[pos - 1] } else { 31 };
+	let prev: i64 = if pos > 1 { derand_ms[pos - 1] } else { k as i64};
 	let curr: i64 = derand_ms[pos];
 	let next: i64 = if pos < len - 1 { derand_ms[pos + 1] } else { derand_ms[pos] };
 
