@@ -294,6 +294,9 @@ pub struct MapOpts {
     /// Resolve single nucleotide polymorphisms in the translated alignment by
     /// [refining it](translate::refine_translation).
     pub refine_translation: bool,
+    /// Replace characters used by the internal representation of [translate]
+    /// with nucleotide codes and gaps.
+    pub format: bool,
 }
 
 impl Default for MapOpts {
@@ -302,6 +305,7 @@ impl Default for MapOpts {
     /// let mut opts = kbo::MapOpts::default();
     /// opts.max_error_prob = 0.0000001;
     /// opts.refine_translation = true;
+    /// opts.format = true;
     /// # let expected = kbo::MapOpts::default();
     /// # assert_eq!(opts, expected);
     /// ```
@@ -310,6 +314,7 @@ impl Default for MapOpts {
         MapOpts {
             max_error_prob: 0.0000001,
             refine_translation: true,
+            format: true,
         }
     }
 }
@@ -461,6 +466,28 @@ pub fn matches(
 /// # assert_eq!(alignment, vec![84,84,71,65,45,45,71,71,67,84,71,71,71,45,65,71,65,71,67,84,71]);
 /// ```
 ///
+/// Output the internal representation of [translate] instead of the nucleotide codes ACGT and gap characters -
+/// ```rust
+/// use kbo::build;
+/// use kbo::map;
+/// use kbo::index::BuildOpts;
+/// use kbo::MapOpts;
+///
+/// let query: Vec<Vec<u8>> = vec![vec![b'T',b'T',b'G',b'A',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G']];
+/// let mut opts = BuildOpts::default();
+/// opts.k = 4;
+/// opts.build_select = true;
+/// let (sbwt_query, lcs_query) = build(&query, opts);
+///
+/// let reference = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+///
+/// let mut map_opts = MapOpts::default();
+/// map_opts.format = false;
+/// let alignment = map(&reference, &sbwt_query, &lcs_query, map_opts);
+/// // `ms_vectors` has [77,77,77,77,45,45,77,77,77,77,77,77,77,71,77,77,77,77,77,77,77]
+/// # assert_eq!(alignment, vec![77,77,77,77,45,45,77,77,77,77,77,77,77,71,77,77,77,77,77,77,77]);
+/// ```
+///
 pub fn map(
     ref_seq: &[u8],
     query_sbwt: &SbwtIndexVariant,
@@ -478,12 +505,19 @@ pub fn map(
 
     let translation = translate::translate_ms_vec(&derand_ms, k, threshold);
 
-    if map_opts.refine_translation {
-        let refined = translate::refine_translation(&translation, &noisy_ms, query_sbwt, threshold);
-        format::relative_to_ref(ref_seq, &refined)
+    let result_raw = if map_opts.refine_translation {
+        translate::refine_translation(&translation, &noisy_ms, query_sbwt, threshold)
     } else {
-        format::relative_to_ref(ref_seq, &translation)
-    }
+        translation
+    };
+
+    let result = if map_opts.format {
+        format::relative_to_ref(ref_seq, &result_raw)
+    } else {
+        result_raw.iter().map(|x| *x as u8).collect::<Vec<u8>>()
+    };
+
+    result
 }
 
 /// Finds the _k_-mers from an SBWT index in a query fasta or fastq file.
