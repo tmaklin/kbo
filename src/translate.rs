@@ -401,7 +401,7 @@ pub fn refine_translation(
                 } else if refined[i - 1] == '-' && can_fill_gaps {
                     // Figure out how long the gap is
                     let start_index = i - 1;
-                    while refined[i] == '-' {
+                    while i < n_elements && refined[i] == '-' {
                         i += 1;
                     }
                     if i - start_index <= k - 2*threshold && start_index > threshold {
