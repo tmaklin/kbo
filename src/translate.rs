@@ -415,12 +415,12 @@ pub fn refine_translation(
                         // Fill gap by extracting the sequence from overlapping k-mers
                         if left_matches == threshold && right_matches == threshold {
                             let mut fill_bases: Vec<Vec<u8>> = Vec::new();
-                            for j in (start_index)..(i + 1) {
-                                let midpoint = if j + k - 2 < n_elements && noisy_ms[j + k - 2].0 == k - 1 { k/2 } else { threshold.div_ceil(2) };
-                                let kmer = sbwt.access_kmer(noisy_ms[j + k - 2 - midpoint].1.start);
+                            for j in (start_index)..(i) {
+                                let midpoint = k/2;
+                                let kmer = sbwt.access_kmer(noisy_ms[j + k - 1 - midpoint].1.start);
                                 let mut bases: Vec<u8> = Vec::new();
-                                for k in (threshold)..(threshold + i - start_index) {
-                                    bases.push(kmer[k - (j - start_index)]);
+                                for k1 in 0..(i - start_index) {
+                                    bases.push(kmer[k/2 + k1 - (j - start_index)]);
                                 }
                                 fill_bases.push(bases);
                             }
@@ -435,8 +435,6 @@ pub fn refine_translation(
                             }
                         }
                     }
-                    // eprintln!("{:?}", sbwt.access_kmer(noisy_ms[i + k - 2 - midpoint].1.start));
-                    // eprintln!("{}", nucleotide);
                 }
                 i += 1;
             }
