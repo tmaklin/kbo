@@ -354,7 +354,7 @@ pub fn translate_ms_vec(
 /// let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
 /// let translated = translate_ms_vec(&derand_ms, k, threshold);
 ///
-/// let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+/// let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
 ///
 /// # let expected = vec!['M','M','M','M','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
 /// # assert_eq!(refined, expected);
@@ -363,6 +363,7 @@ pub fn translate_ms_vec(
 pub fn refine_translation(
     translation: &[char],
     noisy_ms: &[(usize, Range<usize>)],
+    ref_seq: &[u8],
     query_sbwt: &SbwtIndexVariant,
     threshold: usize,
 ) -> Vec<char> {
@@ -429,8 +430,19 @@ pub fn refine_translation(
                                 all_agree = all_agree && (fill_bases[j - 1] == fill_bases[j]);
                             }
                             if all_agree {
+
+                                // Check that at least one base in the suggested
+                                // fill matches the reference (otherwise this
+                                // should be considered a deletion in the query)
+                                let mut can_fill = false;
                                 for j in 0..(i - start_index) {
-                                    refined[start_index + j] = fill_bases[0][j] as char;
+                                    can_fill |= ref_seq[start_index + j] == fill_bases[0][j];
+                                }
+
+                                if can_fill {
+                                    for j in 0..(i - start_index) {
+                                        refined[start_index + j] = fill_bases[0][j] as char;
+                                    }
                                 }
                             }
                         }
@@ -626,7 +638,7 @@ mod tests {
 	let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
 	let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-	let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+	let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
 
 	let expected = vec!['M','M','M','M','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
 	assert_eq!(refined, expected);
@@ -670,7 +682,7 @@ mod tests {
 
         let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-        let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+        let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
 
         let expected = vec!['M','M','M','M','-','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
         assert_eq!(refined, expected);
@@ -714,7 +726,7 @@ mod tests {
 
         let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-        let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+        let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
 
         let expected = vec!['M','M','M','M','-','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
         assert_eq!(refined, expected);
@@ -749,7 +761,7 @@ mod tests {
 
         let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-        let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+        let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
 
         let expected = vec!['M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','G','C','T','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M'];
         assert_eq!(refined, expected);
@@ -783,7 +795,7 @@ mod tests {
         let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
         let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-        let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+        let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
 
         let expected = vec!['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', '-', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'];
         assert_eq!(refined, expected);
