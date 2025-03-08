@@ -434,12 +434,11 @@ pub fn refine_translation(
                                 // Check that at least one base in the suggested
                                 // fill matches the reference (otherwise this
                                 // should be considered a deletion in the query)
-                                let mut n_matches = 0;
+                                let mut can_fill = false;
                                 for j in 0..(i - start_index) {
-                                    n_matches += (ref_seq[start_index + j] == fill_bases[0][j]) as usize;
+                                    can_fill |= ref_seq[start_index + j] == fill_bases[0][j];
                                 }
 
-                                let can_fill = n_matches > 0 && n_matches >= i - start_index - (i - start_index).div_ceil(2);
                                 if can_fill {
                                     for j in 0..(i - start_index) {
                                         refined[start_index + j] = fill_bases[0][j] as char;
