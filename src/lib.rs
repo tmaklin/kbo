@@ -449,7 +449,7 @@ pub fn map(
     let derand_ms = derandomize::derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
 
     let translation = translate::translate_ms_vec(&derand_ms, k, threshold);
-    let refined = translate::refine_translation(&translation, &noisy_ms, query_sbwt, threshold);
+    let refined = translate::refine_translation(&translation, &noisy_ms, &ref_seq, query_sbwt, threshold);
 
     format::relative_to_ref(ref_seq, &refined)
 }

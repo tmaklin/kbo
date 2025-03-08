@@ -354,7 +354,7 @@ pub fn translate_ms_vec(
 /// let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
 /// let translated = translate_ms_vec(&derand_ms, k, threshold);
 ///
-/// let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+/// let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
 ///
 /// # let expected = vec!['M','M','M','M','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
 /// # assert_eq!(refined, expected);
@@ -363,6 +363,7 @@ pub fn translate_ms_vec(
 pub fn refine_translation(
     translation: &[char],
     noisy_ms: &[(usize, Range<usize>)],
+    ref_seq: &[u8],
     query_sbwt: &SbwtIndexVariant,
     threshold: usize,
 ) -> Vec<char> {
@@ -382,7 +383,7 @@ pub fn refine_translation(
     match query_sbwt {
         SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
 
-            let mut i: usize = 1;
+            let mut i: usize = threshold - 1;
             while i < refined.len() - threshold {
                 if refined[i - 1] == '-' || refined[i - 1] == 'X' {
                     // Figure out how long the gap is
@@ -400,7 +401,24 @@ pub fn refine_translation(
                             let sbwt_interval = &noisy_ms[kmer_idx].1;
                             if sbwt_interval.end - sbwt_interval.start == 1 {
                                 sbwt.push_kmer_to_vec(sbwt_interval.start, &mut kmer);
-                                break;
+
+                                // Check that the overlapping parts of the
+                                // candidate k-mer match the reference sequence
+                                let mut overlap_matches = true;
+                                let gap_start = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize + threshold - 1;
+                                for j in 1..(gap_start + 1) {
+                                    overlap_matches &= kmer[gap_start - j] == ref_seq[start_index - j];
+                                }
+                                let gap_end = gap_start + (end_index - start_index);
+                                for j in 0..(k - gap_end) {
+                                    overlap_matches &= kmer[gap_end + j] == ref_seq[end_index + j];
+                                }
+
+                                if overlap_matches {
+                                    break;
+                                } else {
+                                    kmer.clear();
+                                }
                             }
                             kmer_idx -= 1;
                         }
@@ -604,7 +622,7 @@ mod tests {
 	let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
 	let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-	let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+	let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
 
 	let expected = vec!['M','M','M','M','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
 	assert_eq!(refined, expected);
@@ -648,7 +666,7 @@ mod tests {
 
         let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-        let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+        let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
 
         let expected = vec!['M','M','M','M','T','C','T','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
         assert_eq!(refined, expected);
@@ -692,7 +710,7 @@ mod tests {
 
         let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-        let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+        let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
 
         let expected = vec!['M','M','M','M','-','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
         assert_eq!(refined, expected);
@@ -727,7 +745,7 @@ mod tests {
 
         let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-        let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+        let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
 
         let expected = vec!['M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','G','C','T','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M'];
         assert_eq!(refined, expected);
@@ -761,7 +779,7 @@ mod tests {
         let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
         let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-        let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+        let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
 
         let expected = vec!['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', '-', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'];
         assert_eq!(refined, expected);
