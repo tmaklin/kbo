@@ -384,53 +384,61 @@ pub fn refine_translation(
     match query_sbwt {
         SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
 
-            // If a gap is shorter than k - 2*threshold we can try to fill it
-            let can_fill_gaps: bool = k as i64 - 2_i64*threshold as i64 > 0;
-
             let mut i: usize = 1;
             while i < refined.len() - threshold {
                 if refined[i - 1] == 'X' {
-                    let midpoint = if i + k - 2 < n_elements && noisy_ms[i + k - 2].0 == k - 1 { k/2 } else { threshold.div_ceil(2) };
-                    let nucleotide = sbwt.access_kmer(noisy_ms[i + k - 2 - midpoint].1.start)[midpoint] as char;
-                    refined[i - 1] = if nucleotide == '$' {
-                        // SBWT does not contain this position
-                        '-'
+                    let mut kmer: Vec<u8> = Vec::with_capacity(k);
+                    let kmer_idx_start = (i - 1 + k - 1).min(refined.len() - 1);
+                    let mut kmer_idx = kmer_idx_start;
+                    while kmer_idx > i - 1 {
+                        let sbwt_interval = &noisy_ms[kmer_idx].1;
+                        if sbwt_interval.end - sbwt_interval.start == 1 {
+                            sbwt.push_kmer_to_vec(sbwt_interval.start, &mut kmer);
+                            break;
+                        }
+                        kmer_idx -= 1;
+                    }
+
+                    if !kmer.is_empty() && !kmer.contains(&b'$') {
+                        let nt_pos = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize;
+                        let fill_nucleotide = kmer[nt_pos];
+                        refined[i - 1] = fill_nucleotide as char;
                     } else {
-                        nucleotide
-                    };
-                } else if refined[i - 1] == '-' && can_fill_gaps {
+                        refined[i - 1] = '-';
+                    }
+                } else if refined[i - 1] == '-' {
                     // Figure out how long the gap is
                     let start_index = i - 1;
                     while i < n_elements && refined[i] == '-' {
                         i += 1;
                     }
-                    if i - start_index <= k - 2*threshold && start_index > threshold {
-                        // Check that there's at least `threshold` known sequence to left and right of gap
-                        let mut left_matches: usize = 0;
+                    let end_index = i;
+
+                    if end_index - start_index < k - threshold {
+                        // Check that there's at least `threshold` known sequence to right of gap
                         let mut right_matches: usize = 0;
                         for j in 1..(threshold + 1) {
-                            left_matches += (refined[start_index - j] != '-') as usize;
                             right_matches += (refined[i - 1 + j] != '-') as usize;
                         }
-                        // Fill gap by extracting the sequence from overlapping k-mers
-                        if left_matches == threshold && right_matches == threshold {
-                            let mut fill_bases: Vec<Vec<u8>> = Vec::new();
-                            for j in (start_index)..(i) {
-                                let midpoint = k/2;
-                                let kmer = sbwt.access_kmer(noisy_ms[j + k - 1 - midpoint].1.start);
-                                let mut bases: Vec<u8> = Vec::new();
-                                for k1 in 0..(i - start_index) {
-                                    bases.push(kmer[k/2 + k1 - (j - start_index)]);
+
+                        if right_matches == threshold {
+                            let mut kmer: Vec<u8> = Vec::with_capacity(k);
+                            let kmer_idx_start = (start_index + k - 1).min(refined.len() - 1);
+                            let mut kmer_idx = kmer_idx_start;
+                            while kmer_idx > start_index {
+                                let sbwt_interval = &noisy_ms[kmer_idx].1;
+                                if sbwt_interval.end - sbwt_interval.start == 1 {
+                                    sbwt.push_kmer_to_vec(sbwt_interval.start, &mut kmer);
+                                    break;
                                 }
-                                fill_bases.push(bases);
+                                kmer_idx -= 1;
                             }
-                            let mut all_agree: bool = true;
-                            for j in 1..fill_bases.len() {
-                                all_agree = all_agree && (fill_bases[j - 1] == fill_bases[j]);
-                            }
-                            if all_agree {
-                                for j in 0..(i - start_index) {
-                                    refined[start_index + j] = fill_bases[0][j] as char;
+
+                            if !kmer.is_empty() && !kmer.contains(&b'$') {
+                                for j in 0..(end_index - start_index) {
+                                    let nt_pos = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize + j;
+                                    let fill_nucleotide = kmer[nt_pos];
+                                    refined[start_index + j] = fill_nucleotide as char;
                                 }
                             }
                         }
