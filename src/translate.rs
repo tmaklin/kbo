@@ -376,6 +376,7 @@ pub fn refine_translation(
             sbwt.k()
         },
     };
+    assert!(k > 2*threshold); // This algorithm does nothing if k <= 2*threshold
 
     let mut refined = translation.to_vec().clone();
     match query_sbwt {
@@ -391,32 +392,24 @@ pub fn refine_translation(
                     }
                     let end_index = i;
 
-                    if end_index - start_index <= k - threshold {
-                        // Check that there's at least `threshold` known sequence to right of gap
-                        let mut right_matches: usize = 0;
-                        for j in 1..(threshold + 1) {
-                            right_matches += (refined[i - 1 + j] != '-') as usize;
+                    if k > 2*threshold && end_index - start_index <= k - 2*threshold {
+                        let mut kmer: Vec<u8> = Vec::with_capacity(k);
+                        let kmer_idx_start = (start_index + k - threshold).min(refined.len() - threshold);
+                        let mut kmer_idx = kmer_idx_start;
+                        while kmer_idx > start_index + threshold {
+                            let sbwt_interval = &noisy_ms[kmer_idx].1;
+                            if sbwt_interval.end - sbwt_interval.start == 1 {
+                                sbwt.push_kmer_to_vec(sbwt_interval.start, &mut kmer);
+                                break;
+                            }
+                            kmer_idx -= 1;
                         }
 
-                        if right_matches == threshold {
-                            let mut kmer: Vec<u8> = Vec::with_capacity(k);
-                            let kmer_idx_start = (start_index + k - 1).min(refined.len() - 1);
-                            let mut kmer_idx = kmer_idx_start;
-                            while kmer_idx > start_index {
-                                let sbwt_interval = &noisy_ms[kmer_idx].1;
-                                if sbwt_interval.end - sbwt_interval.start == 1 {
-                                    sbwt.push_kmer_to_vec(sbwt_interval.start, &mut kmer);
-                                    break;
-                                }
-                                kmer_idx -= 1;
-                            }
-
-                            if !kmer.is_empty() && !kmer.contains(&b'$') {
-                                for j in 0..(end_index - start_index) {
-                                    let nt_pos = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize + j;
-                                    let fill_nucleotide = kmer[nt_pos];
-                                    refined[start_index + j] = fill_nucleotide as char;
-                                }
+                        if !kmer.is_empty() && !kmer.contains(&b'$') {
+                            for j in 0..(end_index - start_index) {
+                                let nt_pos = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize + j + threshold - 1;
+                                let fill_nucleotide = kmer[nt_pos];
+                                refined[start_index + j] = fill_nucleotide as char;
                             }
                         }
                     }
@@ -598,7 +591,7 @@ mod tests {
 	let query: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
 	let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
 
-	let (sbwt, lcs) = build(&[query], BuildOpts{ k: 4, build_select: true, ..Default::default() });
+	let (sbwt, lcs) = build(&[query], BuildOpts{ k: 7, build_select: true, ..Default::default() });
 
 	let k = match sbwt {
 	    SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
