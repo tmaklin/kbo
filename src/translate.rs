@@ -377,36 +377,13 @@ pub fn refine_translation(
         },
     };
 
-    // Could prove midpoint is the best guess using conditional probabilities?
-    // This is (coincidentally?) similar to split k-mers
-
     let mut refined = translation.to_vec().clone();
     match query_sbwt {
         SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
 
             let mut i: usize = 1;
             while i < refined.len() - threshold {
-                if refined[i - 1] == 'X' {
-                    let mut kmer: Vec<u8> = Vec::with_capacity(k);
-                    let kmer_idx_start = (i - 1 + k - 1).min(refined.len() - 1);
-                    let mut kmer_idx = kmer_idx_start;
-                    while kmer_idx > i - 1 {
-                        let sbwt_interval = &noisy_ms[kmer_idx].1;
-                        if sbwt_interval.end - sbwt_interval.start == 1 {
-                            sbwt.push_kmer_to_vec(sbwt_interval.start, &mut kmer);
-                            break;
-                        }
-                        kmer_idx -= 1;
-                    }
-
-                    if !kmer.is_empty() && !kmer.contains(&b'$') {
-                        let nt_pos = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize;
-                        let fill_nucleotide = kmer[nt_pos];
-                        refined[i - 1] = fill_nucleotide as char;
-                    } else {
-                        refined[i - 1] = '-';
-                    }
-                } else if refined[i - 1] == '-' {
+                if refined[i - 1] == '-' || refined[i - 1] == 'X' {
                     // Figure out how long the gap is
                     let start_index = i - 1;
                     while i < n_elements && refined[i] == '-' {
@@ -414,7 +391,7 @@ pub fn refine_translation(
                     }
                     let end_index = i;
 
-                    if end_index - start_index < k - threshold {
+                    if end_index - start_index <= k - threshold {
                         // Check that there's at least `threshold` known sequence to right of gap
                         let mut right_matches: usize = 0;
                         for j in 1..(threshold + 1) {
