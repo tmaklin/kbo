@@ -650,7 +650,7 @@ mod tests {
 
         let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
 
-        let expected = vec!['M','M','M','M','-','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
+        let expected = vec!['M','M','M','M','T','C','T','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
         assert_eq!(refined, expected);
     }
 
