@@ -291,6 +291,46 @@ pub fn translate_ms_vec(
     res
 }
 
+fn overlap_gap(
+    noisy_ms: &[(usize, Range<usize>)],
+    ref_seq: &[u8],
+    sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
+    k: usize,
+    threshold: usize,
+    start_index: usize,
+    end_index: usize,
+) -> (usize, usize, Vec<u8>) {
+    let mut kmer: Vec<u8> = Vec::with_capacity(k);
+    let kmer_idx_start = (start_index + k - threshold).min(ref_seq.len() - threshold);
+    let mut kmer_idx = kmer_idx_start;
+    while kmer_idx > start_index + threshold {
+        let sbwt_interval = &noisy_ms[kmer_idx].1;
+        if sbwt_interval.end - sbwt_interval.start == 1 {
+            sbwt.push_kmer_to_vec(sbwt_interval.start, &mut kmer);
+
+            // Check that the overlapping parts of the
+            // candidate k-mer match the reference sequence
+            let mut overlap_matches = true;
+            let gap_start = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize + threshold - 1;
+            for j in 1..(gap_start + 1) {
+                overlap_matches &= kmer[gap_start - j] == ref_seq[start_index - j];
+            }
+            let gap_end = gap_start + (end_index - start_index);
+            for j in 0..(k - gap_end) {
+                overlap_matches &= kmer[gap_end + j] == ref_seq[end_index + j];
+            }
+
+            if overlap_matches {
+                break;
+            } else {
+                kmer.clear();
+            }
+        }
+        kmer_idx -= 1;
+    }
+    (kmer_idx, kmer_idx_start, kmer)
+}
+
 /// Refines a translated alignment by resolving SNPs.
 ///
 /// Resolves all 'X's in the translation `translation` by using the
@@ -393,42 +433,17 @@ pub fn refine_translation(
                     }
                     let end_index = i;
 
-                    if k > 2*threshold && end_index - start_index <= k - 2*threshold {
-                        let mut kmer: Vec<u8> = Vec::with_capacity(k);
-                        let kmer_idx_start = (start_index + k - threshold).min(refined.len() - threshold);
-                        let mut kmer_idx = kmer_idx_start;
-                        while kmer_idx > start_index + threshold {
-                            let sbwt_interval = &noisy_ms[kmer_idx].1;
-                            if sbwt_interval.end - sbwt_interval.start == 1 {
-                                sbwt.push_kmer_to_vec(sbwt_interval.start, &mut kmer);
+                    let (kmer_idx, kmer_idx_start, kmer) = if k > 2*threshold && end_index - start_index <= k - 2*threshold {
+                        overlap_gap(noisy_ms, ref_seq, sbwt, k, threshold, start_index, end_index)
+                    } else {
+                        (0, 0, Vec::new())
+                    };
 
-                                // Check that the overlapping parts of the
-                                // candidate k-mer match the reference sequence
-                                let mut overlap_matches = true;
-                                let gap_start = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize + threshold - 1;
-                                for j in 1..(gap_start + 1) {
-                                    overlap_matches &= kmer[gap_start - j] == ref_seq[start_index - j];
-                                }
-                                let gap_end = gap_start + (end_index - start_index);
-                                for j in 0..(k - gap_end) {
-                                    overlap_matches &= kmer[gap_end + j] == ref_seq[end_index + j];
-                                }
-
-                                if overlap_matches {
-                                    break;
-                                } else {
-                                    kmer.clear();
-                                }
-                            }
-                            kmer_idx -= 1;
-                        }
-
-                        if !kmer.is_empty() && !kmer.contains(&b'$') {
-                            for j in 0..(end_index - start_index) {
-                                let nt_pos = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize + j + threshold - 1;
-                                let fill_nucleotide = kmer[nt_pos];
-                                refined[start_index + j] = fill_nucleotide as char;
-                            }
+                    if !kmer.is_empty() && !kmer.contains(&b'$') {
+                        for j in 0..(end_index - start_index) {
+                            let nt_pos = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize + j + threshold - 1;
+                            let fill_nucleotide = kmer[nt_pos];
+                            refined[start_index + j] = fill_nucleotide as char;
                         }
                     }
                 }
