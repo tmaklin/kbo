@@ -389,6 +389,36 @@ fn left_extend_over_gap(
             if overlap_matches && max_consecutive_overlaps >= threshold  {
                 ref_start = search_start - gap_start - (k - 1);
                 ref_end = search_start - gap_start - (k - gap_end + 1).min(k);
+
+                // Found a candidate k-mer
+                // try to left extend it as far as possible
+                let mut left_extension_len = 0;
+
+                while ref_start > start_index {
+                    let mut new_kmers: Vec<(Vec<u8>, Range<usize>)> = Vec::new();
+                    for c in [b'A',b'C',b'G',b'T'] {
+                        let mut new_kmer: Vec<u8> = Vec::new();
+                        new_kmer.push(c);
+                        new_kmer.append(&mut kmer.clone());
+                        for i in 0..(left_extension_len + 1) {
+                            new_kmer.pop();
+                        }
+                        let res = sbwt.search(&new_kmer).clone();
+                        if res.as_ref().is_some() {
+                            new_kmers.push((new_kmer, res.unwrap()));
+                        }
+                    }
+                    if new_kmers.len() == 1 && new_kmers[0].1.end - new_kmers[0].1.start == 1 {
+                        left_extension_len += 1;
+                        let mut kmer_extended = vec![new_kmers[0].0[0]];
+                        kmer_extended.append(&mut kmer.clone());
+                        kmer = kmer_extended;
+                    } else {
+                        break;
+                    }
+                    ref_start -= 1;
+                }
+
                 break;
             } else {
                 kmer.clear();
@@ -396,6 +426,7 @@ fn left_extend_over_gap(
         }
         kmer_idx -= 1;
     }
+
     (ref_start, ref_end, kmer)
 }
 
