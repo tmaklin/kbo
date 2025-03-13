@@ -331,6 +331,77 @@ fn overlap_gap(
     (kmer_idx, kmer_idx_start, kmer)
 }
 
+fn left_extend_over_gap(
+    noisy_ms: &[(usize, Range<usize>)],
+    derand_ms: &[i64],
+    ref_seq: &[u8],
+    sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
+    k: usize,
+    threshold: usize,
+    start_index: usize,
+    end_index: usize,
+) -> (usize, usize, Vec<u8>) {
+    let mut prev_ms = derand_ms[end_index];
+    let mut search_start = end_index + 1;
+    while prev_ms <= derand_ms[search_start] && search_start - end_index < (k - threshold)  {
+        prev_ms = derand_ms[search_start];
+        search_start += 1;
+    }
+    let search_end = end_index;
+
+    let mut kmer: Vec<u8> = Vec::with_capacity(k);
+    // let kmer_idx_start = (start_index + k - threshold).min(ref_seq.len() - threshold);
+    let kmer_idx_start = search_start;
+    let mut kmer_idx = kmer_idx_start;
+    let mut ref_start: usize = 0;
+    let mut ref_end: usize = 0;
+    eprintln!("{},{}", search_start, search_end);
+    while kmer_idx > search_end {
+        let sbwt_interval = &noisy_ms[kmer_idx].1;
+        if sbwt_interval.end - sbwt_interval.start == 1 {
+            sbwt.push_kmer_to_vec(sbwt_interval.start, &mut kmer);
+
+            // Check that the overlapping parts of the
+            // candidate k-mer match the reference sequence
+            let mut overlap_matches = true;
+            let gap_start = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize;
+            let gap_end = gap_start + (end_index - start_index);
+            eprintln!("{},{},{},{},{}", k, gap_end, gap_start, end_index, start_index);
+            for j in 0..(k - gap_end + 1) {
+                let ref_pos = search_start - gap_start - j;
+                let kmer_pos = k - j - 1;
+                overlap_matches &= kmer[kmer_pos] == ref_seq[ref_pos];
+            }
+            let mut max_consecutive_overlaps: usize = 0;
+            let mut consecutive_overlaps: usize = 0;
+            for j in (k - gap_end + 1)..k {
+                let ref_pos = search_start - gap_start - j;
+                let kmer_pos = k - j - 1;
+                if kmer[kmer_pos] == ref_seq[ref_pos] {
+                    consecutive_overlaps += 1;
+                } else {
+                    consecutive_overlaps = 0;
+                }
+                if consecutive_overlaps > max_consecutive_overlaps {
+                    max_consecutive_overlaps = consecutive_overlaps;
+                }
+            }
+
+
+            if overlap_matches && max_consecutive_overlaps >= threshold  {
+                ref_start = search_start - gap_start - (k - 1);
+                ref_end = search_start - gap_start - (k - gap_end + 1);
+                break;
+            } else {
+                kmer.clear();
+            }
+        }
+        kmer_idx -= 1;
+    }
+    (ref_start, ref_end, kmer)
+}
+
+
 /// Refines a translated alignment by resolving SNPs.
 ///
 /// Resolves all 'X's in the translation `translation` by using the
@@ -394,7 +465,7 @@ fn overlap_gap(
 /// let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
 /// let translated = translate_ms_vec(&derand_ms, k, threshold);
 ///
-/// let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
+/// let refined = refine_translation(&translated, &noisy_ms, &derand_ms, &reference, &sbwt, threshold);
 ///
 /// # let expected = vec!['M','M','M','M','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
 /// # assert_eq!(refined, expected);
@@ -403,6 +474,7 @@ fn overlap_gap(
 pub fn refine_translation(
     translation: &[char],
     noisy_ms: &[(usize, Range<usize>)],
+    derand_ms: &[i64],
     ref_seq: &[u8],
     query_sbwt: &SbwtIndexVariant,
     threshold: usize,
@@ -417,7 +489,6 @@ pub fn refine_translation(
             sbwt.k()
         },
     };
-    assert!(k > 2*threshold); // This algorithm does nothing if k <= 2*threshold
 
     let mut refined = translation.to_vec().clone();
     match query_sbwt {
@@ -433,19 +504,29 @@ pub fn refine_translation(
                     }
                     let end_index = i;
 
-                    let (kmer_idx, kmer_idx_start, kmer) = if k > 2*threshold && end_index - start_index <= k - 2*threshold {
-                        overlap_gap(noisy_ms, ref_seq, sbwt, k, threshold, start_index, end_index)
+                    if k > 2*threshold && end_index - start_index <= k - 2*threshold {
+                        let (kmer_idx, kmer_idx_start, kmer) = overlap_gap(noisy_ms, ref_seq, sbwt, k, threshold, start_index, end_index);
+                            if !kmer.is_empty() && !kmer.contains(&b'$') {
+                                for j in 0..(end_index - start_index) {
+                                    let nt_pos = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize + j + threshold - 1;
+                                    let fill_nucleotide = kmer[nt_pos];
+                                    refined[start_index + j] = fill_nucleotide as char;
+                                }
+                            }
                     } else {
-                        (0, 0, Vec::new())
+                        let (ref_start, ref_end, kmer) = left_extend_over_gap(noisy_ms, derand_ms, ref_seq, sbwt, k, threshold, start_index, end_index);
+                        eprintln!("{:?}", kmer);
+                        if !kmer.is_empty() && !kmer.contains(&b'$') {
+                            for ref_pos in ref_start..ref_end {
+                                let kmer_pos = ref_pos - ref_start;
+                                let fill_nt = kmer[kmer_pos];
+                                let ref_nt = ref_seq[ref_pos];
+                                let fill_char = if fill_nt == ref_nt { 'M' } else { fill_nt as char };
+                                refined[ref_pos] = fill_char;
+                            }
+                        }
                     };
 
-                    if !kmer.is_empty() && !kmer.contains(&b'$') {
-                        for j in 0..(end_index - start_index) {
-                            let nt_pos = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize + j + threshold - 1;
-                            let fill_nucleotide = kmer[nt_pos];
-                            refined[start_index + j] = fill_nucleotide as char;
-                        }
-                    }
                 }
                 i += 1;
             }
@@ -637,7 +718,7 @@ mod tests {
 	let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
 	let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-	let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
+	let refined = refine_translation(&translated, &noisy_ms, &derand_ms, &reference, &sbwt, threshold);
 
 	let expected = vec!['M','M','M','M','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
 	assert_eq!(refined, expected);
@@ -681,7 +762,7 @@ mod tests {
 
         let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-        let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
+        let refined = refine_translation(&translated, &noisy_ms, &derand_ms, &reference, &sbwt, threshold);
 
         let expected = vec!['M','M','M','M','T','C','T','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
         assert_eq!(refined, expected);
@@ -725,9 +806,95 @@ mod tests {
 
         let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-        let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
+        let refined = refine_translation(&translated, &noisy_ms, &derand_ms, &reference, &sbwt, threshold);
 
         let expected = vec!['M','M','M','M','-','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
+        assert_eq!(refined, expected);
+    }
+
+    // Test for left-extending over a longer gap
+    #[test]
+    fn refine_translation_left_extend_short() {
+        use crate::build;
+        use crate::index::BuildOpts;
+        use crate::index::query_sbwt;
+        use crate::derandomize::derandomize_ms_vec;
+        use super::translate_ms_vec;
+        use super::refine_translation;
+        use sbwt::SbwtIndexVariant;
+
+        // Parameters       : k = 9, threshold = 3
+        //
+        // Ref sequence     : T,T,G,A, A, C,A,G,G,C,T,G,C,G,C,A,G,A,G,C,T,G
+        // Query sequence   : T,T,G,A, T, C,A G,A,C,T,G,C,G,G,A,G,A,G,C,T,G
+        //
+        // Result MS vector : 1,2,3,4, 1, 1,1,2,2,3,4,4,4,4,3,1,2,3,4,4,4,4
+        // Derandomized MS  : 1,2,3,4,-2,-1,0,1,2,3,4,4,4,4,0,1,2,3,4,4,4,4
+        // Translation      : M,M,M,M, -, -,-,-,-,M,M,M,M,M,X,M,M,M,M,M,M,M
+        // Refined          : M,M,M,M, T, C,A,G,A,M,M,M,M,M,G,M,M,M,M,M,M,M
+
+        let query: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'C',b'A',b'G',b'A',b'C',b'T',b'G',b'C',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+        let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'A',b'C',b'A',b'G',b'G',b'C',b'T',b'G',b'C',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+
+        let (sbwt, lcs) = build(&[query], BuildOpts{ k: 9, build_select: true, ..Default::default() });
+
+        let k = match sbwt {
+            SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+                sbwt.k()
+            },
+        };
+        let threshold = 3;
+
+        let noisy_ms = query_sbwt(&reference, &sbwt, &lcs);
+        let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
+
+        let translated = translate_ms_vec(&derand_ms, k, threshold);
+
+        let refined = refine_translation(&translated, &noisy_ms, &derand_ms, &reference, &sbwt, threshold);
+
+        let expected = vec!['M','M','M','M','T','C','A','G','A','M','M','M','M','M','X','M','M','M','M','M','M','M'];
+        assert_eq!(refined, expected);
+    }
+
+    // Test for left-extending over a longer gap
+    #[test]
+    fn refine_translation_left_extend_long() {
+        use crate::build;
+        use crate::index::BuildOpts;
+        use crate::index::query_sbwt;
+        use crate::derandomize::derandomize_ms_vec;
+        use super::translate_ms_vec;
+        use super::refine_translation;
+        use sbwt::SbwtIndexVariant;
+
+        // Parameters       : k = 9, threshold = 4
+        //
+        // Ref sequence     : T,T,G,A,T,T,A,A,C,A,G,G,C,T,G,C,G,C,A,G,A,G,C,T,G
+        // Query sequence   : T,T,G,A,T,G,T,A,C,A G,A,C,T,G,C,G,G,A,G,A,G,C,T,G
+        //
+        // Translation      : M,M,M,M,M,-,-,-,-,-,-,M,M,M,M,M,X,M,M,M,M,M,M,M
+        // Refined          : M,M,M,M,M,T,A,C,A,G,A,M,M,M,M,M,G,M,M,M,M,M,M,M
+
+        let query: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'G',b'T',b'A',b'C',b'A',b'G',b'A',b'C',b'T',b'G',b'C',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+        let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'A',b'A',b'C',b'A',b'G',b'G',b'C',b'T',b'G',b'C',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+
+        let (sbwt, lcs) = build(&[query], BuildOpts{ k: 9, build_select: true, ..Default::default() });
+
+        let k = match sbwt {
+            SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+                sbwt.k()
+            },
+        };
+        let threshold = 4;
+
+        let noisy_ms = query_sbwt(&reference, &sbwt, &lcs);
+        let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
+
+        let translated = translate_ms_vec(&derand_ms, k, threshold);
+
+        let refined = refine_translation(&translated, &noisy_ms, &derand_ms, &reference, &sbwt, threshold);
+
+        let expected = vec!['M','M','M','M','M','G','T','A','C','A','G','A','M','M','M','M','M','X','M','M','M','M','M','M','M'];
         assert_eq!(refined, expected);
     }
 
@@ -760,7 +927,7 @@ mod tests {
 
         let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-        let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
+        let refined = refine_translation(&translated, &noisy_ms, &derand_ms, &reference, &sbwt, threshold);
 
         let expected = vec!['M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','G','C','T','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M','M'];
         assert_eq!(refined, expected);
@@ -794,7 +961,7 @@ mod tests {
         let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
         let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-        let refined = refine_translation(&translated, &noisy_ms, &reference, &sbwt, threshold);
+        let refined = refine_translation(&translated, &noisy_ms, &derand_ms, &reference, &sbwt, threshold);
 
         let expected = vec!['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', '-', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'];
         assert_eq!(refined, expected);
