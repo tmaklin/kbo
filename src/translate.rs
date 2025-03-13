@@ -342,12 +342,12 @@ fn left_extend_over_gap(
     end_index: usize,
 ) -> (usize, usize, Vec<u8>) {
     let mut prev_ms = derand_ms[end_index];
-    let mut search_start = end_index + 1;
+    let mut search_start = end_index + threshold;
     while prev_ms <= derand_ms[search_start] && search_start - end_index < (k - threshold)  {
         prev_ms = derand_ms[search_start];
         search_start += 1;
     }
-    let search_end = end_index;
+    let search_end = end_index + threshold - 1;
 
     let mut kmer: Vec<u8> = Vec::with_capacity(k);
     // let kmer_idx_start = (start_index + k - threshold).min(ref_seq.len() - threshold);
@@ -355,8 +355,7 @@ fn left_extend_over_gap(
     let mut kmer_idx = kmer_idx_start;
     let mut ref_start: usize = 0;
     let mut ref_end: usize = 0;
-    eprintln!("{},{}", search_start, search_end);
-    while kmer_idx > search_end {
+    while kmer_idx >= search_end {
         let sbwt_interval = &noisy_ms[kmer_idx].1;
         if sbwt_interval.end - sbwt_interval.start == 1 {
             sbwt.push_kmer_to_vec(sbwt_interval.start, &mut kmer);
@@ -366,7 +365,6 @@ fn left_extend_over_gap(
             let mut overlap_matches = true;
             let gap_start = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize;
             let gap_end = gap_start + (end_index - start_index);
-            eprintln!("{},{},{},{},{}", k, gap_end, gap_start, end_index, start_index);
             for j in 0..(k - gap_end + 1) {
                 let ref_pos = search_start - gap_start - j;
                 let kmer_pos = k - j - 1;
@@ -515,7 +513,6 @@ pub fn refine_translation(
                             }
                     } else {
                         let (ref_start, ref_end, kmer) = left_extend_over_gap(noisy_ms, derand_ms, ref_seq, sbwt, k, threshold, start_index, end_index);
-                        eprintln!("{:?}", kmer);
                         if !kmer.is_empty() && !kmer.contains(&b'$') {
                             for ref_pos in ref_start..ref_end {
                                 let kmer_pos = ref_pos - ref_start;
