@@ -365,14 +365,14 @@ fn left_extend_over_gap(
             let mut overlap_matches = true;
             let gap_start = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize;
             let gap_end = gap_start + (end_index - start_index);
-            for j in 0..(k - gap_end + 1) {
+            for j in 0..(k - gap_end + 1).min(k) {
                 let ref_pos = search_start - gap_start - j;
                 let kmer_pos = k - j - 1;
                 overlap_matches &= kmer[kmer_pos] == ref_seq[ref_pos];
             }
             let mut max_consecutive_overlaps: usize = 0;
             let mut consecutive_overlaps: usize = 0;
-            for j in (k - gap_end + 1)..k {
+            for j in (k - gap_end + 1).min(k)..k {
                 let ref_pos = search_start - gap_start - j;
                 let kmer_pos = k - j - 1;
                 if kmer[kmer_pos] == ref_seq[ref_pos] {
@@ -388,7 +388,7 @@ fn left_extend_over_gap(
 
             if overlap_matches && max_consecutive_overlaps >= threshold  {
                 ref_start = search_start - gap_start - (k - 1);
-                ref_end = search_start - gap_start - (k - gap_end + 1);
+                ref_end = search_start - gap_start - (k - gap_end + 1).min(k);
                 break;
             } else {
                 kmer.clear();
