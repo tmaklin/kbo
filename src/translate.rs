@@ -365,7 +365,8 @@ fn left_extend_over_gap(
             let mut overlap_matches = true;
             let gap_start = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize;
             let gap_end = gap_start + (end_index - start_index);
-            for j in 0..(k - gap_end + 1).min(k) {
+            let end = if k >= gap_end { k - gap_end + 1 } else { k };
+            for j in 0..end {
                 let ref_pos = search_start - gap_start - j;
                 let kmer_pos = k - j - 1;
                 overlap_matches &= kmer[kmer_pos] == ref_seq[ref_pos];
@@ -388,13 +389,14 @@ fn left_extend_over_gap(
 
             if overlap_matches && max_consecutive_overlaps >= threshold  {
                 ref_start = search_start - gap_start - (k - 1);
-                ref_end = search_start - gap_start - (k - gap_end + 1).min(k);
+                ref_end = search_start - gap_start - end;
 
                 // Found a candidate k-mer
                 // try to left extend it as far as possible
                 let mut left_extension_len = 0;
 
-                while ref_start > start_index {
+                let extend_end = (start_index as i64 - threshold as i64).max(0) as usize;
+                while ref_start > extend_end {
                     let mut new_kmers: Vec<(Vec<u8>, Range<usize>)> = Vec::new();
                     for c in [b'A',b'C',b'G',b'T'] {
                         let mut new_kmer: Vec<u8> = Vec::new();
