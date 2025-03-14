@@ -371,23 +371,8 @@ fn left_extend_over_gap(
                 let kmer_pos = k - j - 1;
                 overlap_matches &= kmer[kmer_pos] == ref_seq[ref_pos];
             }
-            let mut max_consecutive_overlaps: usize = 0;
-            let mut consecutive_overlaps: usize = 0;
-            for j in (k - gap_end + 1).min(k)..k {
-                let ref_pos = search_start - gap_start - j;
-                let kmer_pos = k - j - 1;
-                if kmer[kmer_pos] == ref_seq[ref_pos] {
-                    consecutive_overlaps += 1;
-                } else {
-                    consecutive_overlaps = 0;
-                }
-                if consecutive_overlaps > max_consecutive_overlaps {
-                    max_consecutive_overlaps = consecutive_overlaps;
-                }
-            }
 
-
-            if overlap_matches && max_consecutive_overlaps >= threshold  {
+            if overlap_matches {
                 ref_start = search_start - gap_start - (k - 1);
                 ref_end = search_start - gap_start - end;
 
@@ -420,7 +405,36 @@ fn left_extend_over_gap(
                     }
                     ref_start -= 1;
                 }
+                let mut left_overlap_matches = start_index >= threshold + ref_start;
+                for ref_pos in ref_start..start_index {
+                    let kmer_pos = ref_pos - ref_start;
+                    let fill_nt = kmer[kmer_pos];
+                    let ref_nt = ref_seq[ref_pos];
+                    left_overlap_matches &= fill_nt == ref_nt;
+                }
 
+                let mut total_overlaps: usize = 0;
+                let mut max_consecutive_overlaps: usize = 0;
+                let mut consecutive_overlaps: usize = 0;
+                for ref_pos in ref_start..ref_end {
+                    let kmer_pos = ref_pos - ref_start;
+                    let kmer_nt = kmer[kmer_pos];
+                    let ref_nt = ref_seq[ref_pos];
+                    if kmer_nt == ref_nt {
+                        consecutive_overlaps += 1;
+                        total_overlaps += 1;
+                    } else {
+                        consecutive_overlaps = 0;
+                    }
+                    if consecutive_overlaps > max_consecutive_overlaps {
+                        max_consecutive_overlaps = consecutive_overlaps;
+                    }
+                }
+
+                let pass = max_consecutive_overlaps >= threshold || total_overlaps >= ((end_index as i64 - start_index as i64 - 2_i64).max(0)) as usize;
+                if !left_overlap_matches || !pass {
+                    kmer.clear();
+                }
                 break;
             } else {
                 kmer.clear();
