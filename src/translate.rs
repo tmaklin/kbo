@@ -341,9 +341,9 @@ fn left_extend_over_gap(
     start_index: usize,
     end_index: usize,
 ) -> (usize, usize, Vec<u8>) {
-    let mut prev_ms = derand_ms[end_index];
-    let mut search_start = end_index + threshold;
-    while prev_ms <= derand_ms[search_start] && search_start - end_index < (k - threshold)  {
+    let mut prev_ms = derand_ms[end_index - 1];
+    let mut search_start = (end_index + threshold).min(derand_ms.len() - 1);
+    while search_start < derand_ms.len() && prev_ms <= derand_ms[search_start] && search_start - (end_index - 1) < k   {
         prev_ms = derand_ms[search_start];
         search_start += 1;
     }
