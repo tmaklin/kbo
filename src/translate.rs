@@ -792,7 +792,7 @@ mod tests {
 
         let refined = refine_translation(&translated, &noisy_ms, &derand_ms, &reference, &sbwt, threshold);
 
-        let expected = vec!['M','M','M','M','T','C','T','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
+        let expected = vec!['M','M','M','M','T','C','T','M','M','M','M','M','M','M','X','M','M','M','M','M','M','M'];
         assert_eq!(refined, expected);
     }
 
@@ -809,16 +809,16 @@ mod tests {
 
         // Parameters       : k = 9, threshold = 3
         //
-        // Ref sequence     : T,T,G,A, A, C,A,G,G,C,T,G,G,G,C,A,G,A,G,C,T,G
-        // Query sequence   : T,T,G,A, T, C,T G,G,C,T,G,G,G,G,A,G,A,G,C,T,G
+        // Ref sequence     : T,T,G,G, A, C,A,G,G,C,T,G,G,G,C,A,G,A,G,C,T,G
+        // Query sequence   : T,T,G,G, G, C,T G,G,C,T,G,G,G,G,A,G,A,G,C,T,G
         //
         // Result MS vector : 1,2,3,4, 1, 1,1,2,2,3,4,4,4,4,3,1,2,3,4,4,4,4
         // Derandomized MS  : 1,2,3,4,-2,-1,0,1,2,3,4,4,4,4,0,1,2,3,4,4,4,4
         // Translation      : M,M,M,M, -, -,-,M,M,M,M,M,M,M,X,M,M,M,M,M,M,M
-        // Refined          : M,M,M,M, T, C,T,M,M,M,M,M,M,M,G,M,M,M,M,M,M,M
+        // Refined          : M,M,M,M, -, -,-,M,M,M,M,M,M,M,R,R,M,M,M,M,M,M
 
-        let query: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'C',b'T',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
-        let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'A',b'C',b'A',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+        let query: Vec<u8> = vec![b'T',b'T',b'G',b'G',b'G',b'C',b'T',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+        let reference: Vec<u8> = vec![b'T',b'T',b'G',b'G',b'A',b'C',b'A',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
 
         let (sbwt, lcs) = build(&[query], BuildOpts{ k: 9, build_select: true, ..Default::default() });
 
@@ -836,7 +836,7 @@ mod tests {
 
         let refined = refine_translation(&translated, &noisy_ms, &derand_ms, &reference, &sbwt, threshold);
 
-        let expected = vec!['M','M','M','M','-','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
+        let expected = vec!['M','M','M','M','-','-','-','M','M','M','M','M','M','M','R','R','M','M','M','M','M','M'];
         assert_eq!(refined, expected);
     }
 
@@ -880,7 +880,7 @@ mod tests {
 
         let refined = refine_translation(&translated, &noisy_ms, &derand_ms, &reference, &sbwt, threshold);
 
-        let expected = vec!['M','M','M','M','T','C','A','G','A','M','M','M','M','M','X','M','M','M','M','M','M','M'];
+        let expected = vec!['M','M','M','M','T','M','M','M','A','M','M','M','M','M','X','M','M','M','M','M','M','M'];
         assert_eq!(refined, expected);
     }
 
@@ -922,7 +922,7 @@ mod tests {
 
         let refined = refine_translation(&translated, &noisy_ms, &derand_ms, &reference, &sbwt, threshold);
 
-        let expected = vec!['M','M','M','M','M','G','T','A','C','A','G','A','M','M','M','M','M','X','M','M','M','M','M','M','M'];
+        let expected = vec!['M','M','M','M','M','G','T','M','M','M','M','A','M','M','M','M','M','X','M','M','M','M','M','M','M'];
         assert_eq!(refined, expected);
     }
 
