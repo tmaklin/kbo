@@ -366,9 +366,13 @@ fn left_extend_over_gap(
             let gap_start = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize;
             let gap_end = gap_start + (end_index - start_index);
             let end = if k >= gap_end { k - gap_end + 1 } else { k };
-            for j in 0..end {
-                let ref_pos = search_start - gap_start - j;
-                let kmer_pos = k - j - 1;
+            let n_right_matching_bases = kmer_idx_start - (end_index - 1) - (kmer_idx_start - kmer_idx);
+
+            // If we find a k-mer very early the right overlap can be longer
+            // than k, hence the .min(k) here
+            for j in 0..n_right_matching_bases.min(k) {
+                let ref_pos = end_index + j;
+                let kmer_pos = k - n_right_matching_bases.min(k) + j;
                 overlap_matches &= kmer[kmer_pos] == ref_seq[ref_pos];
             }
 
