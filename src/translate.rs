@@ -384,8 +384,9 @@ fn left_extend_over_gap(
                 // try to left extend it as far as possible
                 let mut left_extension_len = 0;
 
+                let mut left_overlap_matches = false;
                 let extend_end = (start_index as i64 - threshold as i64).max(0) as usize;
-                while ref_start > extend_end {
+                while !left_overlap_matches && ref_start > extend_end {
                     let mut new_kmers: Vec<(Vec<u8>, Range<usize>)> = Vec::new();
                     for c in [b'A',b'C',b'G',b'T'] {
                         let mut new_kmer: Vec<u8> = Vec::new();
@@ -404,38 +405,33 @@ fn left_extend_over_gap(
                         let mut kmer_extended = vec![new_kmers[0].0[0]];
                         kmer_extended.append(&mut kmer.clone());
                         kmer = kmer_extended;
+                        left_overlap_matches = true;
+                        for j in 0..threshold {
+                            let kmer_pos = j;
+                            let ref_pos = if ref_start >= threshold { ref_start - threshold + j } else { 0 };
+                            left_overlap_matches &= kmer[kmer_pos] == ref_seq[ref_pos];
+                        }
                     } else {
+                        left_overlap_matches = true;
+                        for j in 0..threshold {
+                            let kmer_pos = j;
+                            let ref_pos = if ref_start >= threshold { ref_start - threshold + j } else { 0 };
+                            left_overlap_matches &= kmer[kmer_pos] == ref_seq[ref_pos];
+                        }
                         break;
                     }
+
+                    left_overlap_matches = true;
+                    for j in 0..threshold {
+                        let kmer_pos = j;
+                        let ref_pos = if start_index > threshold { start_index - threshold + j } else { 0 };
+                        left_overlap_matches &= kmer[kmer_pos] == ref_seq[ref_pos];
+                    }
+
                     ref_start -= 1;
                 }
-                let mut left_overlap_matches = start_index >= threshold + ref_start;
-                for ref_pos in ref_start..start_index {
-                    let kmer_pos = ref_pos - ref_start;
-                    let fill_nt = kmer[kmer_pos];
-                    let ref_nt = ref_seq[ref_pos];
-                    left_overlap_matches &= fill_nt == ref_nt;
-                }
 
-                let mut total_overlaps: usize = 0;
-                let mut max_consecutive_overlaps: usize = 0;
-                let mut consecutive_overlaps: usize = 0;
-                for ref_pos in ref_start..ref_end {
-                    let kmer_pos = ref_pos - ref_start;
-                    let kmer_nt = kmer[kmer_pos];
-                    let ref_nt = ref_seq[ref_pos];
-                    if kmer_nt == ref_nt {
-                        consecutive_overlaps += 1;
-                        total_overlaps += 1;
-                    } else {
-                        consecutive_overlaps = 0;
-                    }
-                    if consecutive_overlaps > max_consecutive_overlaps {
-                        max_consecutive_overlaps = consecutive_overlaps;
-                    }
-                }
-
-                let pass = max_consecutive_overlaps >= threshold || total_overlaps >= ((end_index as i64 - start_index as i64 - 2_i64).max(0)) as usize;
+                let pass = kmer.len() as i64 - threshold as i64 - n_right_matching_bases as i64 == end_index as i64 - start_index as i64;
                 if !left_overlap_matches || !pass {
                     kmer.clear();
                 }
@@ -565,8 +561,9 @@ pub fn refine_translation(
                     } else {
                         let (ref_start, ref_end, kmer) = left_extend_over_gap(noisy_ms, derand_ms, ref_seq, sbwt, k, threshold, start_index, end_index);
                         if !kmer.is_empty() && !kmer.contains(&b'$') {
-                            for ref_pos in ref_start..ref_end {
-                                let kmer_pos = ref_pos - ref_start;
+                            for j in threshold..(threshold + end_index - start_index) {
+                                let kmer_pos = j;
+                                let ref_pos = start_index + j - threshold;
                                 let fill_nt = kmer[kmer_pos];
                                 let ref_nt = ref_seq[ref_pos];
                                 let fill_char = if fill_nt == ref_nt { 'M' } else { fill_nt as char };
