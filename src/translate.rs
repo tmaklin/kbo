@@ -310,11 +310,15 @@ fn overlap_gap(
 
             // Check that the overlapping parts of the
             // candidate k-mer match the reference sequence
-            let mut overlap_matches = true;
+            let right_matches_want = kmer_idx_start - (end_index - 1) - (kmer_idx_start - kmer_idx);
+            let right_matches_got = right_overlap_matches(&kmer, ref_seq, end_index + right_matches_want);
+
+            // If we find a k-mer very early the right overlap can be longer
+            // than k, hence the .min(k) here
+            let mut overlap_matches = right_matches_got == right_matches_want.min(k);
+
             let gap_start = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize + threshold - 1;
-            for j in 1..(gap_start + 1) {
-                overlap_matches &= kmer[gap_start - j] == ref_seq[start_index - j];
-            }
+
             let gap_end = gap_start + (end_index - start_index);
             for j in 0..(k - gap_end) {
                 overlap_matches &= kmer[gap_end + j] == ref_seq[end_index + j];
@@ -329,6 +333,27 @@ fn overlap_gap(
         kmer_idx -= 1;
     }
     (kmer_idx, kmer_idx_start, kmer)
+}
+
+/// Count overlaps between a sequence and the last elements of a k-mer.
+fn right_overlap_matches(
+    kmer: &[u8],
+    ref_seq: &[u8],
+    ref_match_end: usize,
+) -> usize {
+    let mut kmer_pos = kmer.len() - 1;
+    let mut ref_pos = ref_match_end - 1;
+    let mut matches: usize = 0;
+    while kmer_pos > 0 {
+        if ref_seq[ref_pos] == kmer[kmer_pos] {
+            matches += 1;
+        } else {
+            break;
+        }
+        kmer_pos -= 1;
+        ref_pos -= 1;
+    }
+    matches
 }
 
 fn left_extend_over_gap(
@@ -363,20 +388,17 @@ fn left_extend_over_gap(
 
             // Check that the overlapping parts of the
             // candidate k-mer match the reference sequence
-            let mut overlap_matches = true;
-            let gap_start = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize;
-            let gap_end = gap_start + (end_index - start_index);
-            let end = if k >= gap_end { k - gap_end + 1 } else { k };
-            n_right_matching_bases = kmer_idx_start - (end_index - 1) - (kmer_idx_start - kmer_idx);
+            let right_matches_want = kmer_idx_start - (end_index - 1) - (kmer_idx_start - kmer_idx);
+            let right_matches_got = right_overlap_matches(&kmer, ref_seq, end_index + right_matches_want);
+            n_right_matching_bases = right_matches_got;
 
             // If we find a k-mer very early the right overlap can be longer
             // than k, hence the .min(k) here
-            for j in 0..n_right_matching_bases.min(k) {
-                let ref_pos = end_index + j;
-                let kmer_pos = k - n_right_matching_bases.min(k) + j;
-                overlap_matches &= kmer[kmer_pos] == ref_seq[ref_pos];
-            }
+            let overlap_matches = right_matches_got == right_matches_want.min(k);
 
+            let gap_start = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize;
+            let gap_end = gap_start + (end_index - start_index);
+            let end = if k >= gap_end { k - gap_end + 1 } else { k };
             if overlap_matches {
                 ref_start = search_start - gap_start - (k - 1);
                 ref_end = search_start - gap_start - end;
