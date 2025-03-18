@@ -407,12 +407,12 @@ pub fn refine_translation(
                                 }
                             }
                     } else {
-                        let (n_right_matching_bases, kmer) = left_extend_over_gap(noisy_ms, derand_ms, ref_seq, sbwt, k, threshold, start_index, end_index);
+                        let kmer = left_extend_over_gap(noisy_ms, derand_ms, ref_seq, sbwt, k, threshold, start_index, end_index);
 
                         let kmer_found = !kmer.is_empty() && !kmer.contains(&b'$');
-                        if kmer_found && kmer.len() - threshold - n_right_matching_bases == end_index - start_index {
+                        if kmer_found && kmer.len() - threshold - (kmer.len() - (end_index - start_index) - threshold) == end_index - start_index {
                             // Check if we want to use this k-mer
-                            let no_indels = kmer.len() - threshold - n_right_matching_bases == end_index - start_index;
+                            let no_indels = kmer.len() - threshold - (kmer.len() - (end_index - start_index) - threshold) == end_index - start_index;
 
                             let mut matching_bases: Vec<bool> = vec![false;end_index - start_index];
 

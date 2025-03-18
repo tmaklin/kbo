@@ -172,7 +172,7 @@ pub fn left_extend_over_gap(
     threshold: usize,
     start_index: usize,
     end_index: usize,
-) -> (usize, Vec<u8>) {
+) -> Vec<u8> {
     let mut prev_ms = derand_ms[end_index - 1];
     let mut search_start = (end_index + threshold).min(derand_ms.len() - 1);
     while search_start < derand_ms.len() && prev_ms <= derand_ms[search_start] && search_start - (end_index - 1) < k   {
@@ -183,7 +183,6 @@ pub fn left_extend_over_gap(
 
     let mut kmer: Vec<u8> = Vec::with_capacity(k);
     let mut kmer_idx = search_start;
-    let mut n_right_matching_bases: usize = 0;
     while kmer_idx >= search_end {
         (kmer_idx, kmer) = nearest_unique_context(noisy_ms, sbwt, kmer_idx, search_end);
         if !kmer.is_empty() {
@@ -191,14 +190,13 @@ pub fn left_extend_over_gap(
             // candidate k-mer match the reference sequence
             let right_matches_want = search_start - (end_index - 1) - (search_start - kmer_idx);
             let right_matches_got = count_right_overlaps(&kmer, ref_seq, end_index + right_matches_want);
-            n_right_matching_bases = right_matches_got;
 
             // If we find a k-mer very early the right overlap can be longer
             // than k, hence the .min(k) here
             let overlap_matches = right_matches_got == right_matches_want.min(k);
 
             if overlap_matches {
-                let left_extend_length = threshold + (end_index - start_index) + n_right_matching_bases - k;
+                let left_extend_length = threshold + (end_index - start_index) + right_matches_got - k;
                 kmer = left_extend_kmer(&kmer, sbwt, left_extend_length);
 
                 let ref_start_pos = if start_index > threshold { start_index - threshold } else { 0 };
@@ -217,5 +215,5 @@ pub fn left_extend_over_gap(
         kmer_idx -= 1;
     }
 
-    (n_right_matching_bases, kmer)
+    kmer
 }
