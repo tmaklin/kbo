@@ -333,6 +333,29 @@ fn overlap_gap(
     (kmer_idx, kmer_idx_start, kmer)
 }
 
+/// Find the nearest unique context left of `start`
+fn nearest_unique_context(
+    ms: &[(usize, Range<usize>)],
+    sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
+    search_start: usize,
+    search_end: usize,
+) -> (usize, Vec<u8>) {
+    let k = sbwt.k();
+    let mut kmer: Vec<u8> = Vec::with_capacity(k);
+    let mut kmer_idx = search_start;
+
+    while kmer_idx >= search_end {
+        let sbwt_interval = &ms[kmer_idx].1;
+        if sbwt_interval.end - sbwt_interval.start == 1 {
+            sbwt.push_kmer_to_vec(sbwt_interval.start, &mut kmer);
+            break;
+        }
+        kmer_idx -= 1;
+    }
+
+    (kmer_idx, kmer)
+}
+
 /// Count overlaps between a sequence and the last elements of a k-mer.
 fn count_right_overlaps(
     kmer: &[u8],
@@ -448,18 +471,14 @@ fn left_extend_over_gap(
     let search_end = end_index + threshold - 1;
 
     let mut kmer: Vec<u8> = Vec::with_capacity(k);
-    // let kmer_idx_start = (start_index + k - threshold).min(ref_seq.len() - threshold);
-    let kmer_idx_start = search_start;
-    let mut kmer_idx = kmer_idx_start;
+    let mut kmer_idx = search_start;
     let mut n_right_matching_bases: usize = 0;
     while kmer_idx >= search_end {
-        let sbwt_interval = &noisy_ms[kmer_idx].1;
-        if sbwt_interval.end - sbwt_interval.start == 1 {
-            sbwt.push_kmer_to_vec(sbwt_interval.start, &mut kmer);
-
+        (kmer_idx, kmer) = nearest_unique_context(noisy_ms, sbwt, kmer_idx, search_end);
+        if !kmer.is_empty() {
             // Check that the overlapping parts of the
             // candidate k-mer match the reference sequence
-            let right_matches_want = kmer_idx_start - (end_index - 1) - (kmer_idx_start - kmer_idx);
+            let right_matches_want = search_start - (end_index - 1) - (search_start - kmer_idx);
             let right_matches_got = count_right_overlaps(&kmer, ref_seq, end_index + right_matches_want);
             n_right_matching_bases = right_matches_got;
 
@@ -467,9 +486,8 @@ fn left_extend_over_gap(
             // than k, hence the .min(k) here
             let overlap_matches = right_matches_got == right_matches_want.min(k);
 
-            let gap_start = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize;
             if overlap_matches {
-                let mut ref_start = search_start - gap_start - (k - 1);
+                let mut ref_start = search_start - (search_start - kmer_idx) - (k - 1);
 
                 let left_overlap_matches: bool;
                 (left_overlap_matches, kmer) = left_extend_kmer(&kmer, ref_seq, sbwt, &mut ref_start, start_index, threshold);
