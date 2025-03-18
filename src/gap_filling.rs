@@ -131,7 +131,7 @@ pub fn left_extend_kmer(
     let mut left_extension_len = 0;
     let mut kmer = kmer_start.to_vec();
     while left_extension_len < max_extension_len {
-        let new_kmers: Vec<(Vec<u8>, Range<usize>)> = [b'A',b'C',b'G',b'T'].iter().filter_map(|c| {
+        let new_kmers: Vec<(Vec<u8>, Range<usize>)> = sbwt.alphabet().iter().filter_map(|c| {
             let new_kmer: Vec<u8> = [&[*c], &kmer[0..(kmer.len() - (left_extension_len + 1))]].concat();
             let res = sbwt.search(&new_kmer);
             if res.as_ref().is_some() {
