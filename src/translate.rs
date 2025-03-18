@@ -528,7 +528,7 @@ fn left_extend_over_gap(
 /// let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
 ///
 /// let mut opts = BuildOpts::default();
-/// opts.k = 4;
+/// opts.k = 7;
 /// opts.build_select = true;
 /// let (sbwt, lcs) = build(&[query], opts);
 ///
