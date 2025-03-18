@@ -15,6 +15,9 @@
 use std::ops::Range;
 
 /// Find the nearest unique context that overlaps the gap.
+
+// TODO Can merge overlap_gap and left_extend_over_gap be merged?
+
 pub fn overlap_gap(
     noisy_ms: &[(usize, Range<usize>)],
     ref_seq: &[u8],
@@ -24,6 +27,12 @@ pub fn overlap_gap(
     start_index: usize,
     end_index: usize,
 ) -> (usize, usize, Vec<u8>) {
+    assert!(k > 0);
+    assert!(noisy_ms.len() == ref_seq.len());
+    assert!(threshold > 0);
+    assert!(end_index > start_index);
+    assert!(end_index < noisy_ms.len());
+
     let mut kmer: Vec<u8> = Vec::with_capacity(k);
     let kmer_idx_start = (start_index + k - threshold).min(ref_seq.len() - threshold);
     let mut kmer_idx = kmer_idx_start;
@@ -65,6 +74,11 @@ pub fn nearest_unique_context(
     search_end: usize,
 ) -> (usize, Vec<u8>) {
     let k = sbwt.k();
+    assert!(k > 0);
+    assert!(!ms.is_empty());
+    assert!(search_start >= search_end);
+    assert!(search_start < ms.len());
+
     let mut kmer: Vec<u8> = Vec::with_capacity(k);
     let mut kmer_idx = search_start;
 
@@ -86,6 +100,10 @@ pub fn count_right_overlaps(
     ref_seq: &[u8],
     ref_match_end: usize,
 ) -> usize {
+    assert!(!kmer.is_empty());
+    assert!(!ref_seq.is_empty());
+    assert!(ref_seq.len() > ref_match_end);
+
     let mut kmer_pos = kmer.len() - 1;
     let mut ref_pos = ref_match_end - 1;
     let mut matches: usize = 0;
@@ -107,6 +125,10 @@ pub fn count_left_overlaps(
     ref_seq: &[u8],
     ref_match_start: usize,
 ) -> usize {
+    assert!(!kmer.is_empty());
+    assert!(!ref_seq.is_empty());
+    assert!(ref_seq.len() > ref_match_start);
+
     let mut kmer_pos = 0;
     let mut ref_pos = ref_match_start;
     let mut matches: usize = 0;
@@ -128,6 +150,8 @@ pub fn left_extend_kmer(
     sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
     max_extension_len: usize,
 ) -> Vec<u8> {
+    assert!(!kmer_start.is_empty());
+
     let mut left_extension_len = 0;
     let mut kmer = kmer_start.to_vec();
     while left_extension_len < max_extension_len {
@@ -160,7 +184,15 @@ pub fn left_extend_over_gap(
     gap_end_index: usize,
 ) -> Vec<u8> {
     let k = sbwt.k();
-    let search_start = (gap_end_index + k).min(ref_seq.len() - 1);
+    assert!(k > 0);
+    assert!(noisy_ms.len() == ref_seq.len());
+    assert!(overlap_req > 0);
+    assert!(gap_end_index > gap_start_index);
+    assert!(gap_end_index < noisy_ms.len());
+
+    // TODO Lowering search_start would speed up the algorithm a lot, investigate.
+
+    let search_start = gap_end_index + k;
     let search_end = gap_end_index + overlap_req - 1;
 
     let mut kmer: Vec<u8> = Vec::with_capacity(k);
