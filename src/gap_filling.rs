@@ -165,21 +165,15 @@ pub fn left_extend_kmer(
 /// Extend the nearest unique context until it overlaps the gap.
 pub fn left_extend_over_gap(
     noisy_ms: &[(usize, Range<usize>)],
-    derand_ms: &[i64],
     ref_seq: &[u8],
     sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
-    k: usize,
-    threshold: usize,
+    overlap_len: usize,
     start_index: usize,
     end_index: usize,
 ) -> Vec<u8> {
-    let mut prev_ms = derand_ms[end_index - 1];
-    let mut search_start = (end_index + threshold).min(derand_ms.len() - 1);
-    while search_start < derand_ms.len() && prev_ms <= derand_ms[search_start] && search_start - (end_index - 1) < k   {
-        prev_ms = derand_ms[search_start];
-        search_start += 1;
-    }
-    let search_end = end_index + threshold - 1;
+    let k = sbwt.k();
+    let search_start = (end_index + k).min(ref_seq.len() - 1);
+    let search_end = end_index + overlap_len - 1;
 
     let mut kmer: Vec<u8> = Vec::with_capacity(k);
     let mut kmer_idx = search_start;
@@ -196,12 +190,12 @@ pub fn left_extend_over_gap(
             let overlap_matches = right_matches_got == right_matches_want.min(k);
 
             if overlap_matches {
-                let left_extend_length = threshold + (end_index - start_index) + right_matches_got - k;
+                let left_extend_length = overlap_len + (end_index - start_index) + right_matches_got - k;
                 kmer = left_extend_kmer(&kmer, sbwt, left_extend_length);
 
-                let ref_start_pos = if start_index > threshold { start_index - threshold } else { 0 };
+                let ref_start_pos = if start_index > overlap_len { start_index - overlap_len } else { 0 };
                 let left_overlaps = count_left_overlaps(&kmer, ref_seq, ref_start_pos);
-                let left_overlap_matches = left_overlaps == threshold;
+                let left_overlap_matches = left_overlaps == overlap_len;
 
                 if left_overlap_matches {
                     break;
