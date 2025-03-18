@@ -567,6 +567,7 @@ pub fn refine_translation(
                             // Check if we want to use this k-mer
                             let no_indels = kmer.len() - threshold - n_right_matching_bases == end_index - start_index;
 
+                            let mut matching_bases: Vec<bool> = vec![false;end_index - start_index];
 
                             let mut total_overlaps: usize = 0;
                             let mut max_consecutive_overlaps: usize = 0;
@@ -577,6 +578,7 @@ pub fn refine_translation(
                                 let kmer_nt = kmer[kmer_pos];
                                 let ref_nt = ref_seq[ref_pos];
                                 if kmer_nt == ref_nt {
+                                    matching_bases[j - threshold] = true;
                                     consecutive_overlaps += 1;
                                     total_overlaps += 1;
                                 } else {
@@ -586,8 +588,9 @@ pub fn refine_translation(
                                     max_consecutive_overlaps = consecutive_overlaps;
                                 }
                             }
+
                             let fill_overlaps = max_consecutive_overlaps >= threshold || total_overlaps >= ((end_index as i64 - start_index as i64 - 2_i64).max(0)) as usize;
-                            let fill_flanked = total_overlaps >= ((end_index as i64 - start_index as i64 - 2_i64).max(0)) as usize;
+                            let fill_flanked = !matching_bases[0] && !matching_bases[end_index - start_index - 1] && total_overlaps == end_index - start_index - 2;
                             let pass_checks = kmer_found && no_indels && (fill_overlaps || fill_flanked);
 
                             if pass_checks {
