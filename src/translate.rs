@@ -429,25 +429,28 @@ fn left_extend_over_gap(
                         kmer_extended.append(&mut kmer.clone());
                         kmer = kmer_extended;
                         left_overlap_matches = true;
+                        let ref_start_pos = if start_index > threshold { start_index - threshold } else { 0 };
                         for j in 0..threshold {
                             let kmer_pos = j;
-                            let ref_pos = if ref_start >= threshold { ref_start - threshold + j } else { 0 };
+                            let ref_pos = ref_start_pos + j;
                             left_overlap_matches &= kmer[kmer_pos] == ref_seq[ref_pos];
                         }
                     } else {
                         left_overlap_matches = true;
+                        let ref_start_pos = if start_index > threshold { start_index - threshold } else { 0 };
                         for j in 0..threshold {
                             let kmer_pos = j;
-                            let ref_pos = if ref_start >= threshold { ref_start - threshold + j } else { 0 };
+                            let ref_pos = ref_start_pos + j;
                             left_overlap_matches &= kmer[kmer_pos] == ref_seq[ref_pos];
                         }
                         break;
                     }
 
                     left_overlap_matches = true;
+                    let ref_start_pos = if start_index > threshold { start_index - threshold } else { 0 };
                     for j in 0..threshold {
                         let kmer_pos = j;
-                        let ref_pos = if start_index > threshold { start_index - threshold + j } else { 0 };
+                        let ref_pos = ref_start_pos + j;
                         left_overlap_matches &= kmer[kmer_pos] == ref_seq[ref_pos];
                     }
 
