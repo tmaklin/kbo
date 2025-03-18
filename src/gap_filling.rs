@@ -128,36 +128,24 @@ pub fn left_extend_kmer(
     sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
     max_extension_len: usize,
 ) -> Vec<u8> {
-    // Found a candidate k-mer
-    // try to left extend it as far as possible
     let mut left_extension_len = 0;
-
-    let mut extend_count: usize = 0;
-    let mut kmer = kmer_start.to_vec().clone();
-    while extend_count < max_extension_len {
-        let mut new_kmers: Vec<(Vec<u8>, Range<usize>)> = Vec::new();
-        for c in [b'A',b'C',b'G',b'T'] {
-            let mut new_kmer: Vec<u8> = Vec::new();
-            new_kmer.push(c);
-            new_kmer.append(&mut kmer.clone());
-            for i in 0..(left_extension_len + 1) {
-                new_kmer.pop();
-            }
-            let res = sbwt.search(&new_kmer).clone();
+    let mut kmer = kmer_start.to_vec();
+    while left_extension_len < max_extension_len {
+        let new_kmers: Vec<(Vec<u8>, Range<usize>)> = [b'A',b'C',b'G',b'T'].iter().filter_map(|c| {
+            let new_kmer: Vec<u8> = [&[*c], &kmer[0..(kmer.len() - (left_extension_len + 1))]].concat();
+            let res = sbwt.search(&new_kmer);
             if res.as_ref().is_some() {
-                new_kmers.push((new_kmer, res.unwrap()));
+                Some((new_kmer, res.unwrap()))
+            } else {
+                None
             }
-        }
+        }).collect();
         if new_kmers.len() == 1 && new_kmers[0].1.end - new_kmers[0].1.start == 1 {
-            left_extension_len += 1;
-            let mut kmer_extended = vec![new_kmers[0].0[0]];
-            kmer_extended.append(&mut kmer.clone());
-            kmer = kmer_extended;
+            kmer = [&[new_kmers[0].0[0]], kmer.as_slice()].concat();
         } else {
             break;
         }
-
-        extend_count += 1;
+        left_extension_len += 1;
     }
     kmer
 }
