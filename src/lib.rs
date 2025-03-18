@@ -227,6 +227,7 @@ use sbwt::SbwtIndexVariant;
 
 pub mod derandomize;
 pub mod format;
+pub mod gap_filling;
 pub mod index;
 pub mod translate;
 
