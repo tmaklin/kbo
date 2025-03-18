@@ -340,7 +340,7 @@ fn left_extend_over_gap(
     threshold: usize,
     start_index: usize,
     end_index: usize,
-) -> (usize, usize, Vec<u8>) {
+) -> (usize, Vec<u8>) {
     let mut prev_ms = derand_ms[end_index - 1];
     let mut search_start = (end_index + threshold).min(derand_ms.len() - 1);
     while search_start < derand_ms.len() && prev_ms <= derand_ms[search_start] && search_start - (end_index - 1) < k   {
@@ -355,6 +355,7 @@ fn left_extend_over_gap(
     let mut kmer_idx = kmer_idx_start;
     let mut ref_start: usize = 0;
     let mut ref_end: usize = 0;
+    let mut n_right_matching_bases: usize = 0;
     while kmer_idx >= search_end {
         let sbwt_interval = &noisy_ms[kmer_idx].1;
         if sbwt_interval.end - sbwt_interval.start == 1 {
@@ -366,7 +367,7 @@ fn left_extend_over_gap(
             let gap_start = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize;
             let gap_end = gap_start + (end_index - start_index);
             let end = if k >= gap_end { k - gap_end + 1 } else { k };
-            let n_right_matching_bases = kmer_idx_start - (end_index - 1) - (kmer_idx_start - kmer_idx);
+            n_right_matching_bases = kmer_idx_start - (end_index - 1) - (kmer_idx_start - kmer_idx);
 
             // If we find a k-mer very early the right overlap can be longer
             // than k, hence the .min(k) here
@@ -431,11 +432,11 @@ fn left_extend_over_gap(
                     ref_start -= 1;
                 }
 
-                let pass = kmer.len() as i64 - threshold as i64 - n_right_matching_bases as i64 == end_index as i64 - start_index as i64;
-                if !left_overlap_matches || !pass {
+                if left_overlap_matches {
+                    break;
+                } else {
                     kmer.clear();
                 }
-                break;
             } else {
                 kmer.clear();
             }
@@ -443,7 +444,7 @@ fn left_extend_over_gap(
         kmer_idx -= 1;
     }
 
-    (ref_start, ref_end, kmer)
+    (n_right_matching_bases, kmer)
 }
 
 
@@ -559,15 +560,45 @@ pub fn refine_translation(
                                 }
                             }
                     } else {
-                        let (ref_start, ref_end, kmer) = left_extend_over_gap(noisy_ms, derand_ms, ref_seq, sbwt, k, threshold, start_index, end_index);
-                        if !kmer.is_empty() && !kmer.contains(&b'$') {
+                        let (n_right_matching_bases, kmer) = left_extend_over_gap(noisy_ms, derand_ms, ref_seq, sbwt, k, threshold, start_index, end_index);
+
+                        let kmer_found = !kmer.is_empty() && !kmer.contains(&b'$');
+                        if kmer_found {
+                            // Check if we want to use this k-mer
+                            let no_indels = kmer.len() - threshold - n_right_matching_bases == end_index - start_index;
+
+
+                            let mut total_overlaps: usize = 0;
+                            let mut max_consecutive_overlaps: usize = 0;
+                            let mut consecutive_overlaps: usize = 0;
                             for j in threshold..(threshold + end_index - start_index) {
                                 let kmer_pos = j;
                                 let ref_pos = start_index + j - threshold;
-                                let fill_nt = kmer[kmer_pos];
+                                let kmer_nt = kmer[kmer_pos];
                                 let ref_nt = ref_seq[ref_pos];
-                                let fill_char = if fill_nt == ref_nt { 'M' } else { fill_nt as char };
-                                refined[ref_pos] = fill_char;
+                                if kmer_nt == ref_nt {
+                                    consecutive_overlaps += 1;
+                                    total_overlaps += 1;
+                                } else {
+                                    consecutive_overlaps = 0;
+                                }
+                                if consecutive_overlaps > max_consecutive_overlaps {
+                                    max_consecutive_overlaps = consecutive_overlaps;
+                                }
+                            }
+                            let fill_overlaps = max_consecutive_overlaps >= threshold || total_overlaps >= ((end_index as i64 - start_index as i64 - 2_i64).max(0)) as usize;
+                            let fill_flanked = total_overlaps >= ((end_index as i64 - start_index as i64 - 2_i64).max(0)) as usize;
+                            let pass_checks = kmer_found && no_indels && (fill_overlaps || fill_flanked);
+
+                            if pass_checks {
+                                for j in threshold..(threshold + end_index - start_index) {
+                                    let kmer_pos = j;
+                                    let ref_pos = start_index + j - threshold;
+                                    let fill_nt = kmer[kmer_pos];
+                                    let ref_nt = ref_seq[ref_pos];
+                                    let fill_char = if fill_nt == ref_nt { 'M' } else { fill_nt as char };
+                                    refined[ref_pos] = fill_char;
+                                }
                             }
                         }
                     };
