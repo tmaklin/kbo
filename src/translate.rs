@@ -375,6 +375,60 @@ fn count_left_overlaps(
     matches
 }
 
+/// Left extends a k-mer until the SBWT interval becomes non-unique
+fn left_extend_kmer(
+    kmer_start: &[u8],
+    ref_seq: &[u8],
+    sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
+    ref_start: &mut usize,
+    start_index: usize,
+    threshold: usize,
+) -> (bool, Vec<u8>) {
+    // Found a candidate k-mer
+    // try to left extend it as far as possible
+    let mut left_extension_len = 0;
+
+    let mut left_overlap_matches = false;
+    let extend_end = (start_index as i64 - threshold as i64).max(0) as usize;
+    let mut kmer = kmer_start.to_vec().clone();
+    while !left_overlap_matches && *ref_start > extend_end {
+        let mut new_kmers: Vec<(Vec<u8>, Range<usize>)> = Vec::new();
+        for c in [b'A',b'C',b'G',b'T'] {
+            let mut new_kmer: Vec<u8> = Vec::new();
+            new_kmer.push(c);
+            new_kmer.append(&mut kmer.clone());
+            for i in 0..(left_extension_len + 1) {
+                new_kmer.pop();
+            }
+            let res = sbwt.search(&new_kmer).clone();
+            if res.as_ref().is_some() {
+                new_kmers.push((new_kmer, res.unwrap()));
+            }
+        }
+        if new_kmers.len() == 1 && new_kmers[0].1.end - new_kmers[0].1.start == 1 {
+            left_extension_len += 1;
+            let mut kmer_extended = vec![new_kmers[0].0[0]];
+            kmer_extended.append(&mut kmer.clone());
+            kmer = kmer_extended;
+            let ref_start_pos = if start_index > threshold { start_index - threshold } else { 0 };
+            let left_overlaps = count_left_overlaps(&kmer, ref_seq, ref_start_pos);
+            left_overlap_matches = left_overlaps == threshold;
+        } else {
+            let ref_start_pos = if start_index > threshold { start_index - threshold } else { 0 };
+            let left_overlaps = count_left_overlaps(&kmer, ref_seq, ref_start_pos);
+            left_overlap_matches = left_overlaps == threshold;
+            break;
+        }
+
+        let ref_start_pos = if start_index > threshold { start_index - threshold } else { 0 };
+        let left_overlaps = count_left_overlaps(&kmer, ref_seq, ref_start_pos);
+        left_overlap_matches = left_overlaps == threshold;
+
+        *ref_start -= 1;
+    }
+    (left_overlap_matches, kmer)
+}
+
 fn left_extend_over_gap(
     noisy_ms: &[(usize, Range<usize>)],
     derand_ms: &[i64],
@@ -397,8 +451,6 @@ fn left_extend_over_gap(
     // let kmer_idx_start = (start_index + k - threshold).min(ref_seq.len() - threshold);
     let kmer_idx_start = search_start;
     let mut kmer_idx = kmer_idx_start;
-    let mut ref_start: usize = 0;
-    let mut ref_end: usize = 0;
     let mut n_right_matching_bases: usize = 0;
     while kmer_idx >= search_end {
         let sbwt_interval = &noisy_ms[kmer_idx].1;
@@ -416,53 +468,11 @@ fn left_extend_over_gap(
             let overlap_matches = right_matches_got == right_matches_want.min(k);
 
             let gap_start = (kmer_idx as i64 - kmer_idx_start as i64).unsigned_abs() as usize;
-            let gap_end = gap_start + (end_index - start_index);
-            let end = if k >= gap_end { k - gap_end + 1 } else { k };
             if overlap_matches {
-                ref_start = search_start - gap_start - (k - 1);
-                ref_end = search_start - gap_start - end;
+                let mut ref_start = search_start - gap_start - (k - 1);
 
-                // Found a candidate k-mer
-                // try to left extend it as far as possible
-                let mut left_extension_len = 0;
-
-                let mut left_overlap_matches = false;
-                let extend_end = (start_index as i64 - threshold as i64).max(0) as usize;
-                while !left_overlap_matches && ref_start > extend_end {
-                    let mut new_kmers: Vec<(Vec<u8>, Range<usize>)> = Vec::new();
-                    for c in [b'A',b'C',b'G',b'T'] {
-                        let mut new_kmer: Vec<u8> = Vec::new();
-                        new_kmer.push(c);
-                        new_kmer.append(&mut kmer.clone());
-                        for i in 0..(left_extension_len + 1) {
-                            new_kmer.pop();
-                        }
-                        let res = sbwt.search(&new_kmer).clone();
-                        if res.as_ref().is_some() {
-                            new_kmers.push((new_kmer, res.unwrap()));
-                        }
-                    }
-                    if new_kmers.len() == 1 && new_kmers[0].1.end - new_kmers[0].1.start == 1 {
-                        left_extension_len += 1;
-                        let mut kmer_extended = vec![new_kmers[0].0[0]];
-                        kmer_extended.append(&mut kmer.clone());
-                        kmer = kmer_extended;
-                        let ref_start_pos = if start_index > threshold { start_index - threshold } else { 0 };
-                        let left_overlaps = count_left_overlaps(&kmer, ref_seq, ref_start_pos);
-                        left_overlap_matches = left_overlaps == threshold;
-                    } else {
-                        let ref_start_pos = if start_index > threshold { start_index - threshold } else { 0 };
-                        let left_overlaps = count_left_overlaps(&kmer, ref_seq, ref_start_pos);
-                        left_overlap_matches = left_overlaps == threshold;
-                        break;
-                    }
-
-                    let ref_start_pos = if start_index > threshold { start_index - threshold } else { 0 };
-                    let left_overlaps = count_left_overlaps(&kmer, ref_seq, ref_start_pos);
-                    left_overlap_matches = left_overlaps == threshold;
-
-                    ref_start -= 1;
-                }
+                let left_overlap_matches: bool;
+                (left_overlap_matches, kmer) = left_extend_kmer(&kmer, ref_seq, sbwt, &mut ref_start, start_index, threshold);
 
                 if left_overlap_matches {
                     break;
