@@ -14,7 +14,7 @@
 //! Gap filling using matching statistics and SBWT interval lookups.
 use std::ops::Range;
 
-/// Count overlaps between a sequence and the last elements of a k-mer.
+/// Count overlaps between a sequence and the last elements of a _k_-mer.
 fn count_right_overlaps(
     kmer: &[u8],
     ref_seq: &[u8],
@@ -39,7 +39,7 @@ fn count_right_overlaps(
     matches
 }
 
-/// Count overlaps between a sequence and the first elements of a k-mer.
+/// Count overlaps between a sequence and the first elements of a _k_-mer.
 fn count_left_overlaps(
     kmer: &[u8],
     ref_seq: &[u8],
@@ -148,7 +148,7 @@ pub fn nearest_unique_context(
     (kmer_idx, kmer)
 }
 
-/// Left extends a k-mer until the SBWT interval becomes non-unique.
+/// Left extends a _k_-mer until the SBWT interval becomes non-unique.
 ///
 /// Starting from the sequence in `kmer_start`, attempts to extend it to the
 /// left by querying `sbwt` for patterns of the form cP, where P contains the
@@ -230,6 +230,66 @@ pub fn left_extend_kmer(
 }
 
 /// Find and extend a nearest unique context until it overlaps the gap.
+///
+/// Searches `sbwt` for a _k_-mer that overlaps the region in `ref_seq` at range
+/// `gap_index` using the SBWT intervals in `ms`. The search starts from the
+/// SBWT interval at `gap_index.end + search_radius` and terminates when a
+/// _k_-mer that overlaps the contains `left_overlap_req` characters matching
+/// `ref_seq` to left of `gap_index.start` and `right_overlap_req` matching
+/// characters from `gap_index.end`.
+///
+/// If no such _k_-mer is found, the search terminates at `gap_index.end +
+/// right_overlap_req`. The characters between `gap_index.start` and
+/// `gap_index.end` are not required to match.
+///
+/// Returns a concatenated sequence consisting of the the `left_overlap_req`
+/// matching characters, the characters corresponding to range `gap_index`, and
+/// the `right_overlap_req` matching characters.
+///
+/// The size of the return value is always `left_overlap_req + gap_index.end -
+/// gap_index.start + right_overlap_req`.
+///
+/// If no _k_-mer meeting the conditions is found, returns an empty sequence.
+///
+/// The returned _k_-mer is stored as a ASCII-encoded vector.
+///
+/// # Examples
+/// ```rust
+/// use kbo::index::BuildOpts;
+/// use kbo::build;
+/// use sbwt::SbwtIndexVariant;
+/// use kbo::index::query_sbwt;
+/// use kbo::gap_filling::left_extend_over_gap;
+///
+/// // Parameters       : k = 9, left_overlap_req = 4, right_overlap_req = 4
+/// //
+/// // Ref sequence     : T,T,G,A,T,T,A,A,C,A,G,G,C,T,G,C,G,C,A,G,A,G,C,T,G
+/// // Query sequence   : T,T,G,A,T,G,T,A,C,A G,A,C,T,G,C,G,G,A,G,A,G,C,T,G
+/// // Translation      : M,M,M,M,M,-,-,-,-,-,-,-,M,M,M,M,M,X,M,M,M,M,M,M,M
+/// // Search range     :                               - - -
+/// // Overlap sequence :   T,G,A,T,G,T,A,C,A,G,A,C,T,G,C
+///
+/// let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'A',b'A',b'C',b'A',b'G',b'G',b'C',b'T',b'G',b'C',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+/// let query: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'G',b'T',b'A',b'C',b'A',b'G',b'A',b'C',b'T',b'G',b'C',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+///
+/// let mut opts = BuildOpts::default();
+/// opts.k = 9;
+/// opts.build_select = true;
+/// opts.add_revcomp = false;
+/// let (sbwt, lcs) = build(&[query], opts);
+///
+/// let ms = query_sbwt(&reference, &sbwt, &lcs);
+///
+/// let overlap_seq = match sbwt {
+///     SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+///         left_extend_over_gap(&ms, &reference, &sbwt, 4, 4, 5..12, 6)
+///     },
+/// };
+///
+/// # let expected = vec![b'T',b'G',b'A',b'T',b'G',b'T',b'A',b'C',b'A',b'G',b'A',b'C',b'T',b'G',b'C'];
+/// # assert_eq!(overlap_seq, expected);
+/// ```
+///
 pub fn left_extend_over_gap(
     ms: &[(usize, Range<usize>)],
     ref_seq: &[u8],
@@ -372,4 +432,41 @@ mod tests {
         assert_eq!(extended, expected);
     }
 
+    #[test]
+    fn left_extend_over_gap() {
+        use crate::index::BuildOpts;
+        use crate::build;
+        use sbwt::SbwtIndexVariant;
+        use crate::index::query_sbwt;
+        use crate::gap_filling::left_extend_over_gap;
+
+        // Parameters       : k = 5, left_overlap_req = 3, right_overlap_req = 3
+        //
+        // Ref sequence     : T,T,G,A,A,C,A,G,G,C,T,G,C,G,C,A,G,A,G,C,T,G
+        // Query sequence   : T,T,G,A,T,C,T,G,G,C,T,G,C,G,G,A,G,A,G,C,T,G
+        // Translation      : M,M,M,M,-,-,-,M,M,M,M,M,M,M,X,M,M,M,M,M,M,M
+        // Search range     :                   - - - - -
+        // Overlap sequence :   T,G,A,T,C,T,G,G,C
+
+        let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'A',b'C',b'A',b'G',b'G',b'C',b'T',b'G',b'C',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+        let query: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'C',b'T',b'G',b'G',b'C',b'T',b'G',b'C',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+
+        let mut opts = BuildOpts::default();
+        opts.k = 5;
+        opts.build_select = true;
+        opts.add_revcomp = false;
+        let (sbwt, lcs) = build(&[query], opts);
+
+        let ms = query_sbwt(&reference, &sbwt, &lcs);
+
+        let overlap_seq = match sbwt {
+            SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+                left_extend_over_gap(&ms, &reference, &sbwt, 3, 3, 4..7, 4)
+            },
+        };
+
+        let expected = vec![b'T',b'G',b'A',b'T',b'C',b'T',b'G',b'G',b'C'];
+        assert_eq!(overlap_seq, expected);
+
+    }
 }
