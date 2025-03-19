@@ -406,8 +406,8 @@ pub fn refine_translation(
                                     refined[start_index + j] = fill_nucleotide as char;
                                 }
                             }
-                    } else if end_index < ref_seq.len() {
-                        let kmer = left_extend_over_gap(noisy_ms, ref_seq, sbwt, threshold, start_index, end_index);
+                    } else if start_index > threshold && end_index < ref_seq.len() {
+                        let kmer = left_extend_over_gap(noisy_ms, ref_seq, sbwt, threshold, threshold, start_index, end_index);
 
                         let kmer_found = !kmer.is_empty() && !kmer.contains(&b'$');
                         if kmer_found && kmer.len() - threshold - (kmer.len() - (end_index - start_index) - threshold) == end_index - start_index {

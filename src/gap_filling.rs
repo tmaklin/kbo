@@ -179,21 +179,23 @@ pub fn left_extend_over_gap(
     noisy_ms: &[(usize, Range<usize>)],
     ref_seq: &[u8],
     sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
-    overlap_req: usize,
+    left_overlap_req: usize,
+    right_overlap_req: usize,
     gap_start_index: usize,
     gap_end_index: usize,
 ) -> Vec<u8> {
     let k = sbwt.k();
     assert!(k > 0);
     assert!(noisy_ms.len() == ref_seq.len());
-    assert!(overlap_req > 0);
+    assert!(left_overlap_req < gap_start_index);
+    assert!(right_overlap_req < ref_seq.len() - gap_end_index);
     assert!(gap_end_index > gap_start_index);
     assert!(gap_end_index < noisy_ms.len());
 
     // TODO Lowering search_start would speed up the algorithm a lot, investigate.
 
     let search_start = gap_end_index + k;
-    let search_end = gap_end_index + overlap_req - 1;
+    let search_end = gap_end_index + right_overlap_req - 1;
 
     let mut kmer: Vec<u8> = Vec::with_capacity(k);
     let mut kmer_idx = search_start;
@@ -208,17 +210,17 @@ pub fn left_extend_over_gap(
             // If we find a k-mer very early the right overlap can be longer
             // than k, hence the .min(k) here to check the right overlap match
             if right_matches_got == right_matches_want.min(k) {
-                // Try to extend `kmer` left until it contains `overlap_req`
+                // Try to extend `kmer` left until it contains `left_overlap_req`
                 // bases before the gap bases in `ref_seq`.
-                let left_extend_length = overlap_req + (gap_end_index - gap_start_index) + right_matches_got - k;
+                let left_extend_length = left_overlap_req + (gap_end_index - gap_start_index) + right_matches_got - k;
                 kmer = left_extend_kmer(&kmer, sbwt, left_extend_length);
 
-                // We're done if the first `overlap_req` bases in `kmer` match
-                // the `overlap_req` bases in `ref_seq` preceding `gap_start_index`
-                let ref_start_pos = if gap_start_index > overlap_req { gap_start_index - overlap_req } else { 0 };
+                // We're done if the first `left_overlap_req` bases in `kmer` match
+                // the `left_overlap_req` bases in `ref_seq` preceding `gap_start_index`
+                let ref_start_pos = if gap_start_index > left_overlap_req { gap_start_index - left_overlap_req } else { 0 };
                 let left_matches_got = count_left_overlaps(&kmer, ref_seq, ref_start_pos);
 
-                if left_matches_got == overlap_req {
+                if left_matches_got == left_overlap_req {
                     break;
                 }
             }
