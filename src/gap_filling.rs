@@ -1,6 +1,6 @@
 // kbo: Spectral Burrows-Wheeler transform accelerated local alignment search
 //
-// Copyright 2024 Tommi Mäklin [tommi@maklin.fi].
+// Copyright 2025 Tommi Mäklin [tommi@maklin.fi].
 
 // Copyrights in this project are retained by contributors. No copyright assignment
 // is required to contribute to this project.
