@@ -68,19 +68,18 @@ fn count_left_overlaps(
 pub fn nearest_unique_context(
     ms: &[(usize, Range<usize>)],
     sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
-    search_start: usize,
-    search_end: usize,
+    search_range: Range<usize>,
 ) -> (usize, Vec<u8>) {
     let k = sbwt.k();
     assert!(k > 0);
     assert!(!ms.is_empty());
-    assert!(search_start >= search_end);
-    assert!(search_start < ms.len());
+    assert!(search_range.end >= search_range.start);
+    assert!(search_range.end < ms.len());
 
     let mut kmer: Vec<u8> = Vec::with_capacity(k);
-    let mut kmer_idx = search_start;
+    let mut kmer_idx = search_range.end;
 
-    while kmer_idx >= search_end {
+    while kmer_idx >= search_range.start {
         let sbwt_interval = &ms[kmer_idx].1;
         if sbwt_interval.end - sbwt_interval.start == 1 {
             sbwt.push_kmer_to_vec(sbwt_interval.start, &mut kmer);
@@ -146,7 +145,7 @@ pub fn left_extend_over_gap(
     let mut kmer: Vec<u8> = Vec::with_capacity(k);
     let mut kmer_idx = search_start;
     while kmer_idx >= search_end {
-        (kmer_idx, kmer) = nearest_unique_context(noisy_ms, sbwt, kmer_idx, search_end);
+        (kmer_idx, kmer) = nearest_unique_context(noisy_ms, sbwt, search_end..kmer_idx);
         if !kmer.is_empty() {
             // Check that the right overlapping parts of the candidate k-mer
             // match the reference sequence nucleotides
