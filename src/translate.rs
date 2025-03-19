@@ -386,7 +386,7 @@ pub fn refine_translation(
     match query_sbwt {
         SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
 
-            let mut i: usize = threshold;
+            let mut i: usize = threshold + 1;
             while i < refined.len() - threshold {
                 if refined[i - 1] == '-' || refined[i - 1] == 'X' {
                     // Figure out how long the gap is
@@ -397,12 +397,12 @@ pub fn refine_translation(
                     let end_index = i;
 
                     let overlap_without_extend = k > 2*threshold && end_index - start_index <= k - 2*threshold;
-                    let left_overlap_req = threshold.min(start_index);
                     let right_overlap_req = if overlap_without_extend {
                         k - (end_index - start_index) - threshold
                     } else {
                         threshold
                     };
+                    let left_overlap_req = threshold;
 
                     let kmer = if end_index < refined.len() - threshold {
                         left_extend_over_gap(noisy_ms, ref_seq, sbwt, left_overlap_req, right_overlap_req, start_index, end_index)
