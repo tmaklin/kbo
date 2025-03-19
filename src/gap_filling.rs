@@ -102,7 +102,7 @@ pub fn count_right_overlaps(
 ) -> usize {
     assert!(!kmer.is_empty());
     assert!(!ref_seq.is_empty());
-    assert!(ref_seq.len() > ref_match_end);
+    assert!(ref_seq.len() >= ref_match_end);
 
     let mut kmer_pos = kmer.len() - 1;
     let mut ref_pos = ref_match_end - 1;
@@ -194,7 +194,7 @@ pub fn left_extend_over_gap(
 
     // TODO Lowering search_start would speed up the algorithm a lot, investigate.
 
-    let search_start = gap_end_index + k;
+    let search_start = (gap_end_index + k).min(ref_seq.len() - 1);
     let search_end = gap_end_index + right_overlap_req - 1;
 
     let mut kmer: Vec<u8> = Vec::with_capacity(k);
