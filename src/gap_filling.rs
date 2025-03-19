@@ -129,22 +129,21 @@ pub fn left_extend_over_gap(
     sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
     left_overlap_req: usize,
     right_overlap_req: usize,
-    gap_start_index: usize,
-    gap_end_index: usize,
+    gap_index: Range<usize>,
     search_radius: usize,
 ) -> Vec<u8> {
     let k = sbwt.k();
     assert!(k > 0);
     assert!(noisy_ms.len() == ref_seq.len());
-    assert!(left_overlap_req <= gap_start_index);
-    assert!(right_overlap_req <= ref_seq.len() - gap_end_index);
-    assert!(gap_end_index > gap_start_index);
-    assert!(gap_end_index < noisy_ms.len());
+    assert!(left_overlap_req <= gap_index.start);
+    assert!(right_overlap_req <= ref_seq.len() - gap_index.end);
+    assert!(gap_index.end > gap_index.start);
+    assert!(gap_index.end < noisy_ms.len());
 
     // TODO Lowering search_start would speed up the algorithm a lot, investigate.
 
-    let search_start = (gap_end_index + search_radius).min(ref_seq.len() - 1);
-    let search_end = gap_end_index + right_overlap_req;
+    let search_start = (gap_index.end + search_radius).min(ref_seq.len() - 1);
+    let search_end = gap_index.end + right_overlap_req;
 
     let mut kmer: Vec<u8> = Vec::with_capacity(k);
     let mut kmer_idx = search_start;
@@ -153,17 +152,17 @@ pub fn left_extend_over_gap(
         if !kmer.is_empty() {
             // Check that the right overlapping parts of the candidate k-mer
             // match the reference sequence nucleotides
-            let right_matches_want = search_start - (gap_end_index - 1) - (search_start - kmer_idx);
-            let right_matches_got = count_right_overlaps(&kmer, ref_seq, gap_end_index + right_matches_want);
+            let right_matches_want = search_start - (gap_index.end - 1) - (search_start - kmer_idx);
+            let right_matches_got = count_right_overlaps(&kmer, ref_seq, gap_index.end + right_matches_want);
 
             // We're done if the first `left_overlap_req` bases in `kmer` match
-            // the `left_overlap_req` bases in `ref_seq` preceding `gap_start_index`
-            let ref_start_pos = if gap_start_index > left_overlap_req { gap_start_index - left_overlap_req } else { 0 };
+            // the `left_overlap_req` bases in `ref_seq` preceding `gap_index.start`
+            let ref_start_pos = if gap_index.start > left_overlap_req { gap_index.start - left_overlap_req } else { 0 };
             let left_matches_got = count_left_overlaps(&kmer, ref_seq, ref_start_pos);
 
             // There's no point in extending if the k-mer already overlaps the
             // gap to the left but contains no matches
-            let should_extend = kmer.len() < left_overlap_req + (gap_end_index - gap_start_index) + right_matches_got;
+            let should_extend = kmer.len() < left_overlap_req + (gap_index.end - gap_index.start) + right_matches_got;
 
             if right_matches_got >= right_matches_want.min(k) && left_matches_got >= left_overlap_req {
                 let start = left_matches_got - left_overlap_req;
@@ -176,7 +175,7 @@ pub fn left_extend_over_gap(
 
                 // Try to extend `kmer` left until it contains `left_overlap_req`
                 // bases before the gap bases in `ref_seq`.
-                let left_extend_length = left_overlap_req + (gap_end_index - gap_start_index) + right_matches_got - k;
+                let left_extend_length = left_overlap_req + (gap_index.end - gap_index.start) + right_matches_got - k;
                 kmer = left_extend_kmer(&kmer, sbwt, left_extend_length);
 
                 if count_left_overlaps(&kmer, ref_seq, ref_start_pos) >= left_overlap_req {

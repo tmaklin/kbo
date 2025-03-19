@@ -397,7 +397,7 @@ pub fn refine_translation(
 
                     let overlap_without_extend = end_index - start_index + 2*threshold <= k;
                     let search_radius = k - (threshold * overlap_without_extend as usize);
-                    let kmer = left_extend_over_gap(noisy_ms, ref_seq, sbwt, threshold, threshold, start_index, end_index, search_radius);
+                    let kmer = left_extend_over_gap(noisy_ms, ref_seq, sbwt, threshold, threshold, start_index..end_index, search_radius);
 
                     // Check if we want to use this k-mer
                     let kmer_found = !kmer.is_empty() && !kmer.contains(&b'$');
