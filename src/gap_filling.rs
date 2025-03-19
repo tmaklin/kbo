@@ -164,7 +164,7 @@ pub fn left_extend_over_gap(
 
             if right_matches_got >= right_matches_want.min(k) && left_matches_got >= left_overlap_req {
                 let start = left_matches_got - left_overlap_req;
-                let end = kmer.len() - (right_matches_got - right_matches_want);
+                let end = kmer.len() - (right_matches_got - right_overlap_req);
                 kmer = kmer[start..end].to_vec();
                 break;
             } else if should_extend && right_matches_got >= right_matches_want.min(k) && left_matches_got < left_overlap_req {
@@ -178,7 +178,7 @@ pub fn left_extend_over_gap(
 
                 if count_left_overlaps(&kmer, ref_seq, ref_start_pos) >= left_overlap_req {
                     let start = count_left_overlaps(&kmer, ref_seq, ref_start_pos) - left_overlap_req;
-                    let end = kmer.len() - (right_matches_got - right_matches_want);
+                    let end = kmer.len() - (right_matches_got - right_overlap_req);
                     kmer = kmer[start..end].to_vec();
                     break;
                 }
