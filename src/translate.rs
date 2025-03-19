@@ -326,7 +326,7 @@ pub fn translate_ms_vec(
 /// use kbo::translate::refine_translation;
 /// use sbwt::SbwtIndexVariant;
 ///
-/// // Parameters       : k = 4, threshold = 3
+/// // Parameters       : k = 7, threshold = 3
 /// //
 /// // Ref sequence     : T,T,G,A, T,T,G,G,C,T,G,G,G,C,A,G,A,G,C,T,G
 /// // Query sequence   : T,T,G,A,     G,G,C,T,G,G,G,G,A,G,A,G,C,T,G
@@ -603,7 +603,7 @@ mod tests {
 	use super::refine_translation;
 	use sbwt::SbwtIndexVariant;
 
-	// Parameters       : k = 4, threshold = 3
+	// Parameters       : k = 7, threshold = 3
 	//
 	// Ref sequence     : T,T,G,A, T,T,G,G,C,T,G,G,G,C,A,G,A,G,C,T,G
 	// Query sequence   : T,T,G,A,     G,G,C,T,G,G,G,G,A,G,A,G,C,T,G
