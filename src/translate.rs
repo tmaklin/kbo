@@ -427,7 +427,7 @@ pub fn refine_translation(
                     }).sum();
 
                     let fill_overlaps = log_probs > (-max_err_prob).ln_1p();
-                    let fill_flanked = !matching_bases.is_empty() && !matching_bases[0] && !matching_bases[end_index - start_index - 1] && total_overlaps + 2 == end_index - start_index;
+                    let fill_flanked = !matching_bases.is_empty() && !matching_bases[0] && !matching_bases[matching_bases.len() - 1] && total_overlaps + 2 == end_index - start_index;
 
                     let pass_checks = kmer_found && no_indels && (overlap_without_extend || fill_overlaps || fill_flanked);
 
