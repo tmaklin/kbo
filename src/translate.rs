@@ -394,58 +394,51 @@ pub fn refine_translation(
                     while i < n_elements && refined[i] == '-' {
                         i += 1;
                     }
-                    let end_index = i;
+                    let end_index = i.min(refined.len() - threshold);
 
                     let overlap_without_extend = end_index - start_index + 2*threshold <= k;
-                    let kmer = if end_index < refined.len() - threshold {
-                        let search_radius = if overlap_without_extend { k - threshold } else { k/2 + threshold };
-                        left_extend_over_gap(noisy_ms, ref_seq, sbwt, threshold, threshold, start_index, end_index, search_radius)
-                    } else {
-                        Vec::new()
-                    };
+                    let search_radius = k - (threshold * overlap_without_extend as usize);
+                    let kmer = left_extend_over_gap(noisy_ms, ref_seq, sbwt, threshold, threshold, start_index, end_index, search_radius);
+
                     // Check if we want to use this k-mer
                     let kmer_found = !kmer.is_empty() && !kmer.contains(&b'$');
                     let no_indels = kmer.len() > threshold + (end_index - start_index) + threshold;
 
-                    let pass_checks = kmer_found && no_indels && if overlap_without_extend {
-                        true
-                    } else {
-                        let mut matching_bases: Vec<bool> = vec![false;end_index - start_index];
+                    let matching_bases: Vec<bool> = kmer[threshold.min(kmer.len())..(threshold + end_index - start_index).min(kmer.len())]
+                        .iter()
+                        .zip(ref_seq[start_index..end_index].iter())
+                        .map(|(kmer_nt, ref_nt)| kmer_nt == ref_nt)
+                        .collect();
 
-                        let mut total_overlaps: usize = 0;
-                        let mut consecutive_overlaps: usize = 0;
-                        let mut log_probs: f64 = 0.0;
-                        for j in threshold..(threshold + end_index - start_index) {
-                            let kmer_pos = j;
-                            let ref_pos = start_index + j - threshold;
-                            let kmer_nt = kmer[kmer_pos];
-                            let ref_nt = ref_seq[ref_pos];
-                            if kmer_nt == ref_nt {
-                                matching_bases[j - threshold] = true;
-                                consecutive_overlaps += 1;
-                                total_overlaps += 1;
+                    let total_overlaps: usize = matching_bases.iter().filter(|x| **x).count();
+                    let log_probs: f64 = matching_bases.windows(2).scan(0, |consecutive_overlaps, x| {
+                        if x[0] && x[1] {
+                            *consecutive_overlaps += 1;
+                            Some(0.0)
+                        } else {
+                            let log_prob = if *consecutive_overlaps > 0 {
+                                crate::derandomize::log_rm_max_cdf(&*consecutive_overlaps + 1, 4, 1)
                             } else {
-                                if consecutive_overlaps > 0 {
-                                    log_probs += crate::derandomize::log_rm_max_cdf(consecutive_overlaps, 4, 1);
-                                }
-                                consecutive_overlaps = 0;
-                            }
+                                0.0
+                            };
+                            *consecutive_overlaps = 0;
+                            Some(log_prob)
                         }
+                    }).sum();
 
-                        let fill_overlaps = log_probs > (-max_err_prob).ln_1p();
-                        let fill_flanked = !matching_bases[0] && !matching_bases[end_index - start_index - 1] && total_overlaps == end_index - start_index - 2;
+                    let fill_overlaps = log_probs > (-max_err_prob).ln_1p();
+                    let fill_flanked = !matching_bases.is_empty() && !matching_bases[0] && !matching_bases[end_index - start_index - 1] && total_overlaps + 2 == end_index - start_index;
 
-                        fill_overlaps || fill_flanked
-                    };
+                    let pass_checks = kmer_found && no_indels && (overlap_without_extend || fill_overlaps || fill_flanked);
 
                     if pass_checks {
-                        for kmer_pos in threshold..(threshold + (end_index - start_index)) {
-                            let ref_pos = start_index + (kmer_pos - threshold);
-                            let fill_nt = kmer[kmer_pos];
-                            let ref_nt = ref_seq[ref_pos];
-                            let fill_char = if fill_nt == ref_nt { 'M' } else { fill_nt as char };
-                            refined[ref_pos] = fill_char;
-                        }
+                        refined[start_index..end_index]
+                            .iter_mut()
+                            .zip(kmer[threshold..(threshold + end_index - start_index)].iter())
+                            .zip(ref_seq[start_index..end_index].iter())
+                            .for_each(|((refined_val, kmer_nt), ref_nt)| {
+                                *refined_val = if kmer_nt == ref_nt { 'M' } else { *kmer_nt as char }
+                            });
                     }
                 }
                 i += 1;
