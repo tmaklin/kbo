@@ -14,58 +14,6 @@
 //! Gap filling using matching statistics and SBWT interval lookups.
 use std::ops::Range;
 
-/// Find the nearest unique context that overlaps the gap.
-
-// TODO Can merge overlap_gap and left_extend_over_gap be merged?
-
-pub fn overlap_gap(
-    noisy_ms: &[(usize, Range<usize>)],
-    ref_seq: &[u8],
-    sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
-    k: usize,
-    threshold: usize,
-    start_index: usize,
-    end_index: usize,
-) -> (usize, usize, Vec<u8>) {
-    assert!(k > 0);
-    assert!(noisy_ms.len() == ref_seq.len());
-    assert!(threshold > 0);
-    assert!(end_index > start_index);
-    assert!(end_index < noisy_ms.len());
-
-    let mut kmer: Vec<u8> = Vec::with_capacity(k);
-    let kmer_idx_start = (start_index + k - threshold).min(ref_seq.len() - threshold);
-    let mut kmer_idx = kmer_idx_start;
-    while kmer_idx > start_index + threshold {
-        let sbwt_interval = &noisy_ms[kmer_idx].1;
-        if sbwt_interval.end - sbwt_interval.start == 1 {
-            sbwt.push_kmer_to_vec(sbwt_interval.start, &mut kmer);
-
-            // Check that the overlapping parts of the
-            // candidate k-mer match the reference sequence
-            let right_matches_want = kmer_idx_start - (end_index - 1) - (kmer_idx_start - kmer_idx);
-            let right_matches_got = count_right_overlaps(&kmer, ref_seq, end_index + right_matches_want);
-
-            let ref_start_pos = if start_index > threshold { start_index - threshold } else { 0 };
-            let left_matches_got = count_left_overlaps(&kmer, ref_seq, ref_start_pos);
-
-            // If we find a k-mer very early the right overlap can be longer
-            // than k, hence the .min(k) here
-            let right_overlap_matches = right_matches_got == right_matches_want.min(k);
-
-            let left_overlap_matches = left_matches_got == threshold;
-
-            if right_overlap_matches && left_overlap_matches {
-                break;
-            } else {
-                kmer.clear();
-            }
-        }
-        kmer_idx -= 1;
-    }
-    (kmer_idx, kmer_idx_start, kmer)
-}
-
 /// Find the nearest unique context leftwards of a starting point.
 pub fn nearest_unique_context(
     ms: &[(usize, Range<usize>)],
