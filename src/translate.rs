@@ -396,16 +396,8 @@ pub fn refine_translation(
                     }
                     let end_index = i;
 
-                    let overlap_without_extend = k > 2*threshold && end_index - start_index <= k - 2*threshold;
-                    let right_overlap_req = if overlap_without_extend {
-                        k - (end_index - start_index) - threshold
-                    } else {
-                        threshold
-                    };
-                    let left_overlap_req = threshold;
-
                     let kmer = if end_index < refined.len() - threshold {
-                        left_extend_over_gap(noisy_ms, ref_seq, sbwt, left_overlap_req, right_overlap_req, start_index, end_index)
+                        left_extend_over_gap(noisy_ms, ref_seq, sbwt, threshold, threshold, start_index, end_index)
                     } else {
                         Vec::new()
                     };
@@ -414,6 +406,7 @@ pub fn refine_translation(
                     let kmer_found = !kmer.is_empty() && !kmer.contains(&b'$');
                     let no_indels = if kmer_found { kmer.len() - threshold - (kmer.len() - (end_index - start_index) - threshold) == end_index - start_index } else { false };
 
+                    let overlap_without_extend = k > 2*threshold && end_index - start_index <= k - 2*threshold;
                     let pass_checks = kmer_found && no_indels && if overlap_without_extend {
                         true
                     } else {
@@ -446,7 +439,7 @@ pub fn refine_translation(
                     };
 
                     if pass_checks {
-                        for kmer_pos in left_overlap_req..(left_overlap_req + (end_index - start_index)) {
+                        for kmer_pos in threshold..(threshold + (end_index - start_index)) {
                             let ref_pos = start_index + (kmer_pos - threshold);
                             let fill_nt = kmer[kmer_pos];
                             let ref_nt = ref_seq[ref_pos];
