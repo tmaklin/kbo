@@ -148,7 +148,58 @@ pub fn nearest_unique_context(
     (kmer_idx, kmer)
 }
 
-/// Left extends a k-mer until the SBWT interval becomes non-unique
+/// Left extends a k-mer until the SBWT interval becomes non-unique.
+///
+/// Starting from the sequence in `kmer_start`, attempts to extend it to the
+/// left by querying `sbwt` for patterns of the form cP, where P contains the
+/// sequence in `kmer_start` and c is a character from the alphabet used in
+/// `sbwt`.
+///
+/// If `sbwt` contains a single pattern cP, and no others, and the SBWT
+/// interval of cP is of length 1, `kmer_start` is extended to the left with c.
+///
+/// This process repeats until the condition is no longer true, or `kmer_start`
+/// has been extended `max_extension_len` times.
+///
+/// Returns the ASCII-encoded extended kmer.
+///
+/// # Examples
+///
+/// ```rust
+/// use kbo::index::BuildOpts;
+/// use kbo::build;
+/// use sbwt::SbwtIndexVariant;
+/// use kbo::index::query_sbwt;
+/// use kbo::gap_filling::left_extend_kmer;
+///
+/// // Parameters       : k = 7
+/// //
+/// // Sequence         : T,T,G,A,A,C,A,G,G,C,T,G,C,C,G,T,A,A,C,A,G,G
+/// //
+/// // Starting k-mer   :             A,G,G,C,T,G,C
+/// // Search range     :   - - - - - - - - - - - -
+/// // Output           :       A,A,C,A,G,G,C,T,G,C
+///
+/// let sequence: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'A',b'C',b'A',b'G',b'G',b'C',b'T',b'G',b'C',b'C',b'G',b'T',b'A',b'A',b'C',b'A',b'G',b'G'];
+///
+/// let mut opts = BuildOpts::default();
+/// opts.k = 7;
+/// opts.build_select = true;
+/// opts.add_revcomp = false;
+/// let (sbwt, lcs) = build(&[sequence], opts);
+///
+/// let kmer = vec![b'A',b'G',b'G',b'C',b'T',b'G',b'C'];
+/// let max_extension_len = 5;
+///
+/// let extended = match sbwt {
+///     SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+///         left_extend_kmer(&kmer, &sbwt, max_extension_len)
+///     },
+/// };
+///
+/// # let expected = vec![b'A',b'A',b'C',b'A',b'G',b'G',b'C',b'T',b'G',b'C'];
+/// # assert_eq!(extended, expected);
+/// ```
 pub fn left_extend_kmer(
     kmer_start: &[u8],
     sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
@@ -283,6 +334,42 @@ mod tests {
         };
         let expected = (16, vec![b'C',b'A',b'G',b'A',b'C',b'A',b'G',b'C',b'T']);
         assert_eq!(context, expected);
+    }
+
+    #[test]
+    fn left_extend_kmer() {
+        use crate::build;
+        use crate::index::BuildOpts;
+        use crate::gap_filling::left_extend_kmer;
+        use sbwt::SbwtIndexVariant;
+
+        // Parameters       : k = 6
+        //
+        // Sequence         : T,T,G,A,T,G,T,A,C,A,G,A,C,T,G,C,G,G,A,G,A,G,C,T,G
+        //
+        // Starting k-mer   :                     G,A,C,T,G,C
+        // Search range     :     - - - - - - - - - - - - - -
+        // Output           :     G,A,T,G,T,A,C,A,G,A,C,T,G,C
+
+        let sequence: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'G',b'T',b'A',b'C',b'A',b'G',b'A',b'C',b'T',b'G',b'C',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+        let mut opts = BuildOpts::default();
+        opts.k = 6;
+        opts.build_select = true;
+        opts.add_revcomp = false;
+        let (sbwt, _) = build(&[sequence], opts);
+
+        let query = vec![b'G',b'A',b'C',b'T',b'G',b'C'];
+        let max_extension_len = 8;
+
+        let extended = match sbwt {
+            SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+                let kmer_interval = sbwt.search(&query);
+                let kmer = sbwt.access_kmer(kmer_interval.unwrap().start);
+                left_extend_kmer(&kmer, &sbwt, max_extension_len)
+            },
+        };
+        let expected = vec![b'G',b'A',b'T',b'G',b'T',b'A',b'C',b'A',b'G',b'A',b'C',b'T',b'G',b'C'];
+        assert_eq!(extended, expected);
     }
 
 }
