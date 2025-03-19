@@ -161,9 +161,16 @@ pub fn left_extend_over_gap(
             let ref_start_pos = if gap_start_index > left_overlap_req { gap_start_index - left_overlap_req } else { 0 };
             let left_matches_got = count_left_overlaps(&kmer, ref_seq, ref_start_pos);
 
+            // There's no point in extending if the k-mer already overlaps the
+            // gap to the left but contains no matches
+            let should_extend = kmer.len() < left_overlap_req + (gap_end_index - gap_start_index) + right_matches_got;
+
             if right_matches_got >= right_matches_want.min(k) && left_matches_got >= left_overlap_req {
+                let start = left_matches_got - left_overlap_req;
+                let end = kmer.len() - (right_matches_got - right_matches_want);
+                kmer = kmer[start..end].to_vec();
                 break;
-            } else if right_matches_got >= right_matches_want.min(k) && left_matches_got < left_overlap_req {
+            } else if should_extend && right_matches_got >= right_matches_want.min(k) && left_matches_got < left_overlap_req {
                 // If we find a k-mer very early the right overlap can be longer
                 // than k, hence the .min(k) above to check the right overlap match
 
