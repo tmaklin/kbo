@@ -387,7 +387,7 @@ pub fn refine_translation(
     match query_sbwt {
         SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
 
-            let mut i: usize = threshold - 1;
+            let mut i: usize = threshold;
             while i < refined.len() - threshold {
                 if refined[i - 1] == '-' || refined[i - 1] == 'X' {
                     // Figure out how long the gap is
