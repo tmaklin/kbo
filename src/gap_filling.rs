@@ -131,6 +131,7 @@ pub fn left_extend_over_gap(
     right_overlap_req: usize,
     gap_start_index: usize,
     gap_end_index: usize,
+    search_radius: usize,
 ) -> Vec<u8> {
     let k = sbwt.k();
     assert!(k > 0);
@@ -142,7 +143,7 @@ pub fn left_extend_over_gap(
 
     // TODO Lowering search_start would speed up the algorithm a lot, investigate.
 
-    let search_start = (gap_end_index + k).min(ref_seq.len() - 1);
+    let search_start = (gap_end_index + search_radius).min(ref_seq.len() - 1);
     let search_end = gap_end_index + right_overlap_req;
 
     let mut kmer: Vec<u8> = Vec::with_capacity(k);
