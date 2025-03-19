@@ -402,6 +402,11 @@ pub fn refine_translation(
                     // Check if we want to use this k-mer
                     let kmer_found = !kmer.is_empty() && !kmer.contains(&b'$');
                     let no_indels = kmer.len() == threshold + (end_index - start_index) + threshold;
+                    if !no_indels && !kmer.is_empty() {
+
+                        // TODO Handle indels
+
+                    };
 
                     let matching_bases: Vec<bool> = kmer[threshold.min(kmer.len())..(threshold + end_index - start_index).min(kmer.len())]
                         .iter()
