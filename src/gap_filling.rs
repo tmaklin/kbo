@@ -14,6 +14,56 @@
 //! Gap filling using matching statistics and SBWT interval lookups.
 use std::ops::Range;
 
+/// Count overlaps between a sequence and the last elements of a k-mer.
+fn count_right_overlaps(
+    kmer: &[u8],
+    ref_seq: &[u8],
+    ref_match_end: usize,
+) -> usize {
+    assert!(!kmer.is_empty());
+    assert!(!ref_seq.is_empty());
+    assert!(ref_seq.len() >= ref_match_end);
+
+    let mut kmer_pos = kmer.len() - 1;
+    let mut ref_pos = ref_match_end - 1;
+    let mut matches: usize = 0;
+    while kmer_pos > 0 {
+        if ref_seq[ref_pos] == kmer[kmer_pos] {
+            matches += 1;
+        } else {
+            break;
+        }
+        kmer_pos -= 1;
+        ref_pos -= 1;
+    }
+    matches
+}
+
+/// Count overlaps between a sequence and the first elements of a k-mer.
+fn count_left_overlaps(
+    kmer: &[u8],
+    ref_seq: &[u8],
+    ref_match_start: usize,
+) -> usize {
+    assert!(!kmer.is_empty());
+    assert!(!ref_seq.is_empty());
+    assert!(ref_seq.len() > ref_match_start);
+
+    let mut kmer_pos = 0;
+    let mut ref_pos = ref_match_start;
+    let mut matches: usize = 0;
+    while kmer_pos < kmer.len() {
+        if ref_seq[ref_pos] == kmer[kmer_pos] {
+            matches += 1;
+        } else {
+            break;
+        }
+        kmer_pos += 1;
+        ref_pos += 1;
+    }
+    matches
+}
+
 /// Find the nearest unique context leftwards of a starting point.
 pub fn nearest_unique_context(
     ms: &[(usize, Range<usize>)],
@@ -40,56 +90,6 @@ pub fn nearest_unique_context(
     }
 
     (kmer_idx, kmer)
-}
-
-/// Count overlaps between a sequence and the last elements of a k-mer.
-pub fn count_right_overlaps(
-    kmer: &[u8],
-    ref_seq: &[u8],
-    ref_match_end: usize,
-) -> usize {
-    assert!(!kmer.is_empty());
-    assert!(!ref_seq.is_empty());
-    assert!(ref_seq.len() >= ref_match_end);
-
-    let mut kmer_pos = kmer.len() - 1;
-    let mut ref_pos = ref_match_end - 1;
-    let mut matches: usize = 0;
-    while kmer_pos > 0 {
-        if ref_seq[ref_pos] == kmer[kmer_pos] {
-            matches += 1;
-        } else {
-            break;
-        }
-        kmer_pos -= 1;
-        ref_pos -= 1;
-    }
-    matches
-}
-
-/// Count overlaps between a sequence and the first elements of a k-mer.
-pub fn count_left_overlaps(
-    kmer: &[u8],
-    ref_seq: &[u8],
-    ref_match_start: usize,
-) -> usize {
-    assert!(!kmer.is_empty());
-    assert!(!ref_seq.is_empty());
-    assert!(ref_seq.len() > ref_match_start);
-
-    let mut kmer_pos = 0;
-    let mut ref_pos = ref_match_start;
-    let mut matches: usize = 0;
-    while kmer_pos < kmer.len() {
-        if ref_seq[ref_pos] == kmer[kmer_pos] {
-            matches += 1;
-        } else {
-            break;
-        }
-        kmer_pos += 1;
-        ref_pos += 1;
-    }
-    matches
 }
 
 /// Left extends a k-mer until the SBWT interval becomes non-unique
