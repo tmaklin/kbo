@@ -155,20 +155,23 @@ pub fn left_extend_over_gap(
             let right_matches_want = search_start - (gap_end_index - 1) - (search_start - kmer_idx);
             let right_matches_got = count_right_overlaps(&kmer, ref_seq, gap_end_index + right_matches_want);
 
-            // If we find a k-mer very early the right overlap can be longer
-            // than k, hence the .min(k) here to check the right overlap match
-            if right_matches_got == right_matches_want.min(k) {
+            // We're done if the first `left_overlap_req` bases in `kmer` match
+            // the `left_overlap_req` bases in `ref_seq` preceding `gap_start_index`
+            let ref_start_pos = if gap_start_index > left_overlap_req { gap_start_index - left_overlap_req } else { 0 };
+            let left_matches_got = count_left_overlaps(&kmer, ref_seq, ref_start_pos);
+
+            if right_matches_got >= right_matches_want.min(k) && left_matches_got >= left_overlap_req {
+                break;
+            } else if right_matches_got >= right_matches_want.min(k) && left_matches_got < left_overlap_req {
+                // If we find a k-mer very early the right overlap can be longer
+                // than k, hence the .min(k) above to check the right overlap match
+
                 // Try to extend `kmer` left until it contains `left_overlap_req`
                 // bases before the gap bases in `ref_seq`.
                 let left_extend_length = left_overlap_req + (gap_end_index - gap_start_index) + right_matches_got - k;
                 kmer = left_extend_kmer(&kmer, sbwt, left_extend_length);
 
-                // We're done if the first `left_overlap_req` bases in `kmer` match
-                // the `left_overlap_req` bases in `ref_seq` preceding `gap_start_index`
-                let ref_start_pos = if gap_start_index > left_overlap_req { gap_start_index - left_overlap_req } else { 0 };
-                let left_matches_got = count_left_overlaps(&kmer, ref_seq, ref_start_pos);
-
-                if left_matches_got == left_overlap_req {
+                if count_left_overlaps(&kmer, ref_seq, ref_start_pos) == left_overlap_req {
                     break;
                 }
             }
