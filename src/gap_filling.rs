@@ -65,6 +65,63 @@ fn count_left_overlaps(
 }
 
 /// Find the nearest unique context leftwards of a starting point.
+///
+/// Queries the `sbwt` for _k_-mers in `search_range` from `ms`, starting from
+/// the end of `search_range`, and checks whether SBWT interval of a queried
+/// _k_-mer is of length 1.
+///
+/// Returns the position and contents of the rightmost _k_-mer in `search_range`
+/// that has a SBWT interval of length 1. If a _k_-mer that satisfies these
+/// conditions cannot be found, returns the position the search terminated at
+/// and an empty _k_-mer.
+///
+/// The returned _k_-mer is stored as an ASCII-encoded vector.
+///
+/// Note that this function does not check for dummy characters ('$') in the
+/// return value.
+///
+/// # Examples
+///
+/// This example shows how nearest_unique_context is used by kbo to
+/// determine the nucleotides of the query sequence in a section that does not
+/// match the reference. Note the first character in the output sequence.
+///
+/// ```rust
+/// use kbo::index::BuildOpts;
+/// use kbo::build;
+/// use sbwt::SbwtIndexVariant;
+/// use kbo::index::query_sbwt;
+/// use kbo::gap_filling::nearest_unique_context;
+///
+/// // Parameters       : k = 7
+/// //
+/// // Ref sequence     : T,T,G,A, T, C,T G,G,C,T,G,C,T,G,A,G,A,G,C,T,G
+/// // Query sequence   : T,T,G,A, A, C,A,G,G,C,T,G,C,T,C,A,G,A,G,C,T,G
+/// //
+/// // Search range     :                 - - - - - - - -
+/// // Output           :               A,G,G,C,T,G,C
+///
+/// let query: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'A',b'C',b'A',b'G',b'G',b'C',b'T',b'G',b'C',b'G',b'T',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+/// let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'C',b'T',b'G',b'G',b'C',b'T',b'G',b'C',b'T',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+///
+/// let mut opts = BuildOpts::default();
+/// opts.k = 7;
+/// opts.build_select = true;
+/// opts.add_revcomp = false;
+/// let (sbwt, lcs) = build(&[query], opts);
+///
+/// let ms = query_sbwt(&reference, &sbwt, &lcs);
+///
+/// let context = match sbwt {
+///     SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+///         nearest_unique_context(&ms, &sbwt, 8..14)
+///     },
+/// };
+///
+/// # let expected = (12, vec![b'A',b'G',b'G',b'C',b'T',b'G',b'C']);
+/// # assert_eq!(context, expected);
+/// ```
+///
 pub fn nearest_unique_context(
     ms: &[(usize, Range<usize>)],
     sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
@@ -188,4 +245,44 @@ pub fn left_extend_over_gap(
     }
 
     kmer
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Tests
+//
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn nearest_unique_context() {
+        use crate::build;
+        use crate::index::BuildOpts;
+        use crate::index::query_sbwt;
+        use crate::gap_filling::nearest_unique_context;
+        use sbwt::SbwtIndexVariant;
+
+        // Parameters       : k = 9, threshold = 4
+        //
+        // Ref sequence     : T,T,G,A,T,T,A,A,C,A,G,G,C,A,G,C,T,C,A,G,A,G,C,T,G
+        // Query sequence   : T,T,G,A,T,G,T,A,C,A,G,A,C,A,G,C,T,G,A,G,A,G,C,T,G
+        //
+        // Search range     :                       - - - - - -
+        // Output           :                 C,A,G,A,C,A,G,C,T
+
+        let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'A',b'A',b'C',b'A',b'G',b'G',b'C',b'A',b'G',b'C',b'T',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+        let query: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'G',b'T',b'A',b'C',b'A',b'G',b'A',b'C',b'A',b'G',b'C',b'T',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+
+        let (sbwt, lcs) = build(&[query], BuildOpts{ k: 9, build_select: true, ..Default::default() });
+
+        let ms = query_sbwt(&reference, &sbwt, &lcs);
+
+        let context = match sbwt {
+            SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+                nearest_unique_context(&ms, &sbwt, 11..16)
+            },
+        };
+        let expected = (16, vec![b'C',b'A',b'G',b'A',b'C',b'A',b'G',b'C',b'T']);
+        assert_eq!(context, expected);
+    }
+
 }
