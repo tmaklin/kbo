@@ -401,10 +401,9 @@ pub fn refine_translation(
                     } else {
                         Vec::new()
                     };
-
                     // Check if we want to use this k-mer
                     let kmer_found = !kmer.is_empty() && !kmer.contains(&b'$');
-                    let no_indels = if kmer_found { kmer.len() - threshold - (kmer.len() - (end_index - start_index) - threshold) == end_index - start_index } else { false };
+                    let no_indels = if kmer_found { kmer.len() > threshold + (end_index - start_index) + threshold } else { false };
 
                     let overlap_without_extend = k > 2*threshold && end_index - start_index <= k - 2*threshold;
                     let pass_checks = kmer_found && no_indels && if overlap_without_extend {
