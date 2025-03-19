@@ -172,7 +172,10 @@ pub fn left_extend_over_gap(
                 let left_extend_length = left_overlap_req + (gap_end_index - gap_start_index) + right_matches_got - k;
                 kmer = left_extend_kmer(&kmer, sbwt, left_extend_length);
 
-                if count_left_overlaps(&kmer, ref_seq, ref_start_pos) == left_overlap_req {
+                if count_left_overlaps(&kmer, ref_seq, ref_start_pos) >= left_overlap_req {
+                    let start = count_left_overlaps(&kmer, ref_seq, ref_start_pos) - left_overlap_req;
+                    let end = kmer.len() - (right_matches_got - right_matches_want);
+                    kmer = kmer[start..end].to_vec();
                     break;
                 }
             }
