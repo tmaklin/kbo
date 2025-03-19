@@ -187,8 +187,8 @@ pub fn left_extend_over_gap(
     let k = sbwt.k();
     assert!(k > 0);
     assert!(noisy_ms.len() == ref_seq.len());
-    assert!(left_overlap_req < gap_start_index);
-    assert!(right_overlap_req < ref_seq.len() - gap_end_index);
+    assert!(left_overlap_req <= gap_start_index);
+    assert!(right_overlap_req <= ref_seq.len() - gap_end_index);
     assert!(gap_end_index > gap_start_index);
     assert!(gap_end_index < noisy_ms.len());
 
