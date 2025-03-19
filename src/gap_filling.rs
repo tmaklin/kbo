@@ -140,8 +140,6 @@ pub fn left_extend_over_gap(
     assert!(gap_index.end > gap_index.start);
     assert!(gap_index.end < noisy_ms.len());
 
-    // TODO Lowering search_start would speed up the algorithm a lot, investigate.
-
     let search_start = (gap_index.end + search_radius).min(ref_seq.len() - 1);
     let search_end = gap_index.end + right_overlap_req;
 
