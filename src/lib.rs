@@ -229,6 +229,7 @@ pub mod derandomize;
 pub mod format;
 pub mod index;
 pub mod translate;
+pub mod variant_calling;
 
 /// Options and parameters for [find]
 #[non_exhaustive]
