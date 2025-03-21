@@ -341,9 +341,15 @@ pub struct MapOpts {
     /// Prefix match lengths with probability higher than `max_error_prob` to
     /// happen at random are considered noise.
     pub max_error_prob: f64,
-    /// Resolve single nucleotide polymorphisms in the translated alignment by
-    /// [refining it](translate::refine_translation).
-    pub refine_translation: bool,
+
+    /// Attempt to resolve gaps in the alignment with [gap
+    /// filling](gap_filling::fill_gaps).
+    pub fill_gaps: bool,
+
+    /// Resolve substitutions, insertions, and deletions with [variant
+    /// calling](call).
+    pub call_variants: bool,
+
     /// Replace characters used by the internal representation of [translate]
     /// with nucleotide codes and gaps.
     pub format: bool,
@@ -354,7 +360,8 @@ impl Default for MapOpts {
     /// ```rust
     /// let mut opts = kbo::MapOpts::default();
     /// opts.max_error_prob = 0.0000001;
-    /// opts.refine_translation = true;
+    /// opts.fill_gaps = true;
+    /// opts.call_variants = true;
     /// opts.format = true;
     /// # let expected = kbo::MapOpts::default();
     /// # assert_eq!(opts, expected);
@@ -363,7 +370,8 @@ impl Default for MapOpts {
     fn default() -> MapOpts {
         MapOpts {
             max_error_prob: 0.0000001,
-            refine_translation: true,
+            fill_gaps: true,
+            call_variants: true,
             format: true,
         }
     }
@@ -561,48 +569,57 @@ pub fn matches(
 /// # assert_eq!(alignment, vec![45,45,45,45,45,45,45,45,45,65,71,71,45,45]);
 /// ```
 ///
-/// Skip resolving the SNP, outputting a '-' instead
+/// Skip gap filling and variant calling, outputting '-'s instead.
 /// ```rust
 /// use kbo::build;
 /// use kbo::map;
 /// use kbo::index::BuildOpts;
 /// use kbo::MapOpts;
 ///
-/// let query: Vec<Vec<u8>> = vec![vec![b'T',b'T',b'G',b'A',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G']];
-/// let mut opts = BuildOpts::default();
-/// opts.k = 4;
-/// opts.build_select = true;
-/// let (sbwt_query, lcs_query) = build(&query, opts);
+/// let reference = b"CGTTGACTCTGGTGCCTGGGTTCTCAGAGCTGGGC".to_vec();
+/// let query =     b"CGTTGACTGGTGCCTGGGTTCTCAGAGCTGGGC".to_vec();
+/// let expected =  b"CGTTGACT--GGTGCCTGGGTTCTCAGAGCTGGGC".to_vec();
 ///
-/// let reference = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+/// let mut opts = BuildOpts::default();
+/// opts.k = 7;
+/// opts.build_select = true;
+/// let (sbwt_query, lcs_query) = build(&[query], opts);
+///
 ///
 /// let mut map_opts = MapOpts::default();
-/// map_opts.refine_translation = false;
+/// map_opts.fill_gaps = false;
+/// map_opts.call_variants = false;
+/// map_opts.max_error_prob = 0.1;
+///
 /// let alignment = map(&reference, &sbwt_query, &lcs_query, map_opts);
-/// // `ms_vectors` has [84,84,71,65,45,45,71,71,67,84,71,71,71,45,65,71,65,71,67,84,71]
-/// # assert_eq!(alignment, vec![84,84,71,65,45,45,71,71,67,84,71,71,71,45,65,71,65,71,67,84,71]);
+/// // `alignment` has CGTTGACT--GGTGCCTGGGTTCTCAGAGCTGGGC
+/// # assert_eq!(alignment, expected);
 /// ```
 ///
-/// Output the internal representation of [translate] instead of the nucleotide codes ACGT and gap characters -
+/// Output the internal representation of [translate]
 /// ```rust
 /// use kbo::build;
 /// use kbo::map;
 /// use kbo::index::BuildOpts;
 /// use kbo::MapOpts;
 ///
-/// let query: Vec<Vec<u8>> = vec![vec![b'T',b'T',b'G',b'A',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G']];
-/// let mut opts = BuildOpts::default();
-/// opts.k = 4;
-/// opts.build_select = true;
-/// let (sbwt_query, lcs_query) = build(&query, opts);
+/// let reference = b"CGTTGACTCTAGGTGCCTGGGTTCTCAGAGCTGGGC".to_vec();
+/// let query =     b"CGTTGACTGGTGCCTGGGTTCTCAGAGCTGGGC".to_vec();
+/// let expected =  b"MMMMMMMM---MMMMMMMMMMMMMMMMMMMMMMMMM".to_vec();
 ///
-/// let reference = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+/// let mut opts = BuildOpts::default();
+/// opts.k = 7;
+/// opts.build_select = true;
+/// let (sbwt_query, lcs_query) = build(&[query], opts);
+///
 ///
 /// let mut map_opts = MapOpts::default();
 /// map_opts.format = false;
+/// map_opts.max_error_prob = 0.1;
+///
 /// let alignment = map(&reference, &sbwt_query, &lcs_query, map_opts);
-/// // `ms_vectors` has [77,77,77,77,45,45,77,77,77,77,77,77,77,71,77,77,77,77,77,77,77]
-/// # assert_eq!(alignment, vec![77,77,77,77,45,45,77,77,77,77,77,77,77,71,77,77,77,77,77,77,77]);
+/// // `alignment` has MMMMMMMM---MMMMMMMMMMMMMMMMMMMMMMMMM
+/// # assert_eq!(alignment, expected);
 /// ```
 ///
 pub fn map(
@@ -626,12 +643,24 @@ pub fn map(
     call_opts.sbwt_build_opts.k = k;
     call_opts.max_error_prob = map_opts.max_error_prob;
 
-    let refined = gap_filling::fill_gaps(&translation, &noisy_ms, ref_seq, query_sbwt, threshold, map_opts.max_error_prob);
+    let refined = if map_opts.fill_gaps {
+        gap_filling::fill_gaps(&translation, &noisy_ms, ref_seq, query_sbwt, threshold, map_opts.max_error_prob)
+    } else {
+        translation
+    };
 
-    let variants = call(query_sbwt, query_lcs, ref_seq, call_opts);
-    let with_variants = translate::add_variants(&refined, &variants);
+    let with_variants = if map_opts.call_variants {
+        let variants = call(query_sbwt, query_lcs, ref_seq, call_opts);
+        translate::add_variants(&refined, &variants)
+    } else {
+        refined
+    };
 
-    format::relative_to_ref(ref_seq, &with_variants)
+    if map_opts.format {
+        format::relative_to_ref(ref_seq, &with_variants)
+    } else {
+        with_variants.iter().map(|x| *x as u8).collect()
+    }
 }
 
 /// Finds the _k_-mers from an SBWT index in a query fasta or fastq file.
