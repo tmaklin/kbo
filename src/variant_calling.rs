@@ -31,7 +31,7 @@ fn longest_common_suffix(x: &[u8], y: &[u8]) -> usize {
     len
 }
 
-/// This struct describes a variant between the query and the reference.
+/// Describes a variant between the query and the reference.
 #[derive(Debug, Eq, PartialEq)]
 pub struct Variant {
     /// A position in the query that does not match the reference.
@@ -46,11 +46,11 @@ pub struct Variant {
     pub ref_chars: Vec<u8>,
 }
 
-/// Returned from resolve_variant if the variant can't be resolved.
+/// Returned from [resolve_variant] if the variant can't be resolved.
 ///
 /// Codes:
-///   0: Generic failure.
-///   1: Weird case, query_overlap == ref_overlap.
+/// - 0: Generic failure.
+/// - 1: Weird case, query_overlap == ref_overlap.
 ///
 /// This error can be ignored if it's okay to leave the variant unresolved.
 ///
@@ -82,12 +82,19 @@ fn get_rightmost_significant_peak(ms: &[(usize, Range<usize>)], significant_matc
     None
 }
 
+/// Resolve variation between a query _k_-mer and a reference _k_-mer.
+///
 /// Resolve a variant between the query kmer and the reference k-mer that occurs just before
 /// the longest common suffix of the two k-mers. This is a low-level subroutine and there are 
 /// a lot of assumptions on the parameters, so only call this if you know what you are doing. 
 /// To call and resolve all variants in a longer query, use [call_variants] instead.
 /// 
-/// Parameters:
+/// Returns the variant sequences in the query and in the reference.
+///
+/// The function may fail, in which case a [ResolveVariantErr] is returned. The
+/// error may be ignored to leave the variant unresolved.
+///
+/// # Parameters:
 /// * query_kmer: The query k-mer
 /// * ref_kmer: The reference k-mer
 /// * ms_vs_query: An array of elements (d_i, l_i..r_i) such that d_i is the length of the
@@ -95,10 +102,40 @@ fn get_rightmost_significant_peak(ms: &[(usize, Range<usize>)], significant_matc
 ///                reference SBWT, and l_i..r_i is the colexicographic range of that match.
 /// * ms_vs_ref: the same as ms_vs_query, but with the roles of the query and the reference swapped.
 /// * significant_match_threshold: length of a match that is considered statistically significant.
-///                                Use e.g. [crate::derandomize::random_match_threshold] to determine this.
-/// 
-/// Returns: The variant sequences in the query and in the reference. The function may fail,
-///          in which case None is returned.
+///                                Use e.g. [random_match_threshold](crate::derandomize::random_match_threshold) to determine this.
+///
+/// # Examples
+/// ```rust
+/// use kbo::variant_calling::resolve_variant;
+/// use kbo::variant_calling::Variant;
+/// use sbwt::BitPackedKmerSortingMem;
+/// use sbwt::SbwtIndexBuilder;
+/// use sbwt::StreamingIndex;
+///
+/// //                                                                 v here
+/// let reference = b"GCGGGGCTGTTGACGTTTGGGGTTGAATAAATCTATTGTACCAATCGGCATCAACGTG";
+/// let query =     b"GCGGGGCTGTTGACGTTTGGGGTTGAATAAATCTATTGTACCAATCGGCTTCAACGTG";
+///
+/// let k = 20;
+/// let threshold = 5;
+///
+/// let (sbwt_ref, lcs_ref) = SbwtIndexBuilder::<BitPackedKmerSortingMem>::new().k(k).build_lcs(true).build_select_support(true).run_from_slices(&[reference]);
+/// let (sbwt_query, lcs_query) = SbwtIndexBuilder::<BitPackedKmerSortingMem>::new().k(k).build_lcs(true).build_select_support(true).run_from_slices(&[query]);
+///
+/// let index_ref = StreamingIndex::new(&sbwt_ref, lcs_ref.as_ref().unwrap());
+/// let index_query = StreamingIndex::new(&sbwt_query, lcs_query.as_ref().unwrap());
+///
+/// let ms_vs_ref = index_ref.matching_statistics(query);
+/// let ms_vs_query = index_query.matching_statistics(reference);
+///
+/// let variant = resolve_variant(query, reference, &ms_vs_query, &ms_vs_ref, threshold).ok().unwrap();
+///
+/// // `variant` is a tuple with contents: `([84], [65])`
+///
+/// # assert_eq!(variant.0, [84]);
+/// # assert_eq!(variant.1, [65]);
+/// ```
+///
 pub fn resolve_variant(
     query_kmer: &[u8], 
     ref_kmer: &[u8], 
@@ -163,13 +200,52 @@ pub fn resolve_variant(
     Err(ResolveVariantErr{ code: 0, message: "".to_string() }) // Could not resolve variant
 }
 
-/// Call all variants between the query and the reference. Parameters:
+/// Call variants between a query and a reference sequence.
+///
+/// Resolves single and multi base substitutions, insertions, and deletions by
+/// querying the ref and query sequences against each other and comparing the
+/// matching statistic vectors and calling [resolve_variant].
+///
+/// Returns a vector containing the [variants](Variant), if any.
+///
+/// # Parameters:
 /// * sbwt_ref: the SBWT index of the reference
 /// * sbwt_lcs: the LCS array of the reference
 /// * sbwt_query: the SBWT index of the query
 /// * lcs_query: the LCS array of the query
 /// * query: the query sequence as ASCII characters
-/// * max_error_prob: the p-value for statisticially significant matches, e.g. 1e-8 
+/// * max_error_prob: the p-value for statisticially significant matches, e.g. 1e-8
+///
+/// # Examples
+/// ```rust
+/// use kbo::variant_calling::call_variants;
+/// use kbo::variant_calling::Variant;
+/// use sbwt::{BitPackedKmerSortingMem, SbwtIndexBuilder};
+///
+/// //                                 deleted characters    substituted        inserted
+/// //                                        v                 v                v
+/// let reference = b"TCGTGGATCGATACACGCTAGCAGGCTGACTCGATGGGATACTATGTGTTATAGCAATTCGGATCGATCGA";
+/// let query =     b"TCGTGGATCGATACACGCTAGCCTGACTCGATGGGATACCATGTGTTATAGCAATTCCGGATCGATCGA";
+///
+/// let max_error_prob = 0.001;
+/// let k = 20;
+///
+/// let (sbwt_ref, lcs_ref) = SbwtIndexBuilder::<BitPackedKmerSortingMem>::new().k(k).build_lcs(true).build_select_support(true).run_from_slices(&[reference]);
+/// let (sbwt_query, lcs_query) = SbwtIndexBuilder::<BitPackedKmerSortingMem>::new().k(k).build_lcs(true).build_select_support(true).run_from_slices(&[query]);
+///
+/// let variants = call_variants(&sbwt_ref, lcs_ref.as_ref().unwrap(), &sbwt_query, lcs_query.as_ref().unwrap(), query, max_error_prob);
+///
+/// // `variants` is a vector with elements:
+/// // - Variant { query_pos: 22, query_chars: [], ref_chars: [65, 71, 71] }
+/// // - Variant { query_pos: 39, query_chars: [67], ref_chars: [84] }
+/// // - Variant { query_pos: 57, query_chars: [67], ref_chars: [] }
+///
+/// # assert_eq!(variants[0], Variant{query_pos: 22, query_chars: vec![], ref_chars: b"AGG".to_vec()});
+/// # assert_eq!(variants[1], Variant{query_pos: 39, query_chars: vec![b'C'], ref_chars: vec![b'T']});
+/// # assert_eq!(variants[2], Variant{query_pos: 57, query_chars: vec![b'C'], ref_chars: vec![]});
+/// # assert_eq!(variants.len(), 3);
+/// ```
+///
 pub fn call_variants(
     sbwt_ref: &SbwtIndex<SubsetMatrix>,
     lcs_ref: &LcsArray,
