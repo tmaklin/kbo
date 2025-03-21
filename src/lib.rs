@@ -16,8 +16,12 @@
 //! statistics](https://www.biorxiv.org/content/10.1101/2024.02.19.580943v1)
 //! into a character representation of the underlying alignment sequence.
 //!
-//! Currently, kbo supports two main operations:
+//! Currently, kbo supports three main operations:
 //!
+//! - `kbo call` [calls](call()) single and multi base substitutions,
+//!   insertions, and deletions in a query sequence against a reference and
+//!   reports their positions and sequences. Call is useful for problems that
+//!   require [.vcf files](https://samtools.github.io/hts-specs/VCFv4.2.pdf).
 //! - `kbo find` [matches](matches()) the _k_-mers in a query sequence with the
 //!   reference and reports the local alignment segments found within the
 //!   reference. Find is useful for problems that can be solved with
@@ -46,6 +50,10 @@
 //! kbo can read inputs compressed in the DEFLATE format (gzip, zlib, etc.).
 //! bzip2 and xz support can be enabled by adding the "bzip2" and "xz" feature
 //! flags to [needletail](https://docs.rs/needletail) in the kbo Cargo.toml.
+//!
+//! ## kbo call
+//!
+//! TODO Add an example using kbo call to library documentation.
 //!
 //! ## kbo find
 //!
