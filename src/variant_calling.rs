@@ -3,34 +3,6 @@
 use std::{cmp::min, io::Write, ops::Range};
 use sbwt::{LcsArray, SbwtIndex, StreamingIndex, SubsetMatrix};
 
-// Pads with dollars from the left if there is not full k-mer
-fn get_kmer_ending_at(query: &[u8], end_pos: usize, k: usize) -> Vec<u8> {
-    let mut query_kmer = Vec::<u8>::new();
-    if end_pos >= k-1 {
-        query_kmer.extend(&query[end_pos + 1 - k .. end_pos+1]);
-    } else {
-        let n_dollars = -(end_pos as isize - k as isize + 1);
-        assert!(n_dollars > 0);
-        query_kmer.resize(n_dollars as usize, b'$');
-        query_kmer.extend(&query[0..end_pos+1]);
-    }
-    assert!(query_kmer.len() == k);
-    query_kmer
-}
-
-fn longest_common_suffix(x: &[u8], y: &[u8]) -> usize {
-    let mut len = 0_usize;
-    for i in 0..min(x.len(), y.len()) {
-        if x[x.len() - 1 - i] == y[y.len() - 1 - i] {
-            // The if-check will not go to negatives because of the constraint on i
-            len += 1;
-        } else {
-            break;
-        }
-    }
-    len
-}
-
 /// Describes a variant between the query and the reference.
 #[derive(Debug, Eq, PartialEq)]
 pub struct Variant {
@@ -68,6 +40,34 @@ impl std::fmt::Display for ResolveVariantErr {
         };
         write!(f, "{}Could not resolve variant.", err_msg)
     }
+}
+
+// Pads with dollars from the left if there is not full k-mer
+fn get_kmer_ending_at(query: &[u8], end_pos: usize, k: usize) -> Vec<u8> {
+    let mut query_kmer = Vec::<u8>::new();
+    if end_pos >= k-1 {
+        query_kmer.extend(&query[end_pos + 1 - k .. end_pos+1]);
+    } else {
+        let n_dollars = -(end_pos as isize - k as isize + 1);
+        assert!(n_dollars > 0);
+        query_kmer.resize(n_dollars as usize, b'$');
+        query_kmer.extend(&query[0..end_pos+1]);
+    }
+    assert!(query_kmer.len() == k);
+    query_kmer
+}
+
+fn longest_common_suffix(x: &[u8], y: &[u8]) -> usize {
+    let mut len = 0_usize;
+    for i in 0..min(x.len(), y.len()) {
+        if x[x.len() - 1 - i] == y[y.len() - 1 - i] {
+            // The if-check will not go to negatives because of the constraint on i
+            len += 1;
+        } else {
+            break;
+        }
+    }
+    len
 }
 
 fn get_rightmost_significant_peak(ms: &[(usize, Range<usize>)], significant_match_threshold: usize) -> Option<usize> {
