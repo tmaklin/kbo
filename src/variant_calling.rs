@@ -48,6 +48,30 @@ pub struct Variant {
     pub ref_chars: Vec<u8>,
 }
 
+/// Returned from resolve_variant if the variant can't be resolved.
+///
+/// Codes:
+///   0: Generic failure.
+///   1: Weird case, query_overlap == ref_overlap.
+///
+/// This error can be ignored if it's okay to leave the variant unresolved.
+///
+#[derive(Debug,Clone)]
+pub struct ResolveVariantErr {
+    code: usize,
+    message: String,
+}
+
+impl std::fmt::Display for ResolveVariantErr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let err_msg = match self.code {
+            1 => format!("{}: ", self.message),
+            _ => String::new(),
+        };
+        write!(f, "{}Could not resolve variant.", err_msg)
+    }
+}
+
 fn get_rightmost_significant_peak(ms: &[(usize, Range<usize>)], significant_match_threshold: usize) -> Option<usize> {
     assert!(!ms.is_empty());
     for i in (0..ms.len()-1).rev() {
@@ -83,7 +107,7 @@ pub fn resolve_variant(
     ms_vs_query: &[(usize, Range<usize>)], // Slice of length k
     ms_vs_ref: &[(usize, Range<usize>)], // Slice of length k
     significant_match_threshold: usize,
-) -> Option<(Vec<u8>, Vec<u8>)> {
+) -> Result<(Vec<u8>, Vec<u8>), ResolveVariantErr> {
 
     let k = query_kmer.len();
     assert!(ref_kmer.len() == k);
@@ -104,7 +128,7 @@ pub fn resolve_variant(
         let ref_gap = suffix_match_start as isize - ref_ms_peak as isize - 1;
 
         if query_gap > 0 && ref_gap > 0 {
-            return Some(
+            return Ok(
                 (
                     query_kmer[query_ms_peak+1..suffix_match_start].to_vec(), // Query chars
                     ref_kmer[ref_ms_peak+1..suffix_match_start].to_vec() // Ref chars
@@ -114,13 +138,12 @@ pub fn resolve_variant(
             let query_overlap = -query_gap;
             let ref_overlap = -ref_gap;
             if query_overlap == ref_overlap {
-                eprintln!("WARNING: weird case: query_overlap == ref_overlap. Ignoring.");
-                return None;
+                return Err(ResolveVariantErr{ code: 1, message: "query_overlap == ref_overlap".to_string() })
             }
             let variant_len = (query_overlap - ref_overlap).unsigned_abs();
             if query_overlap > ref_overlap {
                 // Deletion in query
-                return Some(
+                return Ok(
                     (
                         vec![], // Query chars
                         ref_kmer[ref_ms_peak + 1 .. ref_ms_peak + 1 + variant_len].to_vec() // Ref chars
@@ -128,7 +151,7 @@ pub fn resolve_variant(
                 );
             }  else {
                 // Insertion in query
-                return Some(
+                return Ok(
                     (
                         query_kmer[query_ms_peak + 1 .. query_ms_peak + 1 + variant_len].to_vec(), // Query chars
                         vec![] // Ref chars
@@ -139,7 +162,7 @@ pub fn resolve_variant(
 
     }
     
-    None // Could not resolve variant
+    Err(ResolveVariantErr{ code: 0, message: "".to_string() }) // Could not resolve variant
 }
 
 /// Call all variants between the query and the reference. Parameters:
@@ -178,14 +201,11 @@ pub fn call_variants(
                     let query_kmer = get_kmer_ending_at(query, j, k);
                     let ref_kmer = sbwt_ref.access_kmer(ref_colex);
 
-                    //eprintln!("{}", String::from_utf8_lossy(&ref_kmer));
-                    //eprintln!("{}", String::from_utf8_lossy(&query_kmer));
-                    
                     // MS vectors for k-mers (Possible future work: could we reuse slices of the existing MS vectors?)
                     let ms_vs_ref = index_ref.matching_statistics(&query_kmer);
                     let ms_vs_query = index_query.matching_statistics(&ref_kmer);
 
-                    if let Some(var) = resolve_variant(&query_kmer, &ref_kmer, &ms_vs_query, &ms_vs_ref, d) {
+                    if let Ok(var) = resolve_variant(&query_kmer, &ref_kmer, &ms_vs_query, &ms_vs_ref, d) {
                         calls.push(Variant{query_chars: var.0, ref_chars: var.1, query_pos: i});
                     }
                     break;
