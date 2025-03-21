@@ -235,6 +235,7 @@ use sbwt::SbwtIndexVariant;
 
 pub mod derandomize;
 pub mod format;
+pub mod gap_filling;
 pub mod index;
 pub mod translate;
 pub mod variant_calling;
@@ -565,9 +566,17 @@ pub fn map(
     let derand_ms = derandomize::derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
 
     let translation = translate::translate_ms_vec(&derand_ms, k, threshold);
-    let refined = translate::refine_translation(&translation, &noisy_ms, query_sbwt, threshold);
 
-    format::relative_to_ref(ref_seq, &refined)
+    let mut call_opts = CallOpts::default();
+    call_opts.sbwt_build_opts.k = k;
+    call_opts.max_error_prob = map_opts.max_error_prob;
+
+    let refined = gap_filling::fill_gaps(&translation, &noisy_ms, ref_seq, query_sbwt, threshold, map_opts.max_error_prob);
+
+    let variants = call(query_sbwt, query_lcs, ref_seq, call_opts);
+    let with_variants = translate::add_variants(&refined, &variants);
+
+    format::relative_to_ref(ref_seq, &with_variants)
 }
 
 /// Finds the _k_-mers from an SBWT index in a query fasta or fastq file.

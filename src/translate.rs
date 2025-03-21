@@ -17,16 +17,17 @@
 //! - **M** : Match between query and reference.
 //! - **-** : Characters in the query that are not found in the reference.
 //! - **X** : Single character mismatch or insertion into the query.
+//! - **I** : Single or multiple base insertion into the query.
+//! - **D** : Deletion in the query.
 //! - **R** : Two consecutive 'R's signify a discontinuity in the alignment.
 //!           The right 'R' is at the start of a _k_-mer that is not adjacent
 //!           to the last character in the _k_-mer corresponding to the left
 //!           'R'. This implies either a deletion of unknown length in the query,
 //!           or insertion of _k_-mers from elsewhere in the reference into the query.
 //!
-use std::ops::Range;
-
-use sbwt::SbwtIndexVariant;
-use sbwt::SubsetSeq;
+//! 'I' and 'D' are only used if [add_variants] was called.
+//!
+use crate::variant_calling::Variant;
 
 /// Translates a single derandomized _k_-bounded matching statistic.
 ///
@@ -291,112 +292,96 @@ pub fn translate_ms_vec(
     res
 }
 
-/// Refines a translated alignment by resolving SNPs.
+/// Add variant calling results to a translated alignment.
 ///
-/// Resolves all 'X's in the translation `translation` by using the
-/// colexicographic intervals stored in the second component of
-/// `noisy_ms` tuples to extract the _k_-mers that overlap the 'X's
-/// from the SBWT index `query_sbwt`.
+/// Updates `translation` with variant calling information from `variants`. This
+/// results in the following changes:
 ///
-/// The 'X's are resolved by checking whether the _k_-mer whose first
-/// character overlaps the 'X' has a matching statistic of _k_ - 1
-/// and, if it does, replacing the character of 'X' with a character
-/// from the _k_-mer that has 'X' as its middle base (a '[split
-/// _k_-mer](https://docs.rs/ska). If the matching statistic is less
-/// than _k_ - 1, the character is checked from the _k_-mer that is
-/// (`threshold` + 1)/2 characters away from the 'X'.
+/// - 'X's are resolved and replaced with a nucleotide character 'ACGTN'
+///   (substitution) or a gap '-' (single base insertion).
+/// - '-'s that correspond to deletions in the query are replaced with 'D's.
+/// - 'R's corresponding to insertions are replaced with 'I's.
 ///
-/// The SBWT index must have [select
-/// support](https://docs.rs/sbwt/latest/sbwt/struct.SbwtIndexBuilder.html)
-/// enabled.
+/// 'N's are generated in the event that a single nucleotide has been
+/// substituted with multiple nucleotides which are not all the same. If they
+/// are the same, the nucleotide character is used instead.
 ///
-/// Returns a refined translation where the 'X's have been replaced
-/// with the substituted character.
+/// Returns a vector containing the updated translation.
 ///
 /// # Examples
 /// ```rust
 /// use kbo::build;
+/// use kbo::call;
+/// use kbo::CallOpts;
 /// use kbo::index::BuildOpts;
 /// use kbo::index::query_sbwt;
 /// use kbo::derandomize::derandomize_ms_vec;
-/// use kbo::derandomize::random_match_threshold;
 /// use kbo::translate::translate_ms_vec;
-/// use kbo::translate::refine_translation;
-/// use sbwt::SbwtIndexVariant;
+/// use kbo::translate::add_variants;
 ///
-/// // Parameters       : k = 4, threshold = 3
-/// //
-/// // Ref sequence     : T,T,G,A, T,T,G,G,C,T,G,G,G,C,A,G,A,G,C,T,G
-/// // Query sequence   : T,T,G,A,     G,G,C,T,G,G,G,G,A,G,A,G,C,T,G
-/// //
-/// // Result MS vector : 1,2,3,4, 1,2,3,3,3,4,4,4,4,3,1,2,3,4,4,4,4
-/// // Derandomized MS  : 1,2,3,4,-1,0,1,2,3,4,4,4,4,0,1,2,3,4,4,4,4
-/// // Translation      : M,M,M,M, -,-,M,M,M,M,M,M,M,X,M,M,M,M,M,M,M
-/// // Refined          : M,M,M,M, -,-,M,M,M,M,M,M,M,G,M,M,M,M,M,M,M
-/// // Changed this pos :                            |
+/// //                                    deleted characters    substituted        inserted
+/// //                                            v                 v                v
+/// let reference =     b"TCGTGGATCGATACACGCTAGCAGGCTGACTCGATGGGATACTATGTGTTATAGCAATTCGGATCGATCGA".to_vec();
+/// let query =         b"TCGTGGATCGATACACGCTAGCAGTGACTCGATGGGATACCATGTGTTATAGCAATTCCGGATCGATCGA".to_vec();
+/// //  translation =   b"MMMMMMMMMMMMMMMMMMMMMMMM--MMMMMMMMMMMMMMMMXMMMMMMMMMMMMMMMMRRMMMMMMMMMM".to_vec();
+/// //  with_variants = b"MMMMMMMMMMMMMMMMMMMMMMMMDDMMMMMMMMMMMMMMMMCMMMMMMMMMMMMMMMMIIMMMMMMMMMM".to_vec();
 ///
-/// let query: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
-/// let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+/// let k = 20;
+/// let threshold = 10;
 ///
-/// let mut opts = BuildOpts::default();
-/// opts.k = 4;
-/// opts.build_select = true;
-/// let (sbwt, lcs) = build(&[query], opts);
+/// let mut call_opts = CallOpts::default();
+/// call_opts.sbwt_build_opts.k = k;
+/// call_opts.max_error_prob = 0.001;
 ///
-/// let k = match sbwt {
-///     SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-///         sbwt.k()
-///     },
-/// };
-/// let threshold = 3;
+/// let (sbwt_query, lcs_query) = build(&[query], call_opts.sbwt_build_opts.clone());
 ///
-/// let noisy_ms = query_sbwt(&reference, &sbwt, &lcs);
+/// let noisy_ms = query_sbwt(&reference, &sbwt_query, &lcs_query);
 /// let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
 /// let translated = translate_ms_vec(&derand_ms, k, threshold);
 ///
-/// let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+/// let variants = call(&sbwt_query, &lcs_query, &reference, call_opts);
+/// eprintln!("{:?}", variants);
+/// let with_variants = add_variants(&translated, &variants);
 ///
-/// # let expected = vec!['M','M','M','M','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
-/// # assert_eq!(refined, expected);
+/// # let expected = b"MMMMMMMMMMMMMMMMMMMMMMMMDDMMMMMMMMMMMMMMMMCMMMMMMMMMMMMMMMMIIMMMMMMMMMM".to_vec();
+/// # assert_eq!(expected.iter().map(|x| *x as char).collect::<Vec<char>>(), with_variants);
 /// ```
 ///
-pub fn refine_translation(
+pub fn add_variants(
     translation: &[char],
-    noisy_ms: &[(usize, Range<usize>)],
-    query_sbwt: &SbwtIndexVariant,
-    threshold: usize,
+    variants: &[Variant],
 ) -> Vec<char> {
-    let n_elements = translation.len();
-    assert!(!translation.is_empty());
-    assert!(translation.len() == noisy_ms.len());
-    let k = match query_sbwt {
-        SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-            assert!(sbwt.sbwt().has_select_support());
-            assert!(sbwt.k() > 0);
-            sbwt.k()
-        },
-    };
 
-    // Could prove midpoint is the best guess using conditional probabilities?
-    // This is (coincidentally?) similar to split k-mers
+    let mut refined = translation.to_vec();
 
-    let mut refined = translation.to_vec().clone();
-    match query_sbwt {
-        SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-            for i in 1..(refined.len() - threshold) {
-                if refined[i - 1] == 'X' {
-                    let midpoint = if i + k - 2 < n_elements && noisy_ms[i + k - 2].0 == k - 1 { k/2 } else { threshold.div_ceil(2) };
-                    let nucleotide = sbwt.access_kmer(noisy_ms[i + k - 2 - midpoint].1.start)[midpoint] as char;
-                    refined[i - 1] = if nucleotide == '$' {
-                        // SBWT does not contain this position
-                        '-'
-                    } else {
-                        nucleotide
-                    };
-                }
-            }
-        },
-    };
+    variants.iter().for_each(|var| {
+        let query_len = var.query_chars.len();
+        let ref_len = var.ref_chars.len();
+        if query_len == ref_len {
+            // Substitution(s)
+            var.ref_chars.iter().enumerate().for_each(|(i, nt)| {
+                refined[var.query_pos + i] = *nt as char;
+            })
+        } else if query_len == 0 {
+            // Insertion into reference, replace the 'R's with 'I's.
+            refined[var.query_pos - 1] = 'I';
+            refined[var.query_pos] = 'I';
+        } else if ref_len == 0 {
+            // Deletion from reference, mark with 'D's.
+            var.query_chars.iter().enumerate().for_each(|(i, _)| {
+                refined[var.query_pos + i] = 'D';
+            });
+        } else if ref_len != query_len {
+            // Multiple base substitution, mark this as 'N' unless all
+            // substituted bases are equal.
+            let all_equal = var.ref_chars.iter().cloned().collect::<std::collections::HashSet<u8>>().len() == 1;
+            let fill_char = if all_equal { var.ref_chars[0] as char } else { 'N' };
+            var.query_chars.iter().enumerate().for_each(|(i, _)| {
+                refined[var.query_pos + i] = fill_char;
+            });
+        }
+    });
+
     refined
 }
 
@@ -547,79 +532,146 @@ mod tests {
     }
 
     #[test]
-    fn refine_translation() {
-	use crate::build;
-	use crate::index::BuildOpts;
-	use crate::index::query_sbwt;
-	use crate::derandomize::derandomize_ms_vec;
-	use super::translate_ms_vec;
-	use super::refine_translation;
-	use sbwt::SbwtIndexVariant;
-
-	// Parameters       : k = 4, threshold = 3
-	//
-	// Ref sequence     : T,T,G,A, T,T,G,G,C,T,G,G,G,C,A,G,A,G,C,T,G
-	// Query sequence   : T,T,G,A,     G,G,C,T,G,G,G,G,A,G,A,G,C,T,G
-	//
-	// Result MS vector : 1,2,3,4, 1,2,3,3,3,4,4,4,4,3,1,2,3,4,4,4,4
-	// Derandomized MS  : 1,2,3,4,-1,0,1,2,3,4,4,4,4,0,1,2,3,4,4,4,4
-	// Translation      : M,M,M,M, -,-,M,M,M,M,M,M,M,X,M,M,M,M,M,M,M
-	// Refined          : M,M,M,M, -,-,M,M,M,M,M,M,M,G,M,M,M,M,M,M,M
-	// Changed this pos :                            |
-
-	let query: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
-	let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
-
-	let (sbwt, lcs) = build(&[query], BuildOpts{ k: 4, build_select: true, ..Default::default() });
-
-	let k = match sbwt {
-	    SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-		sbwt.k()
-	    },
-	};
-	let threshold = 3;
-
-	let noisy_ms = query_sbwt(&reference, &sbwt, &lcs);
-	let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
-	let translated = translate_ms_vec(&derand_ms, k, threshold);
-
-	let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
-
-	let expected = vec!['M','M','M','M','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
-	assert_eq!(refined, expected);
-    }
-
-    // Test for a case where the SBWT access_kmer() function outputs a dollar
-    // sign, these should be replaced by a gap '-' in kbo output because dollar
-    // signs from SBWT mean that the nucleotide is not present.
-    #[test]
-    fn refine_translation_extend_to_dummy_kmers() {
+    fn add_variants() {
         use crate::build;
+        use crate::call;
+        use crate::CallOpts;
         use crate::index::BuildOpts;
         use crate::index::query_sbwt;
         use crate::derandomize::derandomize_ms_vec;
         use super::translate_ms_vec;
-        use super::refine_translation;
-        use sbwt::SbwtIndexVariant;
+        use super::add_variants;
 
-        let query: Vec<u8> = vec![b'G',b'A',b'A',b'T',b'T',b'C',b'T',b'T',b'A',b'A',b'T',b'T',b'T',b'T',b'T',b'G',b'T',b'C',b'C',b'G',b'T',b'T',b'T',b'A',b'A',b'A',b'A',b'A',b'T',b'C',b'T',b'G',b'G',b'C',b'T',b'A',b'G',b'T',b'A',b'A',b'C',b'G',b'A',b'A',b'C',b'T',b'A',b'T',b'T',b'T',b'T',b'T',b'A',b'C',b'T',b'T',b'A',b'A',b'C',b'A',b'T',b'T',b'T',b'A',b'A',b'T',b'A',b'C',b'T',b'A',b'A',b'G',b'C',b'A',b'A',b'C',b'A',b'G',b'T',b'T',b'T',b'T',b'T',b'G',b'A',b'A',b'C',b'G',b'A',b'A',b'G',b'T',b'G',b'A',b'G',b'T',b'T',b'T',b'A',b'G',b'C',b'G',b'A',b'A',b'T',b'T',b'T',b'G',b'C',b'A',b'G',b'C',b'G',b'A',b'A',b'T',b'T',b'C',b'T',b'T',b'A',b'A',b'T',b'T',b'T',b'T',b'T',b'A',b'T',b'C',b'T',b'G',b'T',b'T',b'A',b'A',b'G',b'A',b'A',b'A',b'T',b'C',b'T',b'G',b'G',b'C',b'T',b'A',b'G',b'T',b'A',b'A',b'C',b'G',b'A',b'A',b'C',b'T',b'A',b'T'];
-        let reference: Vec<u8> = vec![b'A',b'G',b'C',b'C',b'G',b'A',b'G',b'C',b'A',b'A',b'A',b'T',b'C',b'T',b'C',b'G',b'C',b'T',b'G',b'T',b'G',b'T',b'T',b'T',b'G',b'A',b'G',b'T',b'G',b'A',b'A',b'A',b'C',b'G',b'A',b'G',b'T',b'T',b'T',b'A',b'G',b'C',b'G',b'A',b'A',b'T',b'T',b'T',b'G',b'C',b'A',b'G',b'T',b'G',b'A',b'A',b'T',b'T',b'C',b'T',b'T',b'A',b'A',b'T',b'T',b'T',b'T',b'T',b'A',b'T',b'C',b'T',b'G',b'T',b'T',b'A',b'A',b'G',b'A',b'A',b'A',b'T',b'C',b'T',b'G',b'G',b'C',b'T',b'A',b'G',b'T',b'A',b'A',b'C',b'G',b'A',b'A',b'C',b'T',b'A',b'T',b'T',b'T',b'T',b'C',b'A',b'A',b'A',b'T',b'T',b'A',b'A',b'A',b'T',b'A',b'T',b'T',b'T',b'G',b'A',b'A',b'G',b'A',b'G',b'A',b'G',b'G',b'T',b'A',b'A',b'A',b'A',b'A',b'A',b'T',b'G',b'T',b'T',b'T',b'C',b'T',b'T',b'A',b'T',b'G',b'A',b'T',b'A',b'G',b'A',b'T',b'A',b'A',b'C',b'T',b'A',b'C',b'G',b'A',b'C'];
+        //                                 deleted characters    substituted        inserted
+        //                                        v                 v                v
+        let reference = b"TCGTGGATCGATACACGCTAGCAGGCTGACTCGATGGGATACTATGTGTTATAGCAATTCGGATCGATCGA".to_vec();
+        let query =     b"TCGTGGATCGATACACGCTAGCAGTGACTCGATGGGATACCATGTGTTATAGCAATTCCGGATCGATCGA".to_vec();
+        let expected =  b"MMMMMMMMMMMMMMMMMMMMMMMMDDMMMMMMMMMMMMMMMMCMMMMMMMMMMMMMMMMIIMMMMMMMMMM".to_vec();
 
-        let (sbwt, lcs) = build(&[query], BuildOpts{ build_select: true, ..Default::default() });
+        let k = 20;
+        let threshold = 10;
+        let (sbwt_query, lcs_query) = build(&[query], BuildOpts{ k, build_select: true, ..Default::default() });
 
-        let (k, threshold) = match sbwt {
-            SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
-                (sbwt.k(), crate::derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, 0.0000001_f64))
-            },
-        };
+        let mut call_opts = CallOpts::default();
+        call_opts.sbwt_build_opts.k = k;
+        call_opts.max_error_prob = 0.001;
 
-        let noisy_ms = query_sbwt(&reference, &sbwt, &lcs);
+        let noisy_ms = query_sbwt(&reference, &sbwt_query, &lcs_query);
         let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
         let translated = translate_ms_vec(&derand_ms, k, threshold);
 
-        let refined = refine_translation(&translated, &noisy_ms, &sbwt, threshold);
+        let variants = call(&sbwt_query, &lcs_query, &reference, call_opts);
+        eprintln!("{:?}", variants);
+        let with_variants = add_variants(&translated, &variants);
 
-        let expected = vec!['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', '-', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'];
-        assert_eq!(refined, expected);
+        assert_eq!(expected.iter().map(|x| *x as char).collect::<Vec<char>>(), with_variants);
+    }
+
+    #[test]
+    fn add_variants_multi_base_substitution() {
+        use crate::build;
+        use crate::call;
+        use crate::CallOpts;
+        use crate::index::BuildOpts;
+        use crate::index::query_sbwt;
+        use crate::derandomize::derandomize_ms_vec;
+        use super::translate_ms_vec;
+        use super::add_variants;
+
+        //                                                       substituted
+        //                                                          v
+        let reference = b"TCGTGGATCGATACACGCTAGCAGGCTGACTCGATGGGATACTATGTGTTATAGCAATTCCGGATCGATCGA".to_vec();
+        let query =     b"TCGTGGATCGATACACGCTAGCAGGCTGACTCGATGGGATACCCAATGTGTTATAGCAATTCCGGATCGATCGA".to_vec();
+        let expected =  b"MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNMMMMMMMMMMMMMMMMMMMMMMMMMMMMM".to_vec();
+
+        let k = 20;
+        let threshold = 10;
+        let (sbwt_query, lcs_query) = build(&[query], BuildOpts{ k, build_select: true, ..Default::default() });
+
+        let mut call_opts = CallOpts::default();
+        call_opts.sbwt_build_opts.k = k;
+        call_opts.max_error_prob = 0.001;
+
+        let noisy_ms = query_sbwt(&reference, &sbwt_query, &lcs_query);
+        let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
+        let translated = translate_ms_vec(&derand_ms, k, threshold);
+
+        let variants = call(&sbwt_query, &lcs_query, &reference, call_opts);
+        eprintln!("{:?}", variants);
+        let with_variants = add_variants(&translated, &variants);
+
+        assert_eq!(expected.iter().map(|x| *x as char).collect::<Vec<char>>(), with_variants);
+    }
+
+    #[test]
+    fn add_variants_multi_base_substitution_all_same() {
+        use crate::build;
+        use crate::call;
+        use crate::CallOpts;
+        use crate::index::BuildOpts;
+        use crate::index::query_sbwt;
+        use crate::derandomize::derandomize_ms_vec;
+        use super::translate_ms_vec;
+        use super::add_variants;
+
+        //                                                       substituted
+        //                                                          v
+        let reference = b"TCGTGGATCGATACACGCTAGCAGGCTGACTCGATGGGATACTATGTGTTATAGCAATTCCGGATCGATCGA".to_vec();
+        let query =     b"TCGTGGATCGATACACGCTAGCAGGCTGACTCGATGGGATACGGGATGTGTTATAGCAATTCCGGATCGATCGA".to_vec();
+        let expected =  b"MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMGMMMMMMMMMMMMMMMMMMMMMMMMMMMMM".to_vec();
+
+        let k = 20;
+        let threshold = 10;
+        let (sbwt_query, lcs_query) = build(&[query], BuildOpts{ k, build_select: true, ..Default::default() });
+
+        let mut call_opts = CallOpts::default();
+        call_opts.sbwt_build_opts.k = k;
+        call_opts.max_error_prob = 0.001;
+
+        let noisy_ms = query_sbwt(&reference, &sbwt_query, &lcs_query);
+        let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
+        let translated = translate_ms_vec(&derand_ms, k, threshold);
+
+        let variants = call(&sbwt_query, &lcs_query, &reference, call_opts);
+        eprintln!("{:?}", variants);
+        let with_variants = add_variants(&translated, &variants);
+
+        assert_eq!(expected.iter().map(|x| *x as char).collect::<Vec<char>>(), with_variants);
+    }
+
+    #[test]
+    fn add_variants_clustered_substitutions() {
+        use crate::build;
+        use crate::call;
+        use crate::CallOpts;
+        use crate::index::BuildOpts;
+        use crate::index::query_sbwt;
+        use crate::derandomize::derandomize_ms_vec;
+        use super::translate_ms_vec;
+        use super::add_variants;
+
+        //                                                       substituted
+        //                                                          v v
+        let reference = b"TCGTGGATCGATACACGCTAGCAGGCTGACTCGATGGGATACTATGTGTTATAGCAATTCCGGATCGATCGA".to_vec();
+        let query =     b"TCGTGGATCGATACACGCTAGCAGGCTGACTCGATGGGATACCACGTGTTATAGCAATTCCGGATCGATCGA".to_vec();
+        let expected =  b"MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMCACMMMMMMMMMMMMMMMMMMMMMMMMMMM".to_vec();
+
+        let k = 20;
+        let threshold = 10;
+        let (sbwt_query, lcs_query) = build(&[query], BuildOpts{ k, build_select: true, ..Default::default() });
+
+        let mut call_opts = CallOpts::default();
+        call_opts.sbwt_build_opts.k = k;
+        call_opts.max_error_prob = 0.001;
+
+        let noisy_ms = query_sbwt(&reference, &sbwt_query, &lcs_query);
+        let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
+        let translated = translate_ms_vec(&derand_ms, k, threshold);
+
+        let variants = call(&sbwt_query, &lcs_query, &reference, call_opts);
+        eprintln!("{:?}", variants);
+        let with_variants = add_variants(&translated, &variants);
+
+        assert_eq!(expected.iter().map(|x| *x as char).collect::<Vec<char>>(), with_variants);
     }
 }
