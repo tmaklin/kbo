@@ -11,9 +11,7 @@ fn get_kmer_ending_at(query: &[u8], end_pos: usize, k: usize) -> Vec<u8> {
     } else {
         let n_dollars = -(end_pos as isize - k as isize + 1);
         assert!(n_dollars > 0);
-        for _ in 0..n_dollars {
-            query_kmer.push(b'$');
-        }
+        query_kmer.resize(n_dollars as usize, b'$');
         query_kmer.extend(&query[0..end_pos+1]);
     }
     assert!(query_kmer.len() == k);

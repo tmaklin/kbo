@@ -16,11 +16,11 @@ sbwt = { version = "0.3.4", features = ["bpks-mem"] }
 
 ## docs
 embed-doc-image="0.1.4"
-random = "0.14.0" # This is also used in tests
 
 [dev-dependencies]
 ## tests
 assert_approx_eq = "1"
+random = "0.14.0"
 
 [profile.release]
 strip = true
