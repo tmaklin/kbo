@@ -17,11 +17,15 @@
 //! - **M** : Match between query and reference.
 //! - **-** : Characters in the query that are not found in the reference.
 //! - **X** : Single character mismatch or insertion into the query.
+//! - **I** : Single or multiple base insertion into the query.
+//! - **D** : Deletion in the query.
 //! - **R** : Two consecutive 'R's signify a discontinuity in the alignment.
 //!           The right 'R' is at the start of a _k_-mer that is not adjacent
 //!           to the last character in the _k_-mer corresponding to the left
 //!           'R'. This implies either a deletion of unknown length in the query,
 //!           or insertion of _k_-mers from elsewhere in the reference into the query.
+//!
+//! 'I' and 'D' are only used if [add_variants] was called.
 //!
 use crate::variant_calling::Variant;
 
@@ -289,6 +293,60 @@ pub fn translate_ms_vec(
 }
 
 /// Add variant calling results to a translated alignment.
+///
+/// Updates `translation` with variant calling information from `variants`. This
+/// results in the following changes:
+///
+/// - 'X's are resolved and replaced with a nucleotide character 'ACGTN'
+///   (substitution) or a gap '-' (single base insertion).
+/// - '-'s that correspond to deletions in the query are replaced with 'D's.
+/// - 'R's corresponding to insertions are replaced with 'I's.
+///
+/// 'N's are generated in the event that a single nucleotide has been
+/// substituted with multiple nucleotides which are not all the same. If they
+/// are the same, the nucleotide character is used instead.
+///
+/// Returns a vector containing the updated translation.
+///
+/// # Examples
+/// ```rust
+/// use kbo::build;
+/// use kbo::call;
+/// use kbo::CallOpts;
+/// use kbo::index::BuildOpts;
+/// use kbo::index::query_sbwt;
+/// use kbo::derandomize::derandomize_ms_vec;
+/// use kbo::translate::translate_ms_vec;
+/// use kbo::translate::add_variants;
+///
+/// //                                    deleted characters    substituted        inserted
+/// //                                            v                 v                v
+/// let reference =     b"TCGTGGATCGATACACGCTAGCAGGCTGACTCGATGGGATACTATGTGTTATAGCAATTCGGATCGATCGA".to_vec();
+/// let query =         b"TCGTGGATCGATACACGCTAGCAGTGACTCGATGGGATACCATGTGTTATAGCAATTCCGGATCGATCGA".to_vec();
+/// //  translation =   b"MMMMMMMMMMMMMMMMMMMMMMMM--MMMMMMMMMMMMMMMMXMMMMMMMMMMMMMMMMRRMMMMMMMMMM".to_vec();
+/// //  with_variants = b"MMMMMMMMMMMMMMMMMMMMMMMMDDMMMMMMMMMMMMMMMMCMMMMMMMMMMMMMMMMIIMMMMMMMMMM".to_vec();
+///
+/// let k = 20;
+/// let threshold = 10;
+///
+/// let mut call_opts = CallOpts::default();
+/// call_opts.sbwt_build_opts.k = k;
+/// call_opts.max_error_prob = 0.001;
+///
+/// let (sbwt_query, lcs_query) = build(&[query], call_opts.sbwt_build_opts.clone());
+///
+/// let noisy_ms = query_sbwt(&reference, &sbwt_query, &lcs_query);
+/// let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
+/// let translated = translate_ms_vec(&derand_ms, k, threshold);
+///
+/// let variants = call(&sbwt_query, &lcs_query, &reference, call_opts);
+/// eprintln!("{:?}", variants);
+/// let with_variants = add_variants(&translated, &variants);
+///
+/// # let expected = b"MMMMMMMMMMMMMMMMMMMMMMMMDDMMMMMMMMMMMMMMMMCMMMMMMMMMMMMMMMMIIMMMMMMMMMM".to_vec();
+/// # assert_eq!(expected.iter().map(|x| *x as char).collect::<Vec<char>>(), with_variants);
+/// ```
+///
 pub fn add_variants(
     translation: &[char],
     variants: &[Variant],
