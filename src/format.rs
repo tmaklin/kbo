@@ -324,7 +324,7 @@ pub fn relative_to_ref(
             // 'X' is an unresolved SNP
             b'-'
         } else if *x.1 == 'D' {
-            // Deleteion in query
+            // Deletion in query
             b'-'
         } else if *x.1 != '-' {
             // Other possible values are nucleotides (A,C,G,T,N)
