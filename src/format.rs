@@ -241,7 +241,7 @@ pub fn run_lengths_gapped(
     encodings
 }
 
-/// Format a refined translation relative to the reference sequence.
+/// Format an alignment relative to the reference sequence.
 ///
 /// Jointly reads nucleotides from the reference sequence `ref_seq` and the
 /// character representation of an alignment `alignment` to determine the
@@ -252,6 +252,7 @@ pub fn run_lengths_gapped(
 ///
 /// Valid characters in the return format are:
 /// - 'A', 'C', 'G', 'T': the nucleotide in the query sequence.
+/// - `N`: ambiguous nucleotide in the query.
 /// - '-': gap in the query.
 ///
 /// If `alignment` is a refined translation, the nucleotides ACGT in the return
@@ -261,6 +262,10 @@ pub fn run_lengths_gapped(
 /// If `alignment` is an unrefined translation, the nucleotides ACGT are always
 /// the same as in the reference sequence. Gaps '-' may represent either
 /// unresolved SNPs, insertions, or absent sections.
+///
+/// If `alignment` contains variant information ('D', 'I', or nucleotids AGCTN),
+/// the return value may differ from the reference and gaps represent absent
+/// sections.
 ///
 /// # Examples
 /// ## Format an unrefined translation
@@ -312,13 +317,17 @@ pub fn relative_to_ref(
     alignment: &[char],
 ) -> Vec<u8> {
     ref_seq.iter().zip(alignment.iter()).map(|x| {
-        if *x.1 == 'M' || *x.1 == 'R' {
+        if *x.1 == 'M' || *x.1 == 'R' || *x.1 == 'I' {
+            // Match or insertion in query
             *x.0
         } else if *x.1 == 'X' {
             // 'X' is an unresolved SNP
             b'-'
+        } else if *x.1 == 'D' {
+            // Deleteion in query
+            b'-'
         } else if *x.1 != '-' {
-            // Other possible values are resolved SNPs (A,C,G,T)
+            // Other possible values are nucleotides (A,C,G,T,N)
             *x.1 as u8
         } else {
             b'-'
