@@ -20,6 +20,7 @@ embed-doc-image="0.1.4"
 [dev-dependencies]
 ## tests
 assert_approx_eq = "1"
+random = "0.14.0"
 
 [profile.release]
 strip = true

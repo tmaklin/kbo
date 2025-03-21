@@ -16,8 +16,12 @@
 //! statistics](https://www.biorxiv.org/content/10.1101/2024.02.19.580943v1)
 //! into a character representation of the underlying alignment sequence.
 //!
-//! Currently, kbo supports two main operations:
+//! Currently, kbo supports three main operations:
 //!
+//! - `kbo call` [calls](call()) single and multi base substitutions,
+//!   insertions, and deletions in a query sequence against a reference and
+//!   reports their positions and sequences. Call is useful for problems that
+//!   require [.vcf files](https://samtools.github.io/hts-specs/VCFv4.2.pdf).
 //! - `kbo find` [matches](matches()) the _k_-mers in a query sequence with the
 //!   reference and reports the local alignment segments found within the
 //!   reference. Find is useful for problems that can be solved with
@@ -46,6 +50,10 @@
 //! kbo can read inputs compressed in the DEFLATE format (gzip, zlib, etc.).
 //! bzip2 and xz support can be enabled by adding the "bzip2" and "xz" feature
 //! flags to [needletail](https://docs.rs/needletail) in the kbo Cargo.toml.
+//!
+//! ## kbo call
+//!
+//! TODO Add an example using kbo call to library documentation.
 //!
 //! ## kbo find
 //!
@@ -229,6 +237,47 @@ pub mod derandomize;
 pub mod format;
 pub mod index;
 pub mod translate;
+pub mod variant_calling;
+
+/// Options and parameters for [call]
+#[non_exhaustive]
+#[derive(Clone, Debug)]
+pub struct CallOpts {
+    /// Prefix match lengths with probability higher than `max_error_prob` to
+    /// happen at random are considered noise.
+    pub max_error_prob: f64,
+
+    /// [Build options](index::BuildOpts) for indexing the reference sequence, `k` must
+    /// match the _k_-mer size used in indexing the query.
+    pub sbwt_build_opts: index::BuildOpts,
+}
+
+impl Default for CallOpts {
+    /// Default to these values:
+    /// ```rust
+    /// let mut opts = kbo::CallOpts::default();
+    /// opts.max_error_prob = 0.0000001;
+    /// opts.sbwt_build_opts = kbo::index::BuildOpts::default();
+    /// opts.sbwt_build_opts.build_select = true;
+    /// # let expected = kbo::CallOpts::default();
+    /// # assert_eq!(opts.max_error_prob, expected.max_error_prob);
+    /// # assert_eq!(opts.sbwt_build_opts.k, expected.sbwt_build_opts.k);
+    /// # assert_eq!(opts.sbwt_build_opts.add_revcomp, expected.sbwt_build_opts.add_revcomp);
+    /// # assert_eq!(opts.sbwt_build_opts.num_threads, expected.sbwt_build_opts.num_threads);
+    /// # assert_eq!(opts.sbwt_build_opts.prefix_precalc, expected.sbwt_build_opts.prefix_precalc);
+    /// # assert_eq!(opts.sbwt_build_opts.build_select, true);
+    /// # assert_eq!(opts.sbwt_build_opts.mem_gb, expected.sbwt_build_opts.mem_gb);
+    /// # assert_eq!(opts.sbwt_build_opts.dedup_batches, expected.sbwt_build_opts.dedup_batches);
+    /// # assert_eq!(opts.sbwt_build_opts.temp_dir, expected.sbwt_build_opts.temp_dir);
+    /// ```
+    ///
+    fn default() -> CallOpts {
+        CallOpts {
+            max_error_prob: 0.0000001,
+            sbwt_build_opts: index::BuildOpts { build_select: true, ..Default::default() },
+        }
+    }
+}
 
 /// Options and parameters for [find]
 #[non_exhaustive]
@@ -347,6 +396,73 @@ pub fn build(
     build_opts: index::BuildOpts,
 ) -> (SbwtIndexVariant, sbwt::LcsArray) {
     index::build_sbwt_from_vecs(seq_data, &Some(build_opts))
+}
+
+/// Calls variants between a query and a reference sequence.
+///
+/// Builds an SBWT index from `ref_seq` with parameters and resources from
+/// `call_opts.sbwt_build_opts` and compares the index against `sbwt_query` and
+/// `lcs_query` to determine substitutions, insertions, and deletions in the
+/// query. This function also requires the `call_opts.max_error_prob` option to
+/// [derandomize] the matching statistics vectors.
+///
+/// Returns a vector containing the identified [variants](variant_calling::Variant).
+///
+/// # Examples
+/// ```rust
+/// use kbo::call;
+/// use kbo::build;
+/// use kbo::index::BuildOpts;
+/// use kbo::CallOpts;
+/// use kbo::variant_calling::Variant;
+///
+/// let reference = b"TCGTGGATCGATACACGCTAGCAGGCTGACTCGATGGGATACTATGTGTTATAGCAATTCGGATCGATCGA";
+/// let query =     b"TCGTGGATCGATACACGCTAGCCTGACTCGATGGGATACCATGTGTTATAGCAATTCCGGATCGATCGA";
+///
+/// let mut call_opts =  CallOpts::default();
+/// call_opts.sbwt_build_opts.k = 20;
+/// call_opts.max_error_prob = 0.001;
+///
+/// let (sbwt_query, lcs_query) = build(&[query.to_vec()], call_opts.sbwt_build_opts.clone());
+///
+/// let variants = call(&sbwt_query, &lcs_query, reference, call_opts);
+///
+/// // `variants` is a vector with elements:
+/// // - Variant { query_pos: 22, query_chars: [65, 71, 71], ref_chars: [] }
+/// // - Variant { query_pos: 42, query_chars: [84], ref_chars: [67] }
+/// // - Variant { query_pos: 60, query_chars: [], ref_chars: [67] }
+///
+/// # assert_eq!(variants[0], Variant { query_pos: 22, query_chars: [65, 71, 71].to_vec(), ref_chars: [].to_vec() });
+/// # assert_eq!(variants[1], Variant { query_pos: 42, query_chars: [84].to_vec(), ref_chars: [67].to_vec() } );
+/// # assert_eq!(variants[2], Variant { query_pos: 60, query_chars: [].to_vec(), ref_chars: [67].to_vec() });
+/// ```
+///
+pub fn call(
+    sbwt_query: &SbwtIndexVariant,
+    lcs_query: &sbwt::LcsArray,
+    ref_seq: &[u8],
+    call_opts: CallOpts,
+) -> Vec<variant_calling::Variant> {
+    let (sbwt_ref, lcs_ref) = index::build_sbwt_from_vecs(&[ref_seq.to_vec()], &Some(call_opts.sbwt_build_opts));
+
+    match sbwt_query {
+        SbwtIndexVariant::SubsetMatrix(ref sbwt_query) => {
+            match sbwt_ref {
+                SbwtIndexVariant::SubsetMatrix(ref sbwt_ref) => {
+                    assert!(sbwt_ref.k() == sbwt_query.k());
+                    assert!(sbwt_ref.alphabet() == sbwt_query.alphabet());
+                    variant_calling::call_variants(
+                        sbwt_query,
+                        lcs_query,
+                        sbwt_ref,
+                        &lcs_ref,
+                        ref_seq,
+                        call_opts.max_error_prob,
+                    )
+                },
+            }
+        },
+    }
 }
 
 /// Matches a query fasta or fastq file against an SBWT index.

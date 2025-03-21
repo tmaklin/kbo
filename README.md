@@ -16,8 +16,12 @@ kbo is distributed as three separate Rust packages:
 Precompiled binaries for kbo-cli are available from the [Releases page](https://github.com/tmaklin/kbo-cli/releases).
 
 ## About
-kbo supports two main operations:
+kbo supports three main operations:
 
+- `kbo call` calls single and multi base substitutions,
+  insertions, and deletions in a query sequence against a reference and
+  reports their positions and sequences. Call is useful for problems that
+  require [.vcf files](https://samtools.github.io/hts-specs/VCFv4.2.pdf).
 - `kbo find` matches the _k_-mers in a query sequence with the
   reference and reports the local alignment segments found within the
   reference. Find is useful for problems that can be solved with
