@@ -336,11 +336,27 @@ impl Default for MatchOpts {
 
 /// Options and parameters for [map]
 #[non_exhaustive]
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct MapOpts {
     /// Prefix match lengths with probability higher than `max_error_prob` to
     /// happen at random are considered noise.
     pub max_error_prob: f64,
+
+    /// Attempt to resolve gaps in the alignment with [gap
+    /// filling](gap_filling::fill_gaps).
+    pub fill_gaps: bool,
+
+    /// Resolve substitutions, insertions, and deletions with [variant
+    /// calling](call).
+    pub call_variants: bool,
+
+    /// Replace characters used by the internal representation of [translate]
+    /// with nucleotide codes and gaps.
+    pub format: bool,
+
+    /// [Build options](index::BuildOpts) for SBWT, used if variant calling is
+    /// requested. `k` must match the _k_-mer size used in indexing the query.
+    pub sbwt_build_opts: index::BuildOpts,
 }
 
 impl Default for MapOpts {
@@ -348,13 +364,31 @@ impl Default for MapOpts {
     /// ```rust
     /// let mut opts = kbo::MapOpts::default();
     /// opts.max_error_prob = 0.0000001;
+    /// opts.fill_gaps = true;
+    /// opts.call_variants = true;
+    /// opts.format = true;
     /// # let expected = kbo::MapOpts::default();
-    /// # assert_eq!(opts, expected);
+    /// # assert_eq!(opts.max_error_prob, expected.max_error_prob);
+    /// # assert_eq!(opts.fill_gaps, expected.fill_gaps);
+    /// # assert_eq!(opts.call_variants, expected.call_variants);
+    /// # assert_eq!(opts.format, expected.format);
+    /// # assert_eq!(opts.sbwt_build_opts.k, expected.sbwt_build_opts.k);
+    /// # assert_eq!(opts.sbwt_build_opts.add_revcomp, expected.sbwt_build_opts.add_revcomp);
+    /// # assert_eq!(opts.sbwt_build_opts.num_threads, expected.sbwt_build_opts.num_threads);
+    /// # assert_eq!(opts.sbwt_build_opts.prefix_precalc, expected.sbwt_build_opts.prefix_precalc);
+    /// # assert_eq!(opts.sbwt_build_opts.build_select, true);
+    /// # assert_eq!(opts.sbwt_build_opts.mem_gb, expected.sbwt_build_opts.mem_gb);
+    /// # assert_eq!(opts.sbwt_build_opts.dedup_batches, expected.sbwt_build_opts.dedup_batches);
+    /// # assert_eq!(opts.sbwt_build_opts.temp_dir, expected.sbwt_build_opts.temp_dir);
     /// ```
     ///
     fn default() -> MapOpts {
         MapOpts {
             max_error_prob: 0.0000001,
+            fill_gaps: true,
+            call_variants: true,
+            format: true,
+            sbwt_build_opts: index::BuildOpts { build_select: true, ..Default::default() },
         }
     }
 }
@@ -531,6 +565,7 @@ pub fn matches(
 /// in the query masked with a '-'.
 ///
 /// # Examples
+/// Run the full algorithm
 /// ```rust
 /// use kbo::build;
 /// use kbo::map;
@@ -541,13 +576,73 @@ pub fn matches(
 /// let mut opts = BuildOpts::default();
 /// opts.k = 3;
 /// opts.build_select = true;
-/// let (sbwt_query, lcs_query) = build(&query, opts);
+/// let (sbwt_query, lcs_query) = build(&query, opts.clone());
+///
+/// let mut map_opts = MapOpts::default();
+/// map_opts.sbwt_build_opts = opts;
 ///
 /// let reference = vec![b'G',b'T',b'G',b'A',b'C',b'T',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'T'];
 ///
-/// let alignment = map(&reference, &sbwt_query, &lcs_query, MapOpts::default());
+/// let alignment = map(&reference, &sbwt_query, &lcs_query, map_opts);
 /// // `ms_vectors` has [45,45,45,45,45,45,45,45,45,65,71,71,45,45]
 /// # assert_eq!(alignment, vec![45,45,45,45,45,45,45,45,45,65,71,71,45,45]);
+/// ```
+///
+/// Skip gap filling and variant calling, outputting '-'s instead.
+/// ```rust
+/// use kbo::build;
+/// use kbo::map;
+/// use kbo::index::BuildOpts;
+/// use kbo::MapOpts;
+///
+/// let reference = b"CGTTGACTCTAGGTGCCTGGGTTCTCAGAGCTGGGC".to_vec();
+/// let query =     b"CGTTGACTGGTGCCTGGGTTCTCAGAGCTGGGC".to_vec();
+/// let expected =  b"CGTTGACT---GGTGCCTGGGTTCTCAGAGCTGGGC".to_vec();
+///
+/// let mut opts = BuildOpts::default();
+/// opts.k = 7;
+/// opts.build_select = true;
+///
+/// let mut map_opts = MapOpts::default();
+/// map_opts.fill_gaps = false;
+/// map_opts.call_variants = false;
+/// map_opts.max_error_prob = 0.1;
+/// map_opts.sbwt_build_opts = opts.clone();
+///
+/// let (sbwt_query, lcs_query) = build(&[query], opts);
+///
+/// let alignment = map(&reference, &sbwt_query, &lcs_query, map_opts);
+/// // `alignment` has CGTTGACT---GGTGCCTGGGTTCTCAGAGCTGGGC
+/// # assert_eq!(alignment, expected);
+/// ```
+///
+/// Output the internal representation of [translate]
+/// ```rust
+/// use kbo::build;
+/// use kbo::map;
+/// use kbo::index::BuildOpts;
+/// use kbo::MapOpts;
+///
+/// let reference = b"CGTTGACTCTAGGTGCCTGGGTTCTCAGAGCTGGGC".to_vec();
+/// let query =     b"CGTTGACTGGTGCCTGGGTTCTCAGAGCTGGGC".to_vec();
+/// let expected =  b"MMMMMMMM---MMMMMMMMMMMMMMMMMMMMMMMMM".to_vec();
+///
+/// let mut opts = BuildOpts::default();
+/// opts.k = 7;
+/// opts.build_select = true;
+///
+/// let mut map_opts = MapOpts::default();
+/// map_opts.fill_gaps = false;
+/// map_opts.call_variants = false;
+/// map_opts.format = false;
+/// map_opts.max_error_prob = 0.1;
+/// map_opts.sbwt_build_opts = opts.clone();
+///
+/// let (sbwt_query, lcs_query) = build(&[query], opts);
+///
+/// let alignment = map(&reference, &sbwt_query, &lcs_query, map_opts);
+/// // `alignment` has MMMMMMMM---MMMMMMMMMMMMMMMMMMMMMMMMM
+/// # assert_eq!(alignment, expected);
 /// ```
 ///
 pub fn map(
@@ -558,6 +653,9 @@ pub fn map(
 ) -> Vec<u8> {
     let (k, threshold) = match query_sbwt {
         SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+            if map_opts.call_variants {
+                assert!(sbwt.k() == map_opts.sbwt_build_opts.k);
+            }
             (sbwt.k(), derandomize::random_match_threshold(sbwt.k(), sbwt.n_kmers(), 4_usize, map_opts.max_error_prob))
         },
     };
@@ -567,16 +665,27 @@ pub fn map(
 
     let translation = translate::translate_ms_vec(&derand_ms, k, threshold);
 
-    let mut call_opts = CallOpts::default();
-    call_opts.sbwt_build_opts.k = k;
+    let mut call_opts = CallOpts{ sbwt_build_opts: map_opts.sbwt_build_opts, ..Default::default() };
     call_opts.max_error_prob = map_opts.max_error_prob;
 
-    let refined = gap_filling::fill_gaps(&translation, &noisy_ms, ref_seq, query_sbwt, threshold, map_opts.max_error_prob);
+    let refined = if map_opts.fill_gaps {
+        gap_filling::fill_gaps(&translation, &noisy_ms, ref_seq, query_sbwt, threshold, map_opts.max_error_prob)
+    } else {
+        translation
+    };
 
-    let variants = call(query_sbwt, query_lcs, ref_seq, call_opts);
-    let with_variants = translate::add_variants(&refined, &variants);
+    let with_variants = if map_opts.call_variants {
+        let variants = call(query_sbwt, query_lcs, ref_seq, call_opts);
+        translate::add_variants(&refined, &variants)
+    } else {
+        refined
+    };
 
-    format::relative_to_ref(ref_seq, &with_variants)
+    if map_opts.format {
+        format::relative_to_ref(ref_seq, &with_variants)
+    } else {
+        with_variants.iter().map(|x| *x as u8).collect()
+    }
 }
 
 /// Finds the _k_-mers from an SBWT index in a query fasta or fastq file.
