@@ -362,27 +362,40 @@ pub fn left_extend_over_gap(
 
 /// Refines a translated alignment by filling in gaps.
 ///
-/// TODO update description.
-///
-/// Resolves all 'X's in the translation `translation` by using the
+/// Attempts to resolve gaps '-'s in `translation` by using the
 /// colexicographic intervals stored in the second component of
-/// `noisy_ms` tuples to extract the _k_-mers that overlap the 'X's
+/// `noisy_ms` tuples to extract the _k_-mers that overlap the gaps
 /// from the SBWT index `query_sbwt`.
-///
-/// The 'X's are resolved by checking whether the _k_-mer whose first
-/// character overlaps the 'X' has a matching statistic of _k_ - 1
-/// and, if it does, replacing the character of 'X' with a character
-/// from the _k_-mer that has 'X' as its middle base (a '[split
-/// _k_-mer](https://docs.rs/ska). If the matching statistic is less
-/// than _k_ - 1, the character is checked from the _k_-mer that is
-/// (`threshold` + 1)/2 characters away from the 'X'.
 ///
 /// The SBWT index must have [select
 /// support](https://docs.rs/sbwt/latest/sbwt/struct.SbwtIndexBuilder.html)
 /// enabled.
 ///
-/// Returns a refined translation where the 'X's have been replaced
-/// with the substituted character.
+/// If the gap can be overlapped with a single _k_-mer so that the _k_-mer
+/// contains `threshold` bases matching the bases in `ref_seq` to both left and
+/// right of the gap, the single _k_-mer will be considered valid and its
+/// contents used to fill in the gap.
+///
+/// If the gap cannot be overlapped with a single _k_-mer, the function will
+/// attempt to find a _k_-mer that contains `threshold` overlaps to right of the
+/// gap in `ref_seq` and extend this _k_-mer leftwards until it also overlaps
+/// `ref_seq` to left of the gap
+///
+/// In case extending the _k_-mer was required, the _k_-mer is used to fill the
+/// gap if the _k_-mer:
+///
+/// - contains no indels in the gap bases, **and**
+///
+/// one of the following is true:
+///
+/// - mismatches `ref_seq` only in the first and last gap base, **or**
+/// - contains significant matching sections (determined using `max_err_prob`).
+///
+/// Use [variant calling](crate::variant_calling) and [add_variants](crate::translate::add_variants) in addition to fill_gaps if
+/// resolving indels is required.
+///
+/// Returns a refined translation where the gaps characters '-' have been
+/// replaced whenever possible.
 ///
 /// # Examples
 /// ```rust
@@ -395,22 +408,20 @@ pub fn left_extend_over_gap(
 /// use kbo::gap_filling::fill_gaps;
 /// use sbwt::SbwtIndexVariant;
 ///
-/// // Parameters       : k = 7, threshold = 3
+/// // Parameters       : k = 9, threshold = 4
 /// //
-/// // Ref sequence     : T,T,G,A, T,T,G,G,C,T,G,G,G,C,A,G,A,G,C,T,G
-/// // Query sequence   : T,T,G,A,     G,G,C,T,G,G,G,G,A,G,A,G,C,T,G
+/// // Ref sequence     : T,T,G,A,T,T,A,A,C,A,G,G,C,T,G,C,G,C,A,G,A,G,C,T,G
+/// // Query sequence   : T,T,G,A,T,G,T,A,C,A,G,A,C,T,G,C,G,G,A,G,A,G,C,T,G
 /// //
-/// // Result MS vector : 1,2,3,4, 1,2,3,3,3,4,4,4,4,3,1,2,3,4,4,4,4
-/// // Derandomized MS  : 1,2,3,4,-1,0,1,2,3,4,4,4,4,0,1,2,3,4,4,4,4
-/// // Translation      : M,M,M,M, -,-,M,M,M,M,M,M,M,X,M,M,M,M,M,M,M
-/// // Refined          : M,M,M,M, -,-,M,M,M,M,M,M,M,G,M,M,M,M,M,M,M
-/// // Changed this pos :                            |
+/// // Translation      : M,M,M,M,M,-,-,-,-,-,-,-,M,M,M,M,M,X,M,M,M,M,M,M,M
+/// // With gap filling : M,M,M,M,M,G,T,M,M,M,M,A,M,M,M,M,M,G,M,M,M,M,M,M,M
 ///
-/// let query: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'G',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
-/// let reference: Vec<u8> = vec![b'T',b'T',b'G',b'A',b'T',b'T',b'G',b'G',b'C',b'T',b'G',b'G',b'G',b'C',b'A',b'G',b'A',b'G',b'C',b'T',b'G'];
+/// let query =     b"TTGATGTACAGACTGCGGAGAGCTG".to_vec();
+/// let reference = b"TTGATTAACAGGCTGCGCAGAGCTG".to_vec();
 ///
+/// let threshold = 4;
 /// let mut opts = BuildOpts::default();
-/// opts.k = 7;
+/// opts.k = 9;
 /// opts.build_select = true;
 /// let (sbwt, lcs) = build(&[query], opts);
 ///
@@ -419,16 +430,15 @@ pub fn left_extend_over_gap(
 ///         sbwt.k()
 ///     },
 /// };
-/// let threshold = 3;
 ///
 /// let noisy_ms = query_sbwt(&reference, &sbwt, &lcs);
 /// let derand_ms = derandomize_ms_vec(&noisy_ms.iter().map(|x| x.0).collect::<Vec<usize>>(), k, threshold);
 /// let translated = translate_ms_vec(&derand_ms, k, threshold);
 ///
-/// let refined = fill_gaps(&translated, &noisy_ms, &reference, &sbwt, threshold, 0.001_f64);
+/// let gaps_filled = fill_gaps(&translated, &noisy_ms, &reference, &sbwt, threshold, 0.001_f64);
 ///
-/// # let expected = vec!['M','M','M','M','-','-','M','M','M','M','M','M','M','G','M','M','M','M','M','M','M'];
-/// # assert_eq!(refined, expected);
+/// # let expected = b"MMMMMGTMMMMAMMMMMGMMMMMMM".to_vec();
+/// # assert_eq!(gaps_filled, expected.iter().map(|x| *x as char).collect::<Vec<char>>());
 /// ```
 ///
 pub fn fill_gaps(
