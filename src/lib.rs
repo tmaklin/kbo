@@ -571,9 +571,9 @@ pub fn map(
     call_opts.sbwt_build_opts.k = k;
     call_opts.max_error_prob = map_opts.max_error_prob;
 
-    let variants = call(query_sbwt, query_lcs, ref_seq, call_opts);
+    let refined = gap_filling::fill_gaps(&translation, &noisy_ms, ref_seq, query_sbwt, threshold, map_opts.max_error_prob);
 
-    let refined = translate::refine_translation(&translation, &noisy_ms, ref_seq, query_sbwt, threshold, map_opts.max_error_prob);
+    let variants = call(query_sbwt, query_lcs, ref_seq, call_opts);
     let with_variants = translate::add_variants(&refined, &variants);
 
     format::relative_to_ref(ref_seq, &with_variants)
