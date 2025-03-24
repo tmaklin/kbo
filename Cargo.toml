@@ -1,10 +1,13 @@
 [package]
 name = "kbo"
-version = "0.4.2"
+version = "0.5.0"
 edition = "2021"
 rust-version = "1.77.0"
-authors = ["Tommi Mäklin <tommi@maklin.fi>"]
-description = "Spectral Burrows-Wheeler transform accelerated local alignment search"
+authors = [
+    "Tommi Mäklin <tommi@maklin.fi>",
+    "Jarno N. Alanko <alanko.jarno@gmail.com>"
+]
+description = "Local alignment search with k-bounded matching statistics."
 readme = "README.md"
 homepage = "https://github.com/tmaklin/kbo"
 repository = "https://github.com/tmaklin/kbo"
