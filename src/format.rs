@@ -108,8 +108,12 @@ pub fn run_lengths(
         if match_start {
             let start = i;
             let mut matches: usize = 0;
+            let mut mismatches: usize = 0;
             while i < aln.len() && (aln[i] != '-' && aln[i] != ' ') {
-                matches += (aln[i] == 'M' || aln[i] == 'R') as usize;
+                let is_match = aln[i] == 'M' || aln[i] == 'R' || aln[i] == 'I';
+                let is_gap = aln[i] == '-' || aln[i] == 'D';
+                matches += is_match as usize;
+                mismatches += (!is_match && !is_gap) as usize;
                 jumps += (aln[i] == 'R') as usize;
                 i += 1;
             }
@@ -117,7 +121,7 @@ pub fn run_lengths(
                 start: start + 1,
                 end: i,
                 matches,
-                mismatches: i - start - matches,
+                mismatches,
                 jumps: jumps / 2,
                 gap_bases: 0,
                 gap_opens: 0,
@@ -140,8 +144,6 @@ pub fn run_lengths(
 /// Compared to [run_lengths], gapped_run_lengths allows `max_gap_opens` gapped
 /// segments (consecutive '-'s) within an alignment block. The gapped segments
 /// can be at most `max_gap_len` bases long before the alignment is broken.
-///
-/// Gaps '-' are counted as mismatches.
 ///
 /// This function can be used for both plain and refined translations.
 ///
@@ -168,7 +170,7 @@ pub fn run_lengths(
 ///
 /// let input: Vec<char> = vec!['X','M','M','R','R','M','M','X','M','M','M','-','-','M','M','M','-','-'];
 /// let run_lengths = run_lengths_gapped(&input, 3);
-/// # let expected = vec![RLE{start: 1, end: 16, matches: 12, mismatches: 5, jumps: 1, gap_bases: 2, gap_opens: 1}];
+/// # let expected = vec![RLE{start: 1, end: 16, matches: 12, mismatches: 2, jumps: 1, gap_bases: 2, gap_opens: 1}];
 /// # assert_eq!(run_lengths, expected);
 /// ```
 ///
@@ -191,6 +193,7 @@ pub fn run_lengths_gapped(
             let mut match_end = i;
             let start = i;
             let mut matches: usize = 0;
+            let mut mismatches: usize = 0;
             while i < aln.len() && (aln[i] != ' ') {
                 if aln[i] == '-' && !gap_start {
                     gap_start = true;
@@ -205,8 +208,11 @@ pub fn run_lengths_gapped(
                 if current_gap_bases > max_gap_len {
                     break
                 }
-                matches += (aln[i] == 'M' || aln[i] == 'R') as usize;
-                match_end = if aln[i] == 'M' || aln[i] == 'R' { i } else { match_end };
+                let is_match = aln[i] == 'M' || aln[i] == 'R' || aln[i] == 'I';
+                let is_gap = aln[i] == '-' || aln[i] == 'D';
+                matches += is_match as usize;
+                mismatches += (!is_match && !is_gap) as usize;
+                match_end = if is_match { i } else { match_end };
                 jumps += (aln[i] == 'R') as usize;
                 i += 1;
             }
@@ -218,7 +224,7 @@ pub fn run_lengths_gapped(
                         start: start + 1,
                         end: match_end + 1,
                         matches,
-                        mismatches: i - start - matches - current_gap_bases + 1,
+                        mismatches,
                         jumps: jumps / 2,
                         gap_bases: total_gap_bases - current_gap_bases,
                         gap_opens: gap_opens - 1,
@@ -228,7 +234,7 @@ pub fn run_lengths_gapped(
                         start: start + 1,
                         end: match_end + 1,
                         matches,
-                        mismatches: i - start - matches,
+                        mismatches,
                         jumps: jumps / 2,
                         gap_bases: total_gap_bases,
                         gap_opens,
