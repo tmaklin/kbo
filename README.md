@@ -1,5 +1,5 @@
 # kbo
-Spectral Burrows-Wheeler transform accelerated local alignment search.
+Local alignment search with _k_-bounded matching statistics.
 
 kbo is an approximate local aligner based on converting [_k_-bounded matching
 statistics](https://www.biorxiv.org/content/10.1101/2024.02.19.580943v1)
@@ -7,13 +7,11 @@ into a character representation of the underlying alignment sequence.
 
 Documentation is available at [https://docs.rs/kbo](https://docs.rs/kbo).
 
-## Installation
+## Usage
 kbo is distributed as three separate Rust packages:
 - [kbo](https://github.com/tmaklin/kbo) contains a Rust library implementing the core algorithm (this repository).
-- [kbo-cli](https://github.com/tmaklin/kbo-cli) provides a command-line interface for `kbo find` and `kbo map`.
+- [kbo-cli](https://github.com/tmaklin/kbo-cli) provides a command-line interface for `kbo call`, `kbo find` and `kbo map`.
 - [kbo-gui](https://github.com/tmaklin/kbo-gui) is a work in progress WebAssembly graphical user interface for running kbo in the browser.
-
-Precompiled binaries for kbo-cli are available from the [Releases page](https://github.com/tmaklin/kbo-cli/releases).
 
 ## About
 kbo supports three main operations:
@@ -31,6 +29,9 @@ kbo supports three main operations:
   the reference. Map solves the same problem as
   [snippy](https://github.com/tseemann/snippy) and [ska
   map](https://docs.rs/ska/latest/ska/#ska-map).
+
+In addition to the three main operations, the core library provides high and
+low-level functions that can be used in other libraries.
 
 kbo uses the [Spectral Burrows-Wheeler
 Transform](https://docs.rs/sbwt/latest/sbwt/) data structure that allows

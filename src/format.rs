@@ -90,45 +90,15 @@ impl Default for RLE {
 ///
 /// let input: Vec<char> = vec!['X','M','M','R','R','M','M','X','M','M','M','-','-','M','M','M','-','-'];
 /// let run_lengths = run_lengths(&input);
-/// # let expected = vec![RLE{start: 1, end: 11, matches: 9, mismatches: 2, jumps: 1, gap_bases: 0, gap_opens: 0},
-/// #                     RLE{start: 14, end: 16, matches: 3, mismatches : 0, jumps : 0, gap_bases : 0, gap_opens : 0}];
+/// # let expected = vec![RLE{start: 0, end: 11, matches: 9, mismatches: 2, jumps: 1, gap_bases: 0, gap_opens: 0},
+/// #                     RLE{start: 13, end: 16, matches: 3, mismatches : 0, jumps : 0, gap_bases : 0, gap_opens : 0}];
 /// # assert_eq!(run_lengths, expected);
 /// ```
 ///
 pub fn run_lengths(
     aln: &[char],
 ) -> Vec<RLE> {
-    let mut encodings: Vec<RLE> = Vec::new();
-
-    let mut i = 0;
-    let mut match_start: bool = false;
-    while i < aln.len() {
-        match_start = (aln[i] != '-' && aln[i] != ' ') && !match_start;
-        let mut jumps = 0;
-        if match_start {
-            let start = i;
-            let mut matches: usize = 0;
-            while i < aln.len() && (aln[i] != '-' && aln[i] != ' ') {
-                matches += (aln[i] == 'M' || aln[i] == 'R') as usize;
-                jumps += (aln[i] == 'R') as usize;
-                i += 1;
-            }
-            let rle: RLE = RLE{
-                start: start + 1,
-                end: i,
-                matches,
-                mismatches: i - start - matches,
-                jumps: jumps / 2,
-                gap_bases: 0,
-                gap_opens: 0,
-            };
-            encodings.push(rle);
-            match_start = false;
-        } else {
-            i += 1;
-        }
-    }
-    encodings
+    run_lengths_gapped(aln, 0)
 }
 
 /// Extracts run length encodings while allowing some gaps.
@@ -140,8 +110,6 @@ pub fn run_lengths(
 /// Compared to [run_lengths], gapped_run_lengths allows `max_gap_opens` gapped
 /// segments (consecutive '-'s) within an alignment block. The gapped segments
 /// can be at most `max_gap_len` bases long before the alignment is broken.
-///
-/// Gaps '-' are counted as mismatches.
 ///
 /// This function can be used for both plain and refined translations.
 ///
@@ -168,7 +136,7 @@ pub fn run_lengths(
 ///
 /// let input: Vec<char> = vec!['X','M','M','R','R','M','M','X','M','M','M','-','-','M','M','M','-','-'];
 /// let run_lengths = run_lengths_gapped(&input, 3);
-/// # let expected = vec![RLE{start: 1, end: 16, matches: 12, mismatches: 5, jumps: 1, gap_bases: 2, gap_opens: 1}];
+/// # let expected = vec![RLE{start: 0, end: 16, matches: 12, mismatches: 2, jumps: 1, gap_bases: 2, gap_opens: 1}];
 /// # assert_eq!(run_lengths, expected);
 /// ```
 ///
@@ -182,56 +150,39 @@ pub fn run_lengths_gapped(
     let mut match_start: bool = false;
     while i < aln.len() {
         match_start = (aln[i] != '-' && aln[i] != ' ') && !match_start;
-        let mut jumps = 0;
         if match_start {
-            let mut current_gap_bases = 0;
-            let mut total_gap_bases = 0;
-            let mut gap_opens = 0;
-            let mut gap_start = false;
-            let start = i;
-            let mut matches: usize = 0;
+            let mut rle = RLE{ start: i, ..Default::default() };
+
+            let mut within_gap_bases = 0;
+            let mut within_gap_start = false;
             while i < aln.len() && (aln[i] != ' ') {
-                if aln[i] == '-' && !gap_start {
-                    gap_start = true;
-                    gap_opens += 1;
-                    current_gap_bases = 0;
+                // This intentionally doesn't count deletions 'D'
+                let is_true_gap = aln[i] == '-';
+                if is_true_gap && !within_gap_start {
+                    within_gap_start = true;
+                    rle.gap_opens += 1;
+                    within_gap_bases = 0;
                 }
-                if aln[i] != '-' && gap_start {
-                    gap_start = false;
+                if !is_true_gap && within_gap_start {
+                    within_gap_start = false;
                 }
-                total_gap_bases += (aln[i] == '-') as usize;
-                current_gap_bases += (aln[i] == '-') as usize;
-                if current_gap_bases > max_gap_len {
+                let is_match = aln[i] == 'M' || aln[i] == 'R' || aln[i] == 'I';
+                let is_gap = is_true_gap || aln[i] == 'D';
+
+                rle.matches += is_match as usize;
+                rle.gap_bases += is_gap as usize;
+                rle.mismatches += (!is_match && !is_gap) as usize;
+                rle.end = if is_match || !is_gap { i + 1 } else { rle.end };
+                rle.jumps += (aln[i] == 'R' && aln[i - 1] == 'R') as usize;
+
+                within_gap_bases += (aln[i] == '-') as usize;
+                i += 1;
+                if within_gap_bases > max_gap_len || (is_gap && i == aln.len() && rle.gap_opens > 0) {
+                    rle.gap_opens -= 1;
+                    rle.gap_bases -= within_gap_bases;
                     break
                 }
-                matches += (aln[i] == 'M' || aln[i] == 'R') as usize;
-                jumps += (aln[i] == 'R') as usize;
-                i += 1;
             }
-
-            let rle: RLE =
-                if aln[std::cmp::min(i, aln.len() - 1)] == '-' {
-                    // Don't count gaps at the end of a a match
-                    RLE{
-                        start: start + 1,
-                        end: i - current_gap_bases,
-                        matches,
-                        mismatches: i - start - matches - current_gap_bases + 1,
-                        jumps: jumps / 2,
-                        gap_bases: total_gap_bases - current_gap_bases,
-                        gap_opens: gap_opens - 1,
-                    }
-                } else {
-                    RLE{
-                        start: start + 1,
-                        end: i,
-                        matches,
-                        mismatches: i - start - matches,
-                        jumps: jumps / 2,
-                        gap_bases: total_gap_bases,
-                        gap_opens,
-                    }
-                };
             encodings.push(rle);
             match_start = false;
         } else {
@@ -345,28 +296,28 @@ mod tests {
         use crate::format::RLE;
 
         let expected: Vec<RLE> = vec![
-            RLE{start: 6,
+            RLE{start: 5,
                 end: 33,
                 matches: 28,
                 mismatches : 0,
                 jumps : 0,
                 gap_bases: 0,
                 gap_opens: 0},
-            RLE{start: 82,
+            RLE{start: 81,
                 end: 207,
                 matches: 126,
                 mismatches: 0,
                 jumps: 0,
                 gap_bases: 0,
                 gap_opens: 0},
-            RLE{start: 373,
+            RLE{start: 372,
                 end: 423,
                 matches: 51,
                 mismatches: 0,
                 jumps: 0,
                 gap_bases: 0,
                 gap_opens: 0},
-            RLE{start: 488,
+            RLE{start: 487,
                 end: 512,
                 matches: 25,
                 mismatches: 0,
