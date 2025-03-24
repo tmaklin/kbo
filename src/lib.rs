@@ -722,7 +722,7 @@ pub fn map(
 ///
 /// let local_alignments = find(&query, &sbwt, &lcs, FindOpts::default());
 /// // `local_alignments` has [(10, 12, 3, 0)]
-/// # assert_eq!(local_alignments, vec![RLE{start: 10, end: 12, matches: 3, mismatches: 0, jumps: 0, gap_bases: 0, gap_opens: 0}]);
+/// # assert_eq!(local_alignments, vec![RLE{start: 9, end: 12, matches: 3, mismatches: 0, jumps: 0, gap_bases: 0, gap_opens: 0}]);
 /// ```
 ///
 pub fn find(
