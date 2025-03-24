@@ -340,7 +340,7 @@ pub fn translate_ms_vec(
 /// let translated = translate_ms_vec(&derand_ms, k, threshold);
 ///
 /// let variants = call(&sbwt_query, &lcs_query, &reference, call_opts);
-/// eprintln!("{:?}", variants);
+///
 /// let with_variants = add_variants(&translated, &variants);
 ///
 /// # let expected = b"MMMMMMMMMMMMMMMMMMMMMMMMDDMMMMMMMMMMMMMMMMCMMMMMMMMMMMMMMMMIIMMMMMMMMMM".to_vec();
