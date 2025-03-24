@@ -725,7 +725,7 @@ pub fn map(
 /// find_opts.max_gap_len = 50;
 ///
 /// let local_alignments = find(&query, &sbwt, &lcs, find_opts);
-/// eprintln!("{:?}", local_alignments);
+///
 /// // `local_alignments` has:
 /// // - RLE { start: 0, end: 513, matches: 512, mismatches: 1, jumps: 0, gap_bases: 0, gap_opens: 0 },
 /// // - RLE { start: 593, end: 1340, matches: 709, mismatches: 0, jumps: 0, gap_bases: 38, gap_opens: 3 }
