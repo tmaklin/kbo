@@ -176,12 +176,12 @@ pub fn run_lengths_gapped(
                 rle.jumps += (aln[i] == 'R' && aln[i - 1] == 'R') as usize;
 
                 within_gap_bases += (aln[i] == '-') as usize;
-                if within_gap_bases > max_gap_len || (i == aln.len() - 1 && rle.gap_opens > 0) {
+                i += 1;
+                if within_gap_bases > max_gap_len || (is_gap && i == aln.len() && rle.gap_opens > 0) {
                     rle.gap_opens -= 1;
                     rle.gap_bases -= within_gap_bases;
                     break
                 }
-                i += 1;
             }
             encodings.push(rle);
             match_start = false;
