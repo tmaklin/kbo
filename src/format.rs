@@ -188,6 +188,7 @@ pub fn run_lengths_gapped(
             let mut total_gap_bases = 0;
             let mut gap_opens = 0;
             let mut gap_start = false;
+            let mut match_end = i;
             let start = i;
             let mut matches: usize = 0;
             while i < aln.len() && (aln[i] != ' ') {
@@ -205,6 +206,7 @@ pub fn run_lengths_gapped(
                     break
                 }
                 matches += (aln[i] == 'M' || aln[i] == 'R') as usize;
+                match_end = if aln[i] == 'M' || aln[i] == 'R' { i } else { match_end };
                 jumps += (aln[i] == 'R') as usize;
                 i += 1;
             }
@@ -214,7 +216,7 @@ pub fn run_lengths_gapped(
                     // Don't count gaps at the end of a a match
                     RLE{
                         start: start + 1,
-                        end: i - current_gap_bases,
+                        end: match_end + 1,
                         matches,
                         mismatches: i - start - matches - current_gap_bases + 1,
                         jumps: jumps / 2,
@@ -224,7 +226,7 @@ pub fn run_lengths_gapped(
                 } else {
                     RLE{
                         start: start + 1,
-                        end: i,
+                        end: match_end + 1,
                         matches,
                         mismatches: i - start - matches,
                         jumps: jumps / 2,
