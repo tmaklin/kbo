@@ -89,7 +89,7 @@ fn count_left_overlaps(
 /// match the reference. Note the first character in the output sequence.
 ///
 /// ```rust
-/// use kbo::index::BuildOpts;
+/// use kbo::BuildOpts;
 /// use kbo::build;
 /// use sbwt::SbwtIndexVariant;
 /// use kbo::index::query_sbwt;
@@ -168,7 +168,7 @@ pub fn nearest_unique_context(
 /// # Examples
 ///
 /// ```rust
-/// use kbo::index::BuildOpts;
+/// use kbo::BuildOpts;
 /// use kbo::build;
 /// use sbwt::SbwtIndexVariant;
 /// use kbo::index::query_sbwt;
@@ -257,7 +257,7 @@ pub fn left_extend_kmer(
 ///
 /// # Examples
 /// ```rust
-/// use kbo::index::BuildOpts;
+/// use kbo::BuildOpts;
 /// use kbo::build;
 /// use sbwt::SbwtIndexVariant;
 /// use kbo::index::query_sbwt;
@@ -400,7 +400,7 @@ pub fn left_extend_over_gap(
 /// # Examples
 /// ```rust
 /// use kbo::build;
-/// use kbo::index::BuildOpts;
+/// use kbo::BuildOpts;
 /// use kbo::index::query_sbwt;
 /// use kbo::derandomize::derandomize_ms_vec;
 /// use kbo::derandomize::random_match_threshold;
@@ -534,7 +534,7 @@ mod tests {
     #[test]
     fn nearest_unique_context() {
         use crate::build;
-        use crate::index::BuildOpts;
+        use crate::BuildOpts;
         use crate::index::query_sbwt;
         use crate::gap_filling::nearest_unique_context;
         use sbwt::SbwtIndexVariant;
@@ -566,7 +566,7 @@ mod tests {
     #[test]
     fn left_extend_kmer() {
         use crate::build;
-        use crate::index::BuildOpts;
+        use crate::BuildOpts;
         use crate::gap_filling::left_extend_kmer;
         use sbwt::SbwtIndexVariant;
 
@@ -601,7 +601,7 @@ mod tests {
 
     #[test]
     fn left_extend_over_gap() {
-        use crate::index::BuildOpts;
+        use crate::BuildOpts;
         use crate::build;
         use sbwt::SbwtIndexVariant;
         use crate::index::query_sbwt;
@@ -640,7 +640,7 @@ mod tests {
     #[test]
     fn fill_gaps() {
         use crate::build;
-        use crate::index::BuildOpts;
+        use crate::BuildOpts;
         use crate::index::query_sbwt;
         use crate::derandomize::derandomize_ms_vec;
         use crate::translate::translate_ms_vec;
@@ -684,7 +684,7 @@ mod tests {
     #[test]
     fn fill_gaps_with_clustered_changes() {
         use crate::build;
-        use crate::index::BuildOpts;
+        use crate::BuildOpts;
         use crate::index::query_sbwt;
         use crate::derandomize::derandomize_ms_vec;
         use crate::translate::translate_ms_vec;
@@ -728,7 +728,7 @@ mod tests {
     #[test]
     fn fill_gaps_with_clustered_changes2() {
         use crate::build;
-        use crate::index::BuildOpts;
+        use crate::BuildOpts;
         use crate::index::query_sbwt;
         use crate::derandomize::derandomize_ms_vec;
         use crate::translate::translate_ms_vec;
@@ -772,7 +772,7 @@ mod tests {
     #[test]
     fn fill_gaps_left_extend_short() {
         use crate::build;
-        use crate::index::BuildOpts;
+        use crate::BuildOpts;
         use crate::index::query_sbwt;
         use crate::derandomize::derandomize_ms_vec;
         use crate::translate::translate_ms_vec;
@@ -816,7 +816,7 @@ mod tests {
     #[test]
     fn fill_gaps_left_extend_long() {
         use crate::build;
-        use crate::index::BuildOpts;
+        use crate::BuildOpts;
         use crate::index::query_sbwt;
         use crate::derandomize::derandomize_ms_vec;
         use crate::translate::translate_ms_vec;
@@ -859,7 +859,7 @@ mod tests {
     #[test]
     fn fill_gaps_with_clustered_changes_k51() {
         use crate::build;
-        use crate::index::BuildOpts;
+        use crate::BuildOpts;
         use crate::index::query_sbwt;
         use crate::derandomize::derandomize_ms_vec;
         use crate::translate::translate_ms_vec;
@@ -893,7 +893,7 @@ mod tests {
     #[test]
     fn fill_gaps_default_build_opts() {
         use crate::build;
-        use crate::index::BuildOpts;
+        use crate::BuildOpts;
         use crate::index::query_sbwt;
         use crate::derandomize::derandomize_ms_vec;
         use crate::translate::translate_ms_vec;

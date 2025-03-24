@@ -313,7 +313,7 @@ pub fn translate_ms_vec(
 /// use kbo::build;
 /// use kbo::call;
 /// use kbo::CallOpts;
-/// use kbo::index::BuildOpts;
+/// use kbo::BuildOpts;
 /// use kbo::index::query_sbwt;
 /// use kbo::derandomize::derandomize_ms_vec;
 /// use kbo::translate::translate_ms_vec;
@@ -536,7 +536,7 @@ mod tests {
         use crate::build;
         use crate::call;
         use crate::CallOpts;
-        use crate::index::BuildOpts;
+        use crate::BuildOpts;
         use crate::index::query_sbwt;
         use crate::derandomize::derandomize_ms_vec;
         use super::translate_ms_vec;
@@ -572,7 +572,7 @@ mod tests {
         use crate::build;
         use crate::call;
         use crate::CallOpts;
-        use crate::index::BuildOpts;
+        use crate::BuildOpts;
         use crate::index::query_sbwt;
         use crate::derandomize::derandomize_ms_vec;
         use super::translate_ms_vec;
@@ -608,7 +608,7 @@ mod tests {
         use crate::build;
         use crate::call;
         use crate::CallOpts;
-        use crate::index::BuildOpts;
+        use crate::BuildOpts;
         use crate::index::query_sbwt;
         use crate::derandomize::derandomize_ms_vec;
         use super::translate_ms_vec;
@@ -644,7 +644,7 @@ mod tests {
         use crate::build;
         use crate::call;
         use crate::CallOpts;
-        use crate::index::BuildOpts;
+        use crate::BuildOpts;
         use crate::index::query_sbwt;
         use crate::derandomize::derandomize_ms_vec;
         use super::translate_ms_vec;

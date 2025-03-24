@@ -250,6 +250,66 @@ pub mod index;
 pub mod translate;
 pub mod variant_calling;
 
+/// Options and parameters for SBWT construction.
+///
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub struct BuildOpts {
+    /// - _k_-mer size `k`.
+    pub k: usize,
+    /// - Reverse complement input sequences `add_revcomp`.
+    pub add_revcomp: bool,
+    /// - Number of threads `num_threads` to use.
+    pub num_threads: usize,
+    /// - Size of the precalculated lookup table `prefix_precalc`.
+    pub prefix_precalc: usize,
+    /// - Build select support `build_select` (required for [map].
+    pub build_select: bool,
+    /// - RAM available (in GB) to construction algorithm `mem_gb`.
+    pub mem_gb: usize,
+    /// - Deduplicate _k_-mer batches in construction algorithm `dedup_batches`.
+    pub dedup_batches: bool,
+    /// - Temporary directory path `temp_dir`.
+    pub temp_dir: Option<String>,
+}
+
+impl Default for BuildOpts {
+    /// Default to these values:
+    /// ```rust
+    /// let mut opts = kbo::BuildOpts::default();
+    /// opts.k = 31;
+    /// opts.add_revcomp = false;
+    /// opts.num_threads = 1;
+    /// opts.prefix_precalc = 8;
+    /// opts.build_select = false;
+    /// opts.mem_gb = 4;
+    /// opts.dedup_batches = false;
+    /// opts.temp_dir = None;
+    /// # let expected = kbo::BuildOpts::default();
+    /// # assert_eq!(opts.k, expected.k);
+    /// # assert_eq!(opts.add_revcomp, expected.add_revcomp);
+    /// # assert_eq!(opts.num_threads, expected.num_threads);
+    /// # assert_eq!(opts.prefix_precalc, expected.prefix_precalc);
+    /// # assert_eq!(opts.build_select, expected.build_select);
+    /// # assert_eq!(opts.mem_gb, expected.mem_gb);
+    /// # assert_eq!(opts.dedup_batches, expected.dedup_batches);
+    /// # assert_eq!(opts.temp_dir, expected.temp_dir);
+    /// ```
+    ///
+    fn default() -> BuildOpts {
+        BuildOpts {
+        k: 31,
+        add_revcomp: false,
+        num_threads: 1,
+        prefix_precalc: 8,
+        build_select: false,
+        mem_gb: 4,
+        dedup_batches: false,
+        temp_dir: None,
+        }
+    }
+}
+
 /// Options and parameters for [call]
 #[non_exhaustive]
 #[derive(Clone, Debug)]
@@ -258,9 +318,9 @@ pub struct CallOpts {
     /// happen at random are considered noise.
     pub max_error_prob: f64,
 
-    /// [Build options](index::BuildOpts) for indexing the reference sequence, `k` must
+    /// [Build options](BuildOpts) for indexing the reference sequence, `k` must
     /// match the _k_-mer size used in indexing the query.
-    pub sbwt_build_opts: index::BuildOpts,
+    pub sbwt_build_opts: BuildOpts,
 }
 
 impl Default for CallOpts {
@@ -268,7 +328,7 @@ impl Default for CallOpts {
     /// ```rust
     /// let mut opts = kbo::CallOpts::default();
     /// opts.max_error_prob = 0.0000001;
-    /// opts.sbwt_build_opts = kbo::index::BuildOpts::default();
+    /// opts.sbwt_build_opts = kbo::BuildOpts::default();
     /// opts.sbwt_build_opts.build_select = true;
     /// # let expected = kbo::CallOpts::default();
     /// # assert_eq!(opts.max_error_prob, expected.max_error_prob);
@@ -285,7 +345,7 @@ impl Default for CallOpts {
     fn default() -> CallOpts {
         CallOpts {
             max_error_prob: 0.0000001,
-            sbwt_build_opts: index::BuildOpts { build_select: true, ..Default::default() },
+            sbwt_build_opts: BuildOpts { build_select: true, ..Default::default() },
         }
     }
 }
@@ -364,9 +424,9 @@ pub struct MapOpts {
     /// with nucleotide codes and gaps.
     pub format: bool,
 
-    /// [Build options](index::BuildOpts) for SBWT, used if variant calling is
+    /// [Build options](BuildOpts) for SBWT, used if variant calling is
     /// requested. `k` must match the _k_-mer size used in indexing the query.
-    pub sbwt_build_opts: index::BuildOpts,
+    pub sbwt_build_opts: BuildOpts,
 }
 
 impl Default for MapOpts {
@@ -398,7 +458,7 @@ impl Default for MapOpts {
             fill_gaps: true,
             call_variants: true,
             format: true,
-            sbwt_build_opts: index::BuildOpts { build_select: true, ..Default::default() },
+            sbwt_build_opts: BuildOpts { build_select: true, ..Default::default() },
         }
     }
 }
@@ -407,7 +467,7 @@ impl Default for MapOpts {
 ///
 /// Reads all sequence data in `seq_files` and builds an SBWT index
 /// with the parameters and resources specified in `build_opts` (see
-/// [index::BuildOpts] for details).
+/// [BuildOpts] for details).
 ///
 /// Prebuilt indexes can currently only be used with kbo find.
 ///
@@ -428,7 +488,7 @@ impl Default for MapOpts {
 /// # Examples
 /// ```rust
 /// use kbo::build;
-/// use kbo::index::BuildOpts;
+/// use kbo::BuildOpts;
 ///
 /// let inputs: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
 ///
@@ -438,7 +498,7 @@ impl Default for MapOpts {
 ///
 pub fn build(
     seq_data: &[Vec<u8>],
-    build_opts: index::BuildOpts,
+    build_opts: BuildOpts,
 ) -> (SbwtIndexVariant, sbwt::LcsArray) {
     index::build_sbwt_from_vecs(seq_data, &Some(build_opts))
 }
@@ -457,7 +517,7 @@ pub fn build(
 /// ```rust
 /// use kbo::call;
 /// use kbo::build;
-/// use kbo::index::BuildOpts;
+/// use kbo::BuildOpts;
 /// use kbo::CallOpts;
 /// use kbo::variant_calling::Variant;
 ///
@@ -532,7 +592,7 @@ pub fn call(
 /// ```rust
 /// use kbo::build;
 /// use kbo::matches;
-/// use kbo::index::BuildOpts;
+/// use kbo::BuildOpts;
 /// use kbo::MatchOpts;
 ///
 /// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
@@ -579,7 +639,7 @@ pub fn matches(
 /// ```rust
 /// use kbo::build;
 /// use kbo::map;
-/// use kbo::index::BuildOpts;
+/// use kbo::BuildOpts;
 /// use kbo::MapOpts;
 ///
 /// let query: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
@@ -602,7 +662,7 @@ pub fn matches(
 /// ```rust
 /// use kbo::build;
 /// use kbo::map;
-/// use kbo::index::BuildOpts;
+/// use kbo::BuildOpts;
 /// use kbo::MapOpts;
 ///
 /// let reference = b"CGTTGACTCTAGGTGCCTGGGTTCTCAGAGCTGGGC".to_vec();
@@ -630,7 +690,7 @@ pub fn matches(
 /// ```rust
 /// use kbo::build;
 /// use kbo::map;
-/// use kbo::index::BuildOpts;
+/// use kbo::BuildOpts;
 /// use kbo::MapOpts;
 ///
 /// let reference = b"CGTTGACTCTAGGTGCCTGGGTTCTCAGAGCTGGGC".to_vec();
@@ -718,7 +778,7 @@ pub fn map(
 /// use kbo::build;
 /// use kbo::find;
 /// use kbo::FindOpts;
-/// use kbo::index::BuildOpts;
+/// use kbo::BuildOpts;
 /// use kbo::format::RLE;
 ///
 /// let gene1: Vec<u8> = b"ATGGCTGTTCCATCATCAAAAGAAGAGTTAATTAAAGCTATTAATAGTAATTTTTCTTTATTAAATAAGAAGCTAGAATCTATTACGCCCCAACTCGCCTTTGAACCTCTATTGGAAGGGCACGCGAAGGGGACTACGATTAGCGTAGCGAATCTGGTTTCCTATCTGATTGGCTGGGGAGAGCTGGTGTTACACTGGCATGACCAAGAGGCAAAAGGAAAAACTATTATTTTTCCTGAGGAAGGATTTAAATGGAATGAATTGGGGCGTTTAGCACAGAAATTCTACCGTGACTATGAGGATATTACAGAGTACGAAGTTTTATTGGCACGGTTAAAGGAAAATAAGCAGCAACTCGTGGCTTTGATTGAACGATTCAGTAACGACGAGCTTTACGGTAAACCTTGGTATAATAAATGGACCCGAGGTCGTATGATTCAATTTAATACCGCCTCGCCTTATAAAAATGCTTCGGGGAGGTTAAATAAACTGCAGAAATGTCTTGCAGAATAG".to_vec();
