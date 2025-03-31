@@ -37,8 +37,10 @@
 //! efficient _k_-mer matching between a target and a query sequence and
 //! fast retrieval of the _k_-bounded matching statistic for each _k_-mer match.
 //!
-//! # Installing the kbo executable
-//! See installation instructions at [GitHub](https://github.com/tmaklin/kbo-cli).
+//! # Installing kbo
+//! - Command line usage: see instructions at [kbo-cli](https://github.com/tmaklin/kbo-cli).
+//! - Browser usage: try it at [https://maklin.fi/kbo](https://maklin.fi/kbo).
+//! - Deploying on web: see instructions at [kbo-gui](https://github.com/tmaklin/kbo-gui).
 //!
 //! # Usage
 //!
