@@ -252,7 +252,7 @@ pub mod variant_calling;
 
 /// Options and parameters for SBWT construction.
 ///
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub struct BuildOpts {
     /// - _k_-mer size `k`.
@@ -312,7 +312,7 @@ impl Default for BuildOpts {
 
 /// Options and parameters for [call]
 #[non_exhaustive]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CallOpts {
     /// Prefix match lengths with probability higher than `max_error_prob` to
     /// happen at random are considered noise.
@@ -406,7 +406,7 @@ impl Default for MatchOpts {
 
 /// Options and parameters for [map]
 #[non_exhaustive]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct MapOpts {
     /// Prefix match lengths with probability higher than `max_error_prob` to
     /// happen at random are considered noise.
