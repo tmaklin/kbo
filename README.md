@@ -7,6 +7,8 @@ into a character representation of the underlying alignment sequence.
 
 Documentation is available at [https://docs.rs/kbo](https://docs.rs/kbo).
 
+More about kbo in the article [Sequence alignment with _k_-bounded matching statistics](https://doi.org/10.1101/2025.05.19.654936) in bioRxiv.
+
 ## Usage
 kbo is distributed as three separate Rust packages:
 - [kbo](https://github.com/tmaklin/kbo) contains a Rust library implementing the core algorithm (this repository).
