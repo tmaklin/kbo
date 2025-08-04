@@ -4,7 +4,7 @@ use std::{cmp::min, ops::Range};
 use sbwt::{LcsArray, SbwtIndex, StreamingIndex, SubsetMatrix};
 
 /// Describes a variant between the query and the reference.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Variant {
     /// A position in the query that does not match the reference.
     pub query_pos: usize,
