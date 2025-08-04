@@ -309,27 +309,32 @@ pub fn left_extend_kmer(
     max_extension_len: usize,
 ) -> Vec<u8> {
     assert!(!kmer_start.is_empty());
+    assert!(kmer_start.len() == sbwt.k());
 
     let mut left_extension_len = 0;
-    let mut kmer = kmer_start.to_vec();
+    let mut kmer = revcomp(kmer_start);
+    let mut interval = sbwt.search(&kmer).unwrap();
+
     while left_extension_len < max_extension_len {
-        let new_kmers: Vec<(Vec<u8>, Range<usize>)> = sbwt.alphabet().iter().filter_map(|c| {
-            let new_kmer: Vec<u8> = [&[*c], &kmer[0..(kmer.len() - (left_extension_len + 1))]].concat();
-            let res = sbwt.search(&new_kmer);
-            if res.as_ref().is_some() {
-                Some((new_kmer, res.unwrap()))
+        let new_intervals: Vec<(u8, Range<usize>)> = sbwt.alphabet().iter().filter_map(|c| {
+            let new_interval = sbwt.extend_right(interval.clone(), *c);
+            if new_interval.end - new_interval.start == 1 {
+                Some((*c, new_interval))
             } else {
                 None
             }
         }).collect();
-        if new_kmers.len() == 1 && new_kmers[0].1.end - new_kmers[0].1.start == 1 {
-            kmer = [&[new_kmers[0].0[0]], kmer.as_slice()].concat();
+        if new_intervals.len() == 1 {
+            let new_kmer_rc = sbwt.access_kmer(new_intervals[0].1.start);
+            let new_kmer = revcomp(&new_kmer_rc);
+            interval = sbwt.search(&new_kmer).unwrap();
+            kmer = [kmer.as_slice(), &[new_intervals[0].0]].concat();
         } else {
             break;
         }
         left_extension_len += 1;
     }
-    kmer
+    revcomp(&kmer)
 }
 
 /// Find and extend a nearest unique context until it overlaps the gap.
