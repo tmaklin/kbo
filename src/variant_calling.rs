@@ -358,6 +358,71 @@ pub fn edit(
     edited
 }
 
+/// Reverts edits made to a nucleotide sequence based on some variants.
+///
+/// Takes an edited sequence `edited` and removes the edits given in `variants`.
+/// If `variants` lists all differences between the variant calling reference
+/// and a query, the returned sequence will equal the original query.
+///
+/// Panics if `variants` is not sorted by query_pos.
+///
+/// Returns a vector containing the unedited nucleotide sequence.
+///
+/// # Examples
+///
+/// ```rust
+/// use kbo::variant_calling::revert_edits;
+/// use kbo::variant_calling::Variant;
+///
+/// let edited =   b"TAGGCGTGTATCAAAGC".to_vec();
+/// let original = b"TCGTGGAGGTC".to_vec();
+///
+/// let variants = vec![
+///                     Variant{query_pos: 1, query_chars: vec![], ref_chars: b"AGG".to_vec()},
+///                     Variant{query_pos: 5, query_chars: vec![b'G'], ref_chars: vec![b'T']},
+///                     Variant{query_pos: 7, query_chars: b"GGTC".to_vec(), ref_chars: b"TCAAAGC".to_vec()},
+///                     ];
+///
+/// let got = revert_edits(&edited, &variants);
+///
+/// # assert_eq!(got, original);
+/// ```
+pub fn revert_edits(
+    edited: &[u8],
+    variants: &[Variant],
+) -> Vec<u8> {
+    let mut original: Vec<u8> = edited.to_vec();
+    let mut prev_pos = 0;
+    variants.iter().for_each(|variant| {
+        assert!(variant.query_pos >= prev_pos);
+        prev_pos = variant.query_pos;
+
+        let q = variant.query_pos;
+        let q_nts: Vec<u8> = variant.query_chars.to_vec();
+        let r_nts: Vec<u8> = variant.ref_chars.to_vec();
+        if r_nts.is_empty() {
+            let mut prev = original[0..q].to_vec();
+            prev.extend(q_nts.iter());
+            prev.extend(original[q..original.len()].iter());
+            original = prev;
+        } else if q_nts.is_empty() {
+            let mut prev = original[0..q].to_vec();
+            prev.extend(original[(q + r_nts.len())..original.len()].iter());
+            original = prev;
+        } else if r_nts.len() == q_nts.len() {
+            q_nts.iter().enumerate().for_each(|(idx, nt)| {
+                original[q + idx] = *nt;
+            });
+        } else if q_nts.len() != r_nts.len() {
+            let mut prev = original[0..q].to_vec();
+            prev.extend(q_nts.iter());
+            prev.extend(original[(q + r_nts.len())..original.len()].iter());
+            original = prev;
+        }
+    });
+    original
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -719,4 +784,105 @@ mod tests {
         assert_eq!(got, edited);
     }
 
+    #[test]
+    fn revert_edits_multi_base_substitution() {
+        use super::revert_edits;
+        use super::Variant;
+
+        let original = b"TCGTGGAGGTC".to_vec();
+        let edited =   b"TCGTGTCGGTC".to_vec();
+
+        let variants = vec![
+            Variant{query_pos: 5, query_chars: b"GA".to_vec(), ref_chars: b"TC".to_vec()},
+        ];
+
+        let got = revert_edits(&edited, &variants);
+
+        assert_eq!(got, original);
+    }
+
+    #[test]
+    fn revert_edits_multi_base_deletion() {
+        use super::revert_edits;
+        use super::Variant;
+
+        let original = b"TCGGAGGTC".to_vec();
+        let edited =   b"TCGGTTAGGTC".to_vec();
+
+        let variants = vec![
+            Variant{query_pos: 4, query_chars: vec![], ref_chars: b"TT".to_vec()},
+        ];
+
+        let got = revert_edits(&edited, &variants);
+
+        assert_eq!(got, original);
+    }
+
+    #[test]
+    fn revert_edits_multi_base_insertion() {
+        use super::revert_edits;
+        use super::Variant;
+
+        let original = b"TCGGGGAGGTC".to_vec();
+        let edited =   b"TCGGAGGTC".to_vec();
+
+        let variants = vec![
+            Variant{query_pos: 4, query_chars: b"GG".to_vec(), ref_chars: vec![]},
+        ];
+
+        let got = revert_edits(&edited, &variants);
+
+        assert_eq!(got, original);
+    }
+
+    #[test]
+    fn revert_edits_flanking_variant() {
+        use super::revert_edits;
+        use super::Variant;
+
+        let original = b"TCGGCGAGGTC".to_vec();
+        let edited =   b"TCGGAGTGGTC".to_vec();
+
+        let variants = vec![
+            Variant{query_pos: 4, query_chars: b"CGA".to_vec(), ref_chars: b"AGT".to_vec()},
+        ];
+
+        let got = revert_edits(&edited, &variants);
+
+        assert_eq!(got, original);
+    }
+
+    #[test]
+    fn revert_edits_substituting_insertion_into_query() {
+        use super::revert_edits;
+        use super::Variant;
+
+        let original = b"TCGGAGCGTTGGTGGTGGTC".to_vec();
+        let edited =   b"TCGGAGTGGTGGTGGTC".to_vec();
+
+        let variants = vec![
+            Variant{query_pos: 5, query_chars: b"GCGTT".to_vec(), ref_chars: b"GT".to_vec()},
+        ];
+
+        let got = revert_edits(&edited, &variants);
+
+        assert_eq!(got, original);
+    }
+
+    #[test]
+    fn revert_edits_substituting_insertion_into_ref() {
+        use super::revert_edits;
+        use super::Variant;
+
+        let original = b"TCGGAGTGGTGGTGGTC".to_vec();
+        let edited =   b"TCGGAGCGTTGGTGGTGGTC".to_vec();
+
+        let variants = vec![
+            Variant{query_pos: 5, ref_chars: b"GCGTT".to_vec(), query_chars: b"GT".to_vec()},
+        ];
+
+        let got = revert_edits(&edited, &variants);
+
+        assert_eq!(got, original);
+    }
 }
