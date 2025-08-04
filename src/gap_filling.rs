@@ -14,6 +14,7 @@
 //! Gap filling using matching statistics and SBWT interval lookups.
 use std::ops::Range;
 
+use sbwt::ExtendRight;
 use sbwt::SbwtIndexVariant;
 
 /// Count overlaps between a sequence and the last elements of a _k_-mer.
@@ -159,6 +160,95 @@ pub fn nearest_unique_context(
     }
 
     (kmer_idx, kmer)
+}
+
+/// Right extends from a colex interval until the new interval becomes non-unique.
+///
+/// Starting from the colexicographic interval in `colex_interval`, queries the
+/// `sbwt` for unique right extensions of the _k_-mer corresponding to the given
+/// interval. Terminates when either 1) the interval has been extended
+/// `max_extension_len` times, or 2) the interval becomes non-unique.
+///
+/// Extensions are performed by appending each valid alphabet c to the pattern P
+/// of the current _k_-mer and using
+/// [extend_right](sbwt::SbwtIndex::extend_right) to find the pattern Pc.
+///
+/// Each extension has time complexity O(1), making this function faster than
+/// [left_extend_kmer].
+///
+/// Requires that `sbwt` was built with reverse complements included. This is
+/// not checked at runtime.
+///
+/// Returns a vector containing the alphabets in the extension.
+///
+/// If the interval cannot be extended, returns an empty `Vec<u8>`.
+///
+/// # Examples
+///
+/// ```rust
+/// use kbo::BuildOpts;
+/// use kbo::build;
+/// use sbwt::SbwtIndexVariant;
+/// use kbo::gap_filling::right_extend_colex_interval;
+///
+/// // Parameters       : k = 7
+/// //
+/// // Sequence         : T,T,G,A,A,C,A,G,G,C,T,G,C,C,G,T,A,A,C,A,G,G
+/// //
+/// // Starting k-mer   :       A,A,C,A,G,G,C
+/// // Search range     :                     - - - - -
+/// // Output           :                     T,G,C,C,G
+///
+/// let sequence: Vec<u8> = b"TTGAACAGGCTGCCGTAACAGG".to_vec();
+///
+/// let mut opts = BuildOpts::default();
+/// opts.k = 7;
+/// opts.build_select = true;
+/// opts.add_revcomp = true;
+/// let (sbwt, _) = build(&[sequence], opts);
+///
+/// let kmer = b"AACAGGC".to_vec();
+/// let max_extension_len = 5;
+///
+/// let extended = match sbwt {
+///     SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+///         let start = sbwt.search(&kmer).unwrap();
+///         right_extend_colex_interval(&start, &sbwt, max_extension_len)
+///     },
+/// };
+/// # let expected = b"TGCCG".to_vec();
+/// # assert_eq!(extended, expected);
+/// ```
+pub fn right_extend_colex_interval(
+    colex_interval: &Range<usize>,
+    sbwt: &sbwt::SbwtIndex<sbwt::SubsetMatrix>,
+    max_extension_len: usize,
+) -> Vec<u8> {
+    assert!(!colex_interval.is_empty());
+    assert_eq!(colex_interval.end - colex_interval.start, 1);
+
+    let mut right_extension_len = 0;
+    let mut interval = colex_interval.clone();
+    let mut extension: Vec<u8> = Vec::new();
+    while right_extension_len < max_extension_len {
+        let new_intervals: Vec<(u8, Range<usize>)> = sbwt.alphabet().iter().filter_map(|c| {
+            let res = sbwt.extend_right(interval.clone(), *c);
+            if !res.is_empty() && res.end - res.start == 1 {
+                Some((*c, res))
+            } else {
+                None
+            }
+        }).collect();
+        if new_intervals.len() == 1 {
+            let new_interval = new_intervals[0].1.clone();
+            interval = new_interval;
+            extension.push(new_intervals[0].0);
+        } else {
+            break;
+        }
+        right_extension_len += 1;
+    }
+    extension
 }
 
 /// Left extends a _k_-mer until the SBWT interval becomes non-unique.
@@ -942,5 +1032,42 @@ mod tests {
 
         let rc = revcomp(seq);
         assert_eq!(rc, expected)
+    }
+
+    // Test right extensions
+    #[test]
+    fn right_extend_colex_interval() {
+        use crate::BuildOpts;
+        use crate::build;
+        use sbwt::SbwtIndexVariant;
+        use super::right_extend_colex_interval;
+
+        // Parameters       : k = 7
+        //
+        // Sequence         : T,T,G,A,A,C,A,G,G,C,T,G,C,C,G,T,A,A,C,A,G,G
+        //
+        // Starting k-mer   :       A,A,C,A,G,G,C
+        // Search range     :                     - - - - - - - - -
+        // Output           :                     T,G,C,C,G,C
+
+        let sequence: Vec<u8> = b"TGCCGCTTGAACAGGCTGCCGCCGCTT".to_vec();
+
+        let mut opts = BuildOpts::default();
+        opts.k = 7;
+        opts.build_select = true;
+        opts.add_revcomp = true;
+        let (sbwt, _) = build(&[sequence], opts);
+
+        let kmer = b"AACAGGC".to_vec();
+        let max_extension_len = 9;
+
+        let extended = match sbwt {
+            SbwtIndexVariant::SubsetMatrix(ref sbwt) => {
+                let start = sbwt.search(&kmer).unwrap();
+                right_extend_colex_interval(&start, &sbwt, max_extension_len)
+            },
+        };
+        let expected = b"TGCCGC".to_vec();
+        assert_eq!(extended, expected);
     }
 }
