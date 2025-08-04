@@ -66,14 +66,25 @@ fn count_left_overlaps(
     matches
 }
 
+/// Reverse complement ASCII nucleotides with bit operations
+///
+/// Described in: https://www.biorxiv.org/content/10.1101/082214v2
+/// Taken from: https://gist.github.com/mbhall88/cd900add6335c96127efea0e0f6a9f48
+fn revcomp(
+    seq: &[u8]
+) -> Vec<u8> {
+    seq.iter().rev().map(|c| {
+        if c & 2 != 0 { c ^ 4 } else { c ^ 21 }
+    }).collect()
+}
+
 /// Find the nearest unique context leftwards of a starting point.
 ///
 /// Queries the `sbwt` for _k_-mers in `search_range` from `ms`, starting from
 /// the end of `search_range`, and checks whether SBWT interval of a queried
 /// _k_-mer is of length 1.
 ///
-/// Returns the position and contents of the rightmost _k_-mer in `search_range`
-/// that has a SBWT interval of length 1. If a _k_-mer that satisfies these
+/// Returns the position and contentsh 1. If a _k_-mer that satisfies these
 /// conditions cannot be found, returns the position the search terminated at
 /// and an empty _k_-mer.
 ///
@@ -919,5 +930,17 @@ mod tests {
 
         let expected = vec!['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'C', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', 'M', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'];
         assert_eq!(refined, expected);
+    }
+
+    // Test reverse complements
+    #[test]
+    fn reverse_complement() {
+        use super::revcomp;
+
+        let seq =      b"ACGGGCAAATTTGGCA";
+        let expected = b"TGCCAAATTTGCCCGT";
+
+        let rc = revcomp(seq);
+        assert_eq!(rc, expected)
     }
 }
