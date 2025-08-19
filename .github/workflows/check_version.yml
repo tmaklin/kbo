@@ -1,13 +1,15 @@
+name: Version check
+
 on:
-  pull_request:
+  push:
+    tags:
+      - "v*.*.*"
     branches:
       - main
 
-name: Check version
-
 jobs:
   version-check:
-    name: Check pull request before merging
+    name: Check tags
     runs-on: ubuntu-latest
 
     steps:

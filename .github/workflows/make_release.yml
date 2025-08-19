@@ -1,9 +1,11 @@
 name: Make new release
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
+  workflow_run:
+    workflows: ['Version check']
+    types: [completed]
+    branches:
+      - 'main'
 
 env:
   CARGO_TERM_COLOR: always
