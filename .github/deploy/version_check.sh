@@ -5,8 +5,10 @@ set -e
 #
 # Reads version from Cargo.toml and checks it against tags
 #
-# Credit to @richfitz for this from the dust package:
+# Modified from
 # https://github.com/mrc-ide/dust/blob/master/scripts/version_check
+# by  @richfitz for the dust package.
+#
 VERSION=${1:-$(grep '^version' Cargo.toml  | sed 's/.*= *//' | sed 's/"//g')}
 TAG="v${VERSION}"
 
@@ -27,34 +29,11 @@ git fetch --quiet
 BRANCH_DEFAULT=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
 LAST_TAG=$(git describe --tags --abbrev=0 "origin/${BRANCH_DEFAULT}")
 
-echo "Last tag was $LAST_TAG"
+echo "Pushed tag is $LAST_TAG"
 
 if git rev-parse "$TAG" >/dev/null 2>&1; then
-    echo "[ERROR] Tag $TAG already exists - update version number in Cargo.toml"
-    exit 1
+    echo "[OK] Version number $VERSION in Cargo.toml matches tag $TAG"
 else
-    echo "[OK] Version number not yet present as git tag"
-fi
-
-MAJOR=$(echo $VERSION | cut -d. -f1)
-MINOR=$(echo $VERSION | cut -d. -f2)
-PATCH=$(echo $VERSION | cut -d. -f3)
-
-LAST_VERSION=$(echo "$LAST_TAG" | sed 's/^v//')
-LAST_MAJOR=$(echo $LAST_VERSION | cut -d. -f1)
-LAST_MINOR=$(echo $LAST_VERSION | cut -d. -f2)
-LAST_PATCH=$(echo $LAST_VERSION | cut -d. -f3)
-
-if (( $MAJOR > $LAST_MAJOR )); then
-    echo "[OK] Increasing MAJOR version"
-    exit $EXIT_CODE
-elif (( $MINOR > $LAST_MINOR )); then
-    echo "[OK] Increasing MINOR version"
-    exit $EXIT_CODE
-elif (( $PATCH > $LAST_PATCH )); then
-    echo "[OK] Increasing PATCH version"
-    exit $EXIT_CODE
-else
-    echo "[ERROR] Version number has not increased relative to $LAST_VERSION"
+    echo "[ERROR] Tag $TAG does not match version $VERSION in Cargo.toml - update version number in Cargo.toml"
     exit 1
 fi
