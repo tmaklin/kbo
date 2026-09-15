@@ -14,7 +14,7 @@
 //! Gap filling using matching statistics and SBWT interval lookups.
 use std::ops::Range;
 
-use sbwt::SbwtIndexVariant;
+use sbwt::sbwt_index_variant::SbwtIndexVariant;
 
 /// Count overlaps between a sequence and the last elements of a _k_-mer.
 fn count_right_overlaps(
@@ -91,7 +91,7 @@ fn count_left_overlaps(
 /// ```rust
 /// use kbo::BuildOpts;
 /// use kbo::build;
-/// use sbwt::SbwtIndexVariant;
+/// use sbwt::sbwt_index_variant::SbwtIndexVariant;
 /// use kbo::index::query_sbwt;
 /// use kbo::gap_filling::nearest_unique_context;
 ///
@@ -170,7 +170,7 @@ pub fn nearest_unique_context(
 /// ```rust
 /// use kbo::BuildOpts;
 /// use kbo::build;
-/// use sbwt::SbwtIndexVariant;
+/// use sbwt::sbwt_index_variant::SbwtIndexVariant;
 /// use kbo::index::query_sbwt;
 /// use kbo::gap_filling::left_extend_kmer;
 ///
@@ -259,7 +259,7 @@ pub fn left_extend_kmer(
 /// ```rust
 /// use kbo::BuildOpts;
 /// use kbo::build;
-/// use sbwt::SbwtIndexVariant;
+/// use sbwt::sbwt_index_variant::SbwtIndexVariant;
 /// use kbo::index::query_sbwt;
 /// use kbo::gap_filling::left_extend_over_gap;
 ///
@@ -406,7 +406,7 @@ pub fn left_extend_over_gap(
 /// use kbo::derandomize::random_match_threshold;
 /// use kbo::translate::translate_ms_vec;
 /// use kbo::gap_filling::fill_gaps;
-/// use sbwt::SbwtIndexVariant;
+/// use sbwt::sbwt_index_variant::SbwtIndexVariant;
 ///
 /// // Parameters       : k = 9, threshold = 4
 /// //
@@ -537,7 +537,7 @@ mod tests {
         use crate::BuildOpts;
         use crate::index::query_sbwt;
         use crate::gap_filling::nearest_unique_context;
-        use sbwt::SbwtIndexVariant;
+        use sbwt::sbwt_index_variant::SbwtIndexVariant;
 
         // Parameters       : k = 9, threshold = 4
         //
@@ -568,7 +568,7 @@ mod tests {
         use crate::build;
         use crate::BuildOpts;
         use crate::gap_filling::left_extend_kmer;
-        use sbwt::SbwtIndexVariant;
+        use sbwt::sbwt_index_variant::SbwtIndexVariant;
 
         // Parameters       : k = 6
         //
@@ -603,7 +603,7 @@ mod tests {
     fn left_extend_over_gap() {
         use crate::BuildOpts;
         use crate::build;
-        use sbwt::SbwtIndexVariant;
+        use sbwt::sbwt_index_variant::SbwtIndexVariant;
         use crate::index::query_sbwt;
         use crate::gap_filling::left_extend_over_gap;
 
@@ -645,7 +645,7 @@ mod tests {
         use crate::derandomize::derandomize_ms_vec;
         use crate::translate::translate_ms_vec;
         use super::fill_gaps;
-        use sbwt::SbwtIndexVariant;
+        use sbwt::sbwt_index_variant::SbwtIndexVariant;
 
         // Parameters       : k = 7, threshold = 3
         //
@@ -689,7 +689,7 @@ mod tests {
         use crate::derandomize::derandomize_ms_vec;
         use crate::translate::translate_ms_vec;
         use super::fill_gaps;
-        use sbwt::SbwtIndexVariant;
+        use sbwt::sbwt_index_variant::SbwtIndexVariant;
 
         // Parameters       : k = 9, threshold = 3
         //
@@ -733,7 +733,7 @@ mod tests {
         use crate::derandomize::derandomize_ms_vec;
         use crate::translate::translate_ms_vec;
         use super::fill_gaps;
-        use sbwt::SbwtIndexVariant;
+        use sbwt::sbwt_index_variant::SbwtIndexVariant;
 
         // Parameters       : k = 9, threshold = 3
         //
@@ -777,7 +777,7 @@ mod tests {
         use crate::derandomize::derandomize_ms_vec;
         use crate::translate::translate_ms_vec;
         use super::fill_gaps;
-        use sbwt::SbwtIndexVariant;
+        use sbwt::sbwt_index_variant::SbwtIndexVariant;
 
         // Parameters       : k = 9, threshold = 3
         //
@@ -821,7 +821,7 @@ mod tests {
         use crate::derandomize::derandomize_ms_vec;
         use crate::translate::translate_ms_vec;
         use super::fill_gaps;
-        use sbwt::SbwtIndexVariant;
+        use sbwt::sbwt_index_variant::SbwtIndexVariant;
 
         // Parameters       : k = 9, threshold = 4
         //
@@ -864,7 +864,7 @@ mod tests {
         use crate::derandomize::derandomize_ms_vec;
         use crate::translate::translate_ms_vec;
         use super::fill_gaps;
-        use sbwt::SbwtIndexVariant;
+        use sbwt::sbwt_index_variant::SbwtIndexVariant;
 
         let query: Vec<u8> = vec![b'T',b'C',b'A',b'A',b'G',b'A',b'T',b'G',b'C',b'T',b'T',b'G',b'G',b'T',b'A',b'T',b'G',b'G',b'C',b'G',b'A',b'A',b'A',b'G',b'A',b'A',b'G',b'A',b'C',b'A',b'T',b'C',b'A',b'T',b'C',b'G',b'G',b'A',b'T',b'A',b'T',b'T',b'A',b'C',b'A',b'T',b'G',b'T',b'T',b'A',b'A',b'G',b'T',b'G',b'T',b'A',b'T',b'T',b'A',b'A',b'G',b'T',b'C',b'T',b'T',b'G',b'A',b'A',b'G',b'A',b'T',b'G',b'A',b'A',b'T',b'T',b'T',b'A',b'A',b'A',b'C',b'T',b'G',b'G',b'A',b'A',b'G',b'A',b'A',b'A',b'T',b'T',b'C',b'A',b'A',b'G',b'A',b'G',b'A',b'A',b'T',b'A',b'A',b'T',b'G',b'A',b'T',b'A',b'G',b'T',b'T',b'T',b'C',b'T',b'T',b'A',b'T',b'T',b'A',b'G',b'A',b'T',b'T',b'T',b'A',b'A',b'A',b'T',b'G',b'A',b'A',b'G',b'A',b'A',b'G',b'A',b'A',b'G',b'G',b'T',b'C',b'T',b'A',b'A',b'T',b'C',b'G',b'C',b'A',b'C',b'G',b'T',b'G',b'T',b'T',b'A',b'A',b'C',b'T',b'T',b'T',b'A',b'G',b'T',b'A',b'C',b'G',b'A',b'T',b'T',b'G',b'T',b'G',b'C',b'A',b'G',b'G',b'A',b'A',b'A',b'C',b'A',b'G',b'G',b'A',b'T',b'T',b'T',b'G',b'T',b'A',b'A',b'C',b'T',b'G',b'G',b'T',b'T',b'A',b'T',b'A',b'T',b'C',b'G',b'C',b'T',b'G',b'T',b'G',b'T',b'T',b'A',b'C',b'A',b'T',b'G',b'A',b'C',b'G',b'T',b'A',b'A',b'C',b'T',b'G',b'A',b'A',b'C',b'A',b'A',b'C',b'A',b'A',b'C',b'A',b'A',b'G',b'T',b'T',b'G',b'A',b'A',b'C',b'G',b'T',b'G',b'A',b'G',b'C',b'G',b'T',b'C',b'G',b'T',b'G',b'A',b'A',b'T',b'T',b'T',b'G',b'T',b'T',b'G',b'C',b'C',b'A',b'A',b'T',b'G',b'T',b'A',b'T',b'C',b'A',b'C',b'A',b'T',b'G',b'A',b'G',b'T',b'T',b'A',b'C',b'G',b'T',b'G',b'C',b'T',b'C',b'C',b'T',b'T',b'T',b'A',b'A',b'C',b'T',b'T',b'C',b'T',b'A',b'T',b'G',b'A',b'A',b'T',b'A',b'G',b'T',b'T',b'A',b'C',b'A',b'T',b'T',b'G',b'A',b'A',b'G',b'C',b'A',b'C',b'T',b'T',b'G',b'A',b'A',b'G',b'A',b'A',b'G',b'G',b'T',b'G',b'C',b'A',b'T',b'G',b'G',b'A',b'A',b'A',b'G',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'A',b'C',b'T',b'T',b'G',b'C',b'G',b'C',b'C',b'A',b'C',b'A',b'A',b'T',b'T',b'T',b'T',b'T',b'A',b'T',b'C',b'T',b'G',b'T',b'T',b'A',b'C',b'C',b'C',b'G',b'T',b'G',b'A',b'A',b'G',b'A',b'A',b'A',b'C',b'A',b'G',b'A',b'A',b'C',b'G',b'A',b'A',b'T',b'G',b'A',b'T',b'T',b'C',b'G',b'A',b'C',b'T',b'G',b'G',b'T',b'C',b'A',b'A',b'T',b'G',b'A',b'C',b'T',b'T',b'G',b'C',b'T',b'A',b'C',b'A',b'G',b'T',b'T',b'A',b'T',b'C',b'T',b'A',b'A',b'A',b'A',b'T',b'G',b'G',b'A',b'T',b'A',b'A',b'T',b'G',b'A',b'G',b'T',b'C',b'T',b'G',b'A',b'T',b'C',b'A',b'A',b'A',b'T',b'C',b'A',b'A',b'C',b'A',b'A',b'A',b'G',b'A',b'A',b'A',b'T',b'T',b'A',b'T',b'C',b'G',b'A',b'C',b'T',b'T',b'T',b'A',b'A',b'C',b'A',b'T',b'G',b'T',b'T',b'C',b'A',b'T',b'T',b'A',b'A',b'T',b'A',b'A',b'A',b'A',b'T',b'T',b'A',b'T',b'T',b'A',b'A',b'T',b'C',b'G',b'A',b'C',b'A',b'T',b'G',b'A',b'A',b'A',b'T',b'G',b'T',b'C',b'T',b'G',b'C',b'G',b'A',b'A',b'A',b'G',b'A',b'T',b'A',b'C',b'A',b'A',b'C',b'A',b'T',b'T',b'T',b'A',b'T',b'T',b'C',b'G',b'A',b'G',b'A',b'T',b'A',b'T',b'T',b'C',b'C',b'G',b'A',b'A',b'A',b'A',b'A',b'G',b'A',b'C',b'G',b'A',b'T',b'T',b'T',b'T',b'C',b'A',b'C',b'A',b'G',b'A',b'A',b'T',b'T',b'T',b'G',b'A',b'T',b'C',b'C',b'T',b'G',b'A',b'T',b'A',b'A',b'A',b'A',b'T',b'G',b'A',b'C',b'G',b'C',b'A',b'A',b'G',b'T',b'A',b'T',b'T',b'T',b'G',b'A',b'T',b'A',b'A',b'T',b'G',b'T',b'C',b'A',b'T',b'T',b'A',b'C',b'A',b'A',b'A',b'T',b'G',b'C',b'G',b'A',b'T',b'G',b'A',b'A',b'A',b'T',b'A',b'T',b'T',b'C',b'T',b'A',b'G',b'A',b'G',b'G',b'C',b'G',b'A',b'T',b'A',b'A',b'A',b'C',b'G',b'T',b'G',b'T',b'C',b'G',b'A',b'G',b'T',b'T',b'C',b'C',b'A',b'C',b'G',b'T',b'G',b'A',b'A',b'A',b'C',b'A',b'A',b'A',b'A',b'T',b'C',b'C',b'A',b'C',b'T',b'T',b'T',b'A',b'T',b'A',b'A',b'T',b'C',b'G',b'A',b'A',b'T',b'G',b'A',b'C',b'G',b'A',b'T',b'T',b'C',b'G',b'T',b'A',b'T',b'T',b'A',b'A',b'A',b'G',b'A',b'T',b'A',b'A',b'T',b'G',b'G',b'C',b'A',b'T',b'T',b'G',b'G',b'T',b'A',b'T',b'T',b'C',b'C',b'T',b'A',b'T',b'C',b'A',b'A',b'T',b'A',b'A',b'A',b'G',b'T',b'C',b'G',b'A',b'T',b'A',b'A',b'G',b'A',b'T',b'A',b'T',b'T',b'C',b'G',b'A',b'C',b'C',b'G',b'A',b'T',b'T',b'C',b'T',b'A',b'T',b'C',b'G',b'T',b'G',b'T',b'A',b'G',b'A',b'T',b'A',b'A',b'G',b'G',b'C',b'A',b'C',b'G',b'T',b'A',b'C',b'G',b'C',b'G',b'T',b'A',b'A',b'A',b'A',b'T',b'G',b'G',b'G',b'T',b'G',b'G',b'T',b'A',b'C',b'T',b'G',b'G',b'A',b'T',b'T',b'A',b'G',b'G',b'A',b'C',b'T',b'A',b'G',b'C',b'C',b'A',b'T',b'T',b'T',b'C',b'G',b'A',b'A',b'A',b'G',b'A',b'G',b'A',b'T',b'T',b'G',b'T',b'G',b'G',b'A',b'A',b'G',b'C',b'G',b'C',b'A',b'C',b'A',b'A',b'T',b'G',b'G',b'T',b'C',b'G',b'T',b'A',b'T',b'T',b'T',b'G',b'G',b'G',b'C',b'A',b'A',b'A',b'C',b'A',b'G',b'T',b'G',b'T',b'A',b'G',b'A',b'A',b'G',b'G',b'T',b'C',b'A',b'A',b'G',b'G',b'T',b'A',b'C',b'A',b'T',b'C',b'T',b'A',b'T',b'C',b'T',b'T',b'T',b'A',b'T',b'C',b'A',b'C',b'A',b'C',b'T',b'T',b'C',b'C',b'A',b'T',b'G',b'T',b'G',b'A',b'A',b'G',b'T',b'C',b'A',b'T',b'T',b'G',b'A',b'A',b'G',b'A',b'C',b'G',b'G',b'T',b'G',b'A',b'T',b'T',b'G',b'G',b'G',b'A',b'T',b'G',b'A',b'A',b'T',b'A',b'A',b'T',b'A',b'A',b'G',b'G',b'A',b'G',b'C',b'A',b'T',b'A',b'T',b'T',b'A',b'A',b'A',b'T',b'C',b'T',b'G',b'T',b'C',b'A',b'T',b'T',b'T',b'T',b'A',b'G',b'C',b'A',b'C',b'T',b'A',b'C',b'T',b'C',b'G',b'T',b'C',b'T',b'T',b'G',b'A',b'T',b'G',b'A',b'G',b'T',b'G',b'T'];
         let reference: Vec<u8> = vec![b'T',b'C',b'A',b'A',b'G',b'A',b'T',b'G',b'C',b'T',b'T',b'G',b'G',b'T',b'A',b'T',b'G',b'G',b'C',b'G',b'A',b'A',b'A',b'G',b'A',b'A',b'G',b'A',b'C',b'A',b'T',b'C',b'A',b'T',b'C',b'G',b'G',b'A',b'T',b'A',b'T',b'T',b'A',b'C',b'A',b'T',b'G',b'T',b'T',b'A',b'A',b'G',b'T',b'G',b'T',b'A',b'T',b'T',b'A',b'A',b'G',b'T',b'C',b'T',b'T',b'G',b'A',b'A',b'G',b'A',b'T',b'G',b'A',b'A',b'T',b'T',b'T',b'A',b'A',b'A',b'C',b'T',b'G',b'G',b'A',b'A',b'G',b'A',b'A',b'A',b'T',b'T',b'C',b'A',b'A',b'G',b'A',b'G',b'A',b'A',b'T',b'A',b'A',b'T',b'G',b'A',b'T',b'A',b'G',b'T',b'T',b'T',b'C',b'T',b'T',b'A',b'T',b'T',b'A',b'G',b'A',b'T',b'T',b'T',b'A',b'A',b'A',b'T',b'G',b'A',b'A',b'G',b'A',b'A',b'G',b'A',b'A',b'G',b'G',b'T',b'C',b'T',b'A',b'A',b'T',b'C',b'G',b'C',b'A',b'C',b'G',b'T',b'G',b'T',b'T',b'A',b'A',b'C',b'T',b'T',b'T',b'A',b'G',b'T',b'A',b'C',b'G',b'A',b'T',b'T',b'G',b'T',b'G',b'C',b'A',b'G',b'G',b'A',b'A',b'A',b'C',b'A',b'G',b'G',b'A',b'T',b'T',b'T',b'G',b'T',b'A',b'A',b'C',b'T',b'G',b'G',b'T',b'T',b'A',b'T',b'A',b'T',b'C',b'G',b'C',b'T',b'G',b'T',b'G',b'T',b'T',b'A',b'C',b'A',b'T',b'G',b'A',b'C',b'G',b'T',b'A',b'A',b'C',b'T',b'G',b'A',b'A',b'C',b'A',b'A',b'C',b'A',b'A',b'C',b'A',b'A',b'G',b'T',b'T',b'G',b'A',b'A',b'C',b'G',b'T',b'G',b'A',b'G',b'C',b'G',b'T',b'C',b'G',b'T',b'G',b'A',b'A',b'T',b'T',b'T',b'G',b'T',b'T',b'G',b'C',b'C',b'A',b'A',b'T',b'G',b'T',b'A',b'T',b'C',b'A',b'C',b'A',b'T',b'G',b'A',b'G',b'T',b'T',b'A',b'C',b'G',b'T',b'A',b'C',b'A',b'C',b'C',b'T',b'T',b'T',b'A',b'A',b'C',b'T',b'T',b'C',b'T',b'A',b'T',b'G',b'A',b'A',b'T',b'A',b'G',b'T',b'T',b'A',b'C',b'A',b'T',b'T',b'G',b'A',b'A',b'G',b'C',b'A',b'C',b'T',b'T',b'G',b'A',b'A',b'G',b'A',b'A',b'G',b'G',b'T',b'G',b'C',b'A',b'T',b'G',b'G',b'A',b'A',b'A',b'G',b'A',b'T',b'G',b'A',b'G',b'G',b'A',b'A',b'C',b'T',b'T',b'G',b'C',b'G',b'C',b'C',b'A',b'C',b'A',b'A',b'T',b'T',b'T',b'T',b'T',b'A',b'T',b'C',b'T',b'G',b'T',b'T',b'A',b'C',b'C',b'C',b'G',b'T',b'G',b'A',b'A',b'G',b'A',b'A',b'A',b'C',b'A',b'G',b'A',b'A',b'C',b'G',b'A',b'A',b'T',b'G',b'A',b'T',b'T',b'C',b'G',b'A',b'C',b'T',b'G',b'G',b'T',b'C',b'A',b'A',b'T',b'G',b'A',b'C',b'T',b'T',b'G',b'C',b'T',b'A',b'C',b'A',b'G',b'T',b'T',b'A',b'T',b'C',b'T',b'A',b'A',b'A',b'A',b'T',b'G',b'G',b'A',b'T',b'A',b'A',b'T',b'G',b'A',b'G',b'T',b'C',b'T',b'G',b'A',b'T',b'C',b'A',b'A',b'A',b'T',b'C',b'A',b'A',b'C',b'A',b'A',b'A',b'G',b'A',b'A',b'A',b'T',b'T',b'A',b'T',b'C',b'G',b'A',b'C',b'T',b'T',b'T',b'A',b'A',b'C',b'A',b'T',b'G',b'T',b'T',b'C',b'A',b'T',b'T',b'A',b'A',b'T',b'A',b'A',b'A',b'A',b'T',b'T',b'A',b'T',b'T',b'A',b'A',b'T',b'C',b'G',b'A',b'C',b'A',b'T',b'G',b'A',b'A',b'A',b'T',b'G',b'T',b'C',b'T',b'G',b'C',b'G',b'A',b'A',b'A',b'G',b'A',b'T',b'A',b'C',b'A',b'A',b'C',b'A',b'T',b'T',b'T',b'A',b'T',b'T',b'C',b'G',b'A',b'G',b'A',b'T',b'A',b'T',b'T',b'C',b'C',b'G',b'A',b'A',b'A',b'A',b'A',b'G',b'A',b'C',b'G',b'A',b'T',b'T',b'T',b'T',b'C',b'A',b'C',b'A',b'G',b'A',b'A',b'T',b'T',b'T',b'G',b'A',b'T',b'C',b'C',b'T',b'G',b'A',b'T',b'A',b'A',b'A',b'A',b'T',b'G',b'A',b'C',b'G',b'C',b'A',b'A',b'G',b'T',b'A',b'T',b'T',b'T',b'G',b'A',b'T',b'A',b'A',b'T',b'G',b'T',b'C',b'A',b'T',b'T',b'A',b'C',b'A',b'A',b'A',b'T',b'G',b'C',b'G',b'A',b'T',b'G',b'A',b'A',b'A',b'T',b'A',b'T',b'T',b'C',b'T',b'A',b'G',b'A',b'G',b'G',b'C',b'G',b'A',b'T',b'A',b'A',b'A',b'C',b'G',b'T',b'G',b'T',b'C',b'G',b'A',b'G',b'T',b'T',b'C',b'C',b'A',b'C',b'G',b'T',b'G',b'A',b'A',b'A',b'C',b'A',b'A',b'A',b'A',b'T',b'C',b'C',b'A',b'C',b'T',b'T',b'T',b'A',b'T',b'A',b'A',b'T',b'C',b'G',b'A',b'A',b'T',b'G',b'A',b'C',b'G',b'A',b'T',b'T',b'C',b'G',b'T',b'A',b'T',b'T',b'A',b'A',b'A',b'G',b'A',b'T',b'A',b'A',b'T',b'G',b'G',b'C',b'A',b'T',b'T',b'G',b'G',b'T',b'A',b'T',b'T',b'C',b'C',b'T',b'A',b'T',b'C',b'A',b'A',b'T',b'A',b'A',b'A',b'G',b'T',b'C',b'G',b'A',b'T',b'A',b'A',b'G',b'A',b'T',b'A',b'T',b'T',b'C',b'G',b'A',b'C',b'C',b'G',b'A',b'T',b'T',b'C',b'T',b'A',b'T',b'C',b'G',b'T',b'G',b'T',b'A',b'G',b'A',b'T',b'A',b'A',b'G',b'G',b'C',b'A',b'C',b'G',b'T',b'A',b'C',b'G',b'C',b'G',b'T',b'A',b'A',b'A',b'A',b'T',b'G',b'G',b'G',b'T',b'G',b'G',b'T',b'A',b'C',b'T',b'G',b'G',b'A',b'T',b'T',b'A',b'G',b'G',b'A',b'C',b'T',b'A',b'G',b'C',b'C',b'A',b'T',b'T',b'T',b'C',b'G',b'A',b'A',b'A',b'G',b'A',b'G',b'A',b'T',b'T',b'G',b'T',b'G',b'G',b'A',b'A',b'G',b'C',b'G',b'C',b'A',b'C',b'A',b'A',b'T',b'G',b'G',b'T',b'C',b'G',b'T',b'A',b'T',b'T',b'T',b'G',b'G',b'G',b'C',b'A',b'A',b'A',b'C',b'A',b'G',b'T',b'G',b'T',b'A',b'G',b'A',b'A',b'G',b'G',b'T',b'C',b'A',b'A',b'G',b'G',b'T',b'A',b'C',b'A',b'T',b'C',b'T',b'A',b'T',b'C',b'T',b'T',b'T',b'A',b'T',b'C',b'A',b'C',b'A',b'C',b'T',b'T',b'C',b'C',b'A',b'T',b'G',b'T',b'G',b'A',b'A',b'G',b'T',b'C',b'A',b'T',b'T',b'G',b'A',b'A',b'G',b'A',b'C',b'G',b'G',b'T',b'G',b'A',b'T',b'T',b'G',b'G',b'G',b'A',b'T',b'G',b'A',b'A',b'T',b'A',b'A',b'T',b'A',b'A',b'G',b'G',b'A',b'G',b'C',b'A',b'T',b'A',b'T',b'T',b'A',b'A',b'A',b'T',b'C',b'T',b'G',b'T',b'C',b'A',b'T',b'T',b'T',b'T',b'A',b'G',b'C',b'A',b'C',b'T',b'A',b'C',b'T',b'C',b'G',b'T',b'C',b'T',b'T',b'G',b'A',b'T',b'G',b'A',b'G',b'T',b'G',b'T'];
@@ -898,7 +898,7 @@ mod tests {
         use crate::derandomize::derandomize_ms_vec;
         use crate::translate::translate_ms_vec;
         use super::fill_gaps;
-        use sbwt::SbwtIndexVariant;
+        use sbwt::sbwt_index_variant::SbwtIndexVariant;
 
         let query: Vec<u8> = vec![b'G',b'A',b'A',b'T',b'T',b'C',b'T',b'T',b'A',b'A',b'T',b'T',b'T',b'T',b'T',b'G',b'T',b'C',b'C',b'G',b'T',b'T',b'T',b'A',b'A',b'A',b'A',b'A',b'T',b'C',b'T',b'G',b'G',b'C',b'T',b'A',b'G',b'T',b'A',b'A',b'C',b'G',b'A',b'A',b'C',b'T',b'A',b'T',b'T',b'T',b'T',b'T',b'A',b'C',b'T',b'T',b'A',b'A',b'C',b'A',b'T',b'T',b'T',b'A',b'A',b'T',b'A',b'C',b'T',b'A',b'A',b'G',b'C',b'A',b'A',b'C',b'A',b'G',b'T',b'T',b'T',b'T',b'T',b'G',b'A',b'A',b'C',b'G',b'A',b'A',b'G',b'T',b'G',b'A',b'G',b'T',b'T',b'T',b'A',b'G',b'C',b'G',b'A',b'A',b'T',b'T',b'T',b'G',b'C',b'A',b'G',b'C',b'G',b'A',b'A',b'T',b'T',b'C',b'T',b'T',b'A',b'A',b'T',b'T',b'T',b'T',b'T',b'A',b'T',b'C',b'T',b'G',b'T',b'T',b'A',b'A',b'G',b'A',b'A',b'A',b'T',b'C',b'T',b'G',b'G',b'C',b'T',b'A',b'G',b'T',b'A',b'A',b'C',b'G',b'A',b'A',b'C',b'T',b'A',b'T'];
         let reference: Vec<u8> = vec![b'A',b'G',b'C',b'C',b'G',b'A',b'G',b'C',b'A',b'A',b'A',b'T',b'C',b'T',b'C',b'G',b'C',b'T',b'G',b'T',b'G',b'T',b'T',b'T',b'G',b'A',b'G',b'T',b'G',b'A',b'A',b'A',b'C',b'G',b'A',b'G',b'T',b'T',b'T',b'A',b'G',b'C',b'G',b'A',b'A',b'T',b'T',b'T',b'G',b'C',b'A',b'G',b'T',b'G',b'A',b'A',b'T',b'T',b'C',b'T',b'T',b'A',b'A',b'T',b'T',b'T',b'T',b'T',b'A',b'T',b'C',b'T',b'G',b'T',b'T',b'A',b'A',b'G',b'A',b'A',b'A',b'T',b'C',b'T',b'G',b'G',b'C',b'T',b'A',b'G',b'T',b'A',b'A',b'C',b'G',b'A',b'A',b'C',b'T',b'A',b'T',b'T',b'T',b'T',b'C',b'A',b'A',b'A',b'T',b'T',b'A',b'A',b'A',b'T',b'A',b'T',b'T',b'T',b'G',b'A',b'A',b'G',b'A',b'G',b'A',b'G',b'G',b'T',b'A',b'A',b'A',b'A',b'A',b'A',b'T',b'G',b'T',b'T',b'T',b'C',b'T',b'T',b'A',b'T',b'G',b'A',b'T',b'A',b'G',b'A',b'T',b'A',b'A',b'C',b'T',b'A',b'C',b'G',b'A',b'C'];

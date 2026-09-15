@@ -109,7 +109,6 @@ fn get_rightmost_significant_peak(ms: &[(usize, Range<usize>)], significant_matc
 /// use kbo::variant_calling::resolve_variant;
 /// use kbo::variant_calling::Variant;
 /// use sbwt::BitPackedKmerSortingMem;
-/// use sbwt::SbwtIndexBuilder;
 /// use sbwt::StreamingIndex;
 ///
 /// //                                                                 v here
@@ -119,8 +118,8 @@ fn get_rightmost_significant_peak(ms: &[(usize, Range<usize>)], significant_matc
 /// let k = 20;
 /// let threshold = 5;
 ///
-/// let (sbwt_ref, lcs_ref) = SbwtIndexBuilder::<BitPackedKmerSortingMem>::new().k(k).build_lcs(true).build_select_support(true).run_from_slices(&[reference]);
-/// let (sbwt_query, lcs_query) = SbwtIndexBuilder::<BitPackedKmerSortingMem>::new().k(k).build_lcs(true).build_select_support(true).run_from_slices(&[query]);
+/// let (sbwt_ref, lcs_ref) = BitPackedKmerSortingMem::new_from_slices(&[reference], k).build_lcs(true).build_select_support(true).run();
+/// let (sbwt_query, lcs_query) = BitPackedKmerSortingMem::new_from_slices(&[query], k).build_lcs(true).build_select_support(true).run();
 ///
 /// let index_ref = StreamingIndex::new(&sbwt_ref, lcs_ref.as_ref().unwrap());
 /// let index_query = StreamingIndex::new(&sbwt_query, lcs_query.as_ref().unwrap());
@@ -220,7 +219,7 @@ pub fn resolve_variant(
 /// ```rust
 /// use kbo::variant_calling::call_variants;
 /// use kbo::variant_calling::Variant;
-/// use sbwt::{BitPackedKmerSortingMem, SbwtIndexBuilder};
+/// use sbwt::BitPackedKmerSortingMem;
 ///
 /// //                                 deleted characters    substituted        inserted
 /// //                                        v                 v                v
@@ -230,8 +229,8 @@ pub fn resolve_variant(
 /// let max_error_prob = 0.001;
 /// let k = 20;
 ///
-/// let (sbwt_ref, lcs_ref) = SbwtIndexBuilder::<BitPackedKmerSortingMem>::new().k(k).build_lcs(true).build_select_support(true).run_from_slices(&[reference]);
-/// let (sbwt_query, lcs_query) = SbwtIndexBuilder::<BitPackedKmerSortingMem>::new().k(k).build_lcs(true).build_select_support(true).run_from_slices(&[query]);
+/// let (sbwt_ref, lcs_ref) = BitPackedKmerSortingMem::new_from_slices(&[reference], k).build_lcs(true).build_select_support(true).run();
+/// let (sbwt_query, lcs_query) = BitPackedKmerSortingMem::new_from_slices(&[query], k).build_lcs(true).build_select_support(true).run();
 ///
 /// let variants = call_variants(&sbwt_ref, lcs_ref.as_ref().unwrap(), &sbwt_query, lcs_query.as_ref().unwrap(), query, max_error_prob);
 ///
@@ -297,13 +296,13 @@ pub fn call_variants(
 mod tests {
 
     use random::Source;
-    use sbwt::{BitPackedKmerSortingMem, SbwtIndexBuilder};
+    use sbwt::BitPackedKmerSortingMem;
 
     use super::*;
 
     fn run_variant_calling(query: &[u8], reference: &[u8], k: usize, p_value: f64) -> Vec<Variant> {
-        let (sbwt_ref, lcs_ref) = SbwtIndexBuilder::<BitPackedKmerSortingMem>::new().k(k).build_lcs(true).build_select_support(true).run_from_slices(&[reference]);
-        let (sbwt_query, lcs_query) = SbwtIndexBuilder::<BitPackedKmerSortingMem>::new().k(k).build_lcs(true).build_select_support(true).run_from_slices(&[query]);
+        let (sbwt_ref, lcs_ref) = BitPackedKmerSortingMem::new_from_slices(&[reference], k).build_lcs(true).build_select_support(true).run();
+        let (sbwt_query, lcs_query) = BitPackedKmerSortingMem::new_from_slices(&[query], k).build_lcs(true).build_select_support(true).run();
 
         call_variants(&sbwt_ref, lcs_ref.as_ref().unwrap(), &sbwt_query, lcs_query.as_ref().unwrap(), query, p_value)
     }

@@ -19,10 +19,9 @@ use std::io::Write;
 use std::ops::Range;
 use std::path::PathBuf;
 
-use sbwt::BitPackedKmerSorting;
+use sbwt::BitPackedKmerSortingDisk;
 use sbwt::BitPackedKmerSortingMem;
-use sbwt::SbwtIndexBuilder;
-use sbwt::SbwtIndexVariant;
+use sbwt::sbwt_index_variant::SbwtIndexVariant;
 
 /// Builds an SBWT index and its LCS array from sequences in memory.
 ///
@@ -65,33 +64,26 @@ pub fn build_sbwt_from_vecs(
     // otherwise build fully in memory.
     let (sbwt, lcs) = if build_opts.temp_dir.is_some() {
         let temp_dir = build_opts.temp_dir.unwrap();
-        let algorithm = BitPackedKmerSorting::new()
+        BitPackedKmerSortingDisk::new_from_vecs(slices, build_opts.k)
+            .n_threads(build_opts.num_threads)
+            .add_rev_comp(build_opts.add_revcomp)
+            .build_lcs(true)
+            .build_select_support(build_opts.build_select)
+            .precalc_length(build_opts.prefix_precalc)
             .mem_gb(build_opts.mem_gb)
             .dedup_batches(build_opts.dedup_batches)
-            .temp_dir(PathBuf::from(OsString::from(temp_dir)).as_path());
-
-        SbwtIndexBuilder::new()
-            .k(build_opts.k)
-            .n_threads(build_opts.num_threads)
-            .add_rev_comp(build_opts.add_revcomp)
-            .algorithm(algorithm)
-            .build_lcs(true)
-            .build_select_support(build_opts.build_select)
-            .precalc_length(build_opts.prefix_precalc)
-            .run_from_vecs(slices)
+            .temp_dir(PathBuf::from(OsString::from(temp_dir)).as_path())
+            .run()
     } else {
-        let algorithm = BitPackedKmerSortingMem::new()
-            .dedup_batches(build_opts.dedup_batches);
-
-        SbwtIndexBuilder::new()
+        BitPackedKmerSortingMem::new_from_vecs(slices, build_opts.k)
             .k(build_opts.k)
             .n_threads(build_opts.num_threads)
             .add_rev_comp(build_opts.add_revcomp)
-            .algorithm(algorithm)
             .build_lcs(true)
             .build_select_support(build_opts.build_select)
             .precalc_length(build_opts.prefix_precalc)
-            .run_from_vecs(slices)
+            .dedup_batches(build_opts.dedup_batches)
+            .run()
     };
 
 
@@ -165,6 +157,7 @@ pub fn serialize_sbwt(
 /// ```rust
 /// use kbo::index::*;
 /// use kbo::BuildOpts;
+/// use sbwt::sbwt_index_variant::SbwtIndexVariant;
 ///
 /// // Inputs
 /// let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
@@ -182,9 +175,9 @@ pub fn serialize_sbwt(
 /// let (sbwt_loaded, lcs_loaded) = load_sbwt(&index_prefix);
 /// # assert_eq!(lcs, lcs_loaded);
 /// # match sbwt_loaded {
-/// #     sbwt::SbwtIndexVariant::SubsetMatrix(ref loaded) => {
+/// #     SbwtIndexVariant::SubsetMatrix(ref loaded) => {
 /// #         match sbwt_loaded {
-/// #             sbwt::SbwtIndexVariant::SubsetMatrix(ref built) => {
+/// #             SbwtIndexVariant::SubsetMatrix(ref built) => {
 /// #                 assert_eq!(built, loaded);
 /// #             },
 /// #         };
@@ -201,14 +194,14 @@ pub fn load_sbwt(
     // Load sbwt
     let sbwt_conn = std::fs::File::open(&indexfile).unwrap_or_else(|_| panic!("Expected SBWT at {}", indexfile));
     let mut index_reader = std::io::BufReader::new(sbwt_conn);
-    let sbwt = sbwt::load_sbwt_index_variant(&mut index_reader).unwrap();
+    let sbwt = sbwt::SbwtIndex::load(&mut index_reader).unwrap();
 
     // Load the lcs array
     let lcs_conn = std::fs::File::open(&lcsfile).unwrap_or_else(|_| panic!("Expected LCS array at {}", lcsfile));
     let mut lcs_reader = std::io::BufReader::new(lcs_conn);
     let lcs = sbwt::LcsArray::load(&mut lcs_reader).unwrap();
 
-    (sbwt, lcs)
+    (SbwtIndexVariant::SubsetMatrix(sbwt), lcs)
 }
 
 /// Queries an SBWT index for the _k_-bounded matching statistics.
@@ -275,7 +268,9 @@ mod tests {
 
     #[test]
     fn build_serialize_load_sbwt() {
-	let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
+        use sbwt::sbwt_index_variant::SbwtIndexVariant;
+
+        let reference: Vec<Vec<u8>> = vec![vec![b'A',b'A',b'A',b'G',b'A',b'A',b'C',b'C',b'A',b'-',b'T',b'C',b'A',b'G',b'G',b'G',b'C',b'G']];
 	let (sbwt, lcs) = super::build_sbwt_from_vecs(&reference, &Some(super::BuildOpts{ k: 3, ..Default::default() }));
 
 	let index_prefix = std::env::temp_dir().to_str().unwrap().to_owned() + "/serialized_index_test";
@@ -285,9 +280,9 @@ mod tests {
 
 	assert_eq!(lcs, lcs_loaded);
 	match sbwt {
-            sbwt::SbwtIndexVariant::SubsetMatrix(ref index) => {
+            SbwtIndexVariant::SubsetMatrix(ref index) => {
 		match sbwt_loaded {
-		    sbwt::SbwtIndexVariant::SubsetMatrix(ref index_loaded) => {
+		    SbwtIndexVariant::SubsetMatrix(ref index_loaded) => {
 			assert_eq!(index, index_loaded);
 		    },
 		};
