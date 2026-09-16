@@ -194,14 +194,14 @@ pub fn load_sbwt(
     // Load sbwt
     let sbwt_conn = std::fs::File::open(&indexfile).unwrap_or_else(|_| panic!("Expected SBWT at {}", indexfile));
     let mut index_reader = std::io::BufReader::new(sbwt_conn);
-    let sbwt = sbwt::SbwtIndex::load(&mut index_reader).unwrap();
+    let sbwt = SbwtIndexVariant::load(&mut index_reader).unwrap();
 
     // Load the lcs array
     let lcs_conn = std::fs::File::open(&lcsfile).unwrap_or_else(|_| panic!("Expected LCS array at {}", lcsfile));
     let mut lcs_reader = std::io::BufReader::new(lcs_conn);
     let lcs = sbwt::LcsArray::load(&mut lcs_reader).unwrap();
 
-    (SbwtIndexVariant::SubsetMatrix(sbwt), lcs)
+    (sbwt, lcs)
 }
 
 /// Queries an SBWT index for the _k_-bounded matching statistics.
