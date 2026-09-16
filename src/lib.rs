@@ -243,7 +243,7 @@
         unstable_features,
         unused_import_braces, unused_qualifications)]
 
-use sbwt::SbwtIndexVariant;
+use sbwt::sbwt_index_variant::SbwtIndexVariant;
 
 pub mod derandomize;
 pub mod format;
