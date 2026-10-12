@@ -483,6 +483,7 @@ mod tests {
 
     #[test]
     fn test_substitution_after_repeated_segment_is_reported_where_it_is() {
+        //                                         v 30 (G>A)  v 41 (G>C)
         let reference = b"TGGTGCGGATCCAGGGGAACCGTTGACTCAGAAAGGAGCTGGCCGTCCACCTAACGTGAAGTTCCAAAATCCCAAACCTCTCGAGATAAAGGAGCTGATTTATCCAGCAAGG";
         let query =     b"TGGTGCGGATCCAGGGGAACCGTTGACTCAAAAAGGAGCTGCCCGTCCACCTAACGTGAAGTTCCAAAATCC";
         //                                                ^^^^^^^^^^ occurs twice in the reference
