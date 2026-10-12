@@ -142,6 +142,23 @@ pub fn resolve_variant(
     ms_vs_ref: &[(usize, Range<usize>)], // Slice of length k
     significant_match_threshold: usize,
 ) -> Result<(Vec<u8>, Vec<u8>), ResolveVariantErr> {
+    resolve_variant_with_offset(query_kmer, ref_kmer, ms_vs_query, ms_vs_ref, significant_match_threshold)
+        .map(|(query_chars, ref_chars, _)| (query_chars, ref_chars))
+}
+
+/// Same as [resolve_variant], but also returns the position in `query_kmer`
+/// where the variant starts.
+///
+/// The query characters of the variant start at the returned position, and
+/// for a deletion the reference characters are missing from the query just
+/// before it.
+pub fn resolve_variant_with_offset(
+    query_kmer: &[u8], 
+    ref_kmer: &[u8], 
+    ms_vs_query: &[(usize, Range<usize>)], // Slice of length k
+    ms_vs_ref: &[(usize, Range<usize>)], // Slice of length k
+    significant_match_threshold: usize,
+) -> Result<(Vec<u8>, Vec<u8>, usize), ResolveVariantErr> {
 
     let k = query_kmer.len();
     assert!(ref_kmer.len() == k);
@@ -165,7 +182,8 @@ pub fn resolve_variant(
             return Ok(
                 (
                     query_kmer[query_ms_peak+1..suffix_match_start].to_vec(), // Query chars
-                    ref_kmer[ref_ms_peak+1..suffix_match_start].to_vec() // Ref chars
+                    ref_kmer[ref_ms_peak+1..suffix_match_start].to_vec(), // Ref chars
+                    query_ms_peak + 1,
                 )
             )
         } else {
@@ -180,7 +198,8 @@ pub fn resolve_variant(
                 return Ok(
                     (
                         vec![], // Query chars
-                        ref_kmer[ref_ms_peak + 1 .. ref_ms_peak + 1 + variant_len].to_vec() // Ref chars
+                        ref_kmer[ref_ms_peak + 1 .. ref_ms_peak + 1 + variant_len].to_vec(), // Ref chars
+                        query_ms_peak + 1,
                     )
                 );
             }  else {
@@ -188,7 +207,8 @@ pub fn resolve_variant(
                 return Ok(
                     (
                         query_kmer[query_ms_peak + 1 .. query_ms_peak + 1 + variant_len].to_vec(), // Query chars
-                        vec![] // Ref chars
+                        vec![], // Ref chars
+                        query_ms_peak + 1,
                     )
                 );
             }
@@ -278,8 +298,16 @@ pub fn call_variants(
                     let ms_vs_ref = index_ref.matching_statistics(&query_kmer);
                     let ms_vs_query = index_query.matching_statistics(&ref_kmer);
 
-                    if let Ok(var) = resolve_variant(&query_kmer, &ref_kmer, &ms_vs_query, &ms_vs_ref, d) {
-                        calls.push(Variant{query_chars: var.0, ref_chars: var.1, query_pos: i});
+                    if let Ok(var) = resolve_variant_with_offset(&query_kmer, &ref_kmer, &ms_vs_query, &ms_vs_ref, d) {
+                        // The resolved variant is not necessarily at i: if the
+                        // closest significant unique match is past another
+                        // variant, that one is resolved instead. Report it
+                        // where it is in the k-mer ending at j, which starts at
+                        // j + 1 - k (the k-mer may be padded on the left).
+                        let query_pos = j as isize + 1 - k as isize + var.2 as isize;
+                        if query_pos >= 0 {
+                            calls.push(Variant{query_chars: var.0, ref_chars: var.1, query_pos: query_pos as usize});
+                        }
                     }
                     break;
                 }
@@ -288,6 +316,10 @@ pub fn call_variants(
 
         }
     }
+
+    // A variant resolved from several drops is reported only once.
+    calls.sort_by_key(|variant| variant.query_pos);
+    calls.dedup();
 
     calls
 }
@@ -447,6 +479,28 @@ mod tests {
         dbg!(&variants);
 
         assert_eq!(variants, vec![Variant{query_pos: 49, ref_chars: vec![b'A'], query_chars: vec![b'T']}]);
+    }
+
+    #[test]
+    fn test_substitution_after_repeated_segment_is_reported_where_it_is() {
+        //                                         v 30 (G>A)  v 41 (G>C)
+        let reference = b"TGGTGCGGATCCAGGGGAACCGTTGACTCAGAAAGGAGCTGGCCGTCCACCTAACGTGAAGTTCCAAAATCCCAAACCTCTCGAGATAAAGGAGCTGATTTATCCAGCAAGG";
+        let query =     b"TGGTGCGGATCCAGGGGAACCGTTGACTCAAAAAGGAGCTGCCCGTCCACCTAACGTGAAGTTCCAAAATCC";
+        //                                                ^^^^^^^^^^ occurs twice in the reference
+
+        let variants = run_variant_calling(query, reference, 20, 0.001);
+        dbg!(&variants);
+
+        // Every call reports the query characters where they are in the query,
+        // and each variant only once.
+        for variant in &variants {
+            let end = variant.query_pos + variant.query_chars.len();
+            assert_eq!(&query[variant.query_pos..end], variant.query_chars.as_slice(), "{:?}", variant);
+        }
+        for pair in variants.windows(2) {
+            assert!(pair[0].query_pos < pair[1].query_pos, "{:?}", pair);
+        }
+        assert!(variants.contains(&Variant{query_pos: 41, ref_chars: vec![b'G'], query_chars: vec![b'C']}), "{:?}", variants);
     }
 
     #[test]
